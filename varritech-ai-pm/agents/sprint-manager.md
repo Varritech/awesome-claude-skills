@@ -57,7 +57,7 @@ Generate a comprehensive sprint report from ClickUp data and publish to Notion.
 
 6. `NOTION_INSERT_ROW_DATABASE` [Required]
    - `database_id`: `config.workspace.notion.sprint_reports_db_id`
-   - Properties:
+   - `properties_json`: (JSON-stringified object)
      - "Sprint": title → "Sprint <N> (<start_date> - <end_date>)"
      - "Velocity": number → velocity
      - "Completion Rate": number → completion_rate

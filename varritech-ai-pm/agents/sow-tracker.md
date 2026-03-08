@@ -48,7 +48,7 @@ Recalculate completion percentage for milestones in a specific project (or all p
 
 4. `NOTION_UPDATE_ROW_DATABASE` [Required]
    - `page_id`: milestone page ID
-   - Properties:
+   - `properties_json`: (JSON-stringified object)
      - "Progress": `{ "number": progress }`
      - If progress == 100:
        - "Status": `{ "select": { "name": "Complete" } }`
@@ -120,7 +120,8 @@ Associate ClickUp tasks with a SOW milestone.
 3. Append new task IDs to the comma-separated list
 
 4. `NOTION_UPDATE_ROW_DATABASE` [Required]
-   - Update "Linked Tasks" with the new comma-separated string
+   - `page_id`: milestone page ID
+   - `properties_json`: JSON-stringified object with updated "Linked Tasks" value
 
 5. Tag the ClickUp tasks with the SOW milestone:
    - For each new task_id:
@@ -136,7 +137,7 @@ Set up a new project SOW with milestones in Notion.
 1. For each milestone provided:
    - `NOTION_INSERT_ROW_DATABASE` [Required]
      - `database_id`: `config.workspace.notion.sow_tracker_db_id`
-     - Properties:
+     - `properties_json`: (JSON-stringified object)
        - "Milestone": title → milestone name
        - "Project": select → project name
        - "Status": select → "Not Started"

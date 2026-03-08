@@ -185,7 +185,7 @@ After EVERY notification sent (Slack or email), log to Notion Comms Log:
 
 1. `NOTION_INSERT_ROW_DATABASE` [Required]
    - `database_id`: `config.workspace.notion.comms_log_db_id`
-   - Properties:
+   - `properties_json`: (JSON-stringified object)
      - "Message": title → subject/summary of the message
      - "Type": select → "Slack" | "Email" | "DM"
      - "Channel/Recipient": rich_text → channel name or email address

@@ -30,7 +30,7 @@ Classify the incoming request into one of these categories:
 | `meeting_new` | "process meeting", "new meeting", Fathom poll detects new recording | Meeting Processor → Stakeholder Communicator |
 | `sprint_report` | "sprint report", "sprint status", "velocity", sprint end date reached | Sprint Manager → Stakeholder Communicator |
 | `sprint_create` | "create sprint", "new sprint", "start sprint" | Sprint Manager |
-| `overdue_check` | "what's overdue", "overdue tasks", hourly poll | Sprint Manager → Stakeholder Communicator |
+| `overdue_check` | "what's overdue", "overdue tasks", daily cron (9 AM weekdays) | Sprint Manager → Stakeholder Communicator |
 | `sow_update` | "update SOW", "SOW status", "milestone progress" | SOW Tracker |
 | `sow_health` | "SOW health", "project health", "all projects status" | SOW Tracker |
 | `status_update` | "send status update", "notify stakeholders", "weekly update" | Stakeholder Communicator |
@@ -67,7 +67,7 @@ Pass to stakeholder-communicator with:
 ### Sprint End → Report → Notification
 ```
 sprint-manager returns:
-  { sprint_name, velocity, completion_rate, carry_over_count, completed_tasks, overdue_tasks, report_page_url }
+  { sprint_name, velocity, completion_rate, carry_over_count, completed_count, overdue_count, top_contributors, report_page_url }
 
 Pass to stakeholder-communicator with:
   { type: "sprint_report", channel: config.channels.project_updates, payload: <above> }

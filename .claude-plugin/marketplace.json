@@ -87,12 +87,6 @@
       "category": "creative-media"
     },
     {
-      "name": "frontend-design",
-      "description": "Systematic frontend aesthetics framework that produces distinctive, high-quality web designs by applying design thinking, curated typography, and visual effects — preventing generic AI-generated output.",
-      "source": "./frontend-design",
-      "category": "creative-media"
-    },
-    {
       "name": "algorithmic-art",
       "description": "Creates algorithmic art and generative designs using computational creativity techniques.",
       "source": "./algorithmic-art",

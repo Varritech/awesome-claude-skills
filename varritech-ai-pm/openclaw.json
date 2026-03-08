@@ -1,11 +1,4 @@
 {
-  // ============================================================
-  // Varritech AI PM — OpenClaw Gateway Configuration
-  // ============================================================
-  // Deploy: Place in ~/.openclaw/openclaw.json or merge into existing config.
-  // Docs: https://docs.openclaw.ai/gateway/configuration
-
-  // ---- Channel Connections ----
   "channels": {
     "slack": {
       "enabled": true,
@@ -35,7 +28,6 @@
     }
   },
 
-  // ---- Agent Definitions ----
   "agents": {
     "list": [
       {
@@ -46,7 +38,6 @@
     ]
   },
 
-  // ---- Channel → Agent Bindings ----
   "bindings": [
     {
       "agentId": "varritech-pm",
@@ -58,7 +49,6 @@
     }
   ],
 
-  // ---- Session Configuration ----
   "session": {
     "dmScope": "per-channel-peer",
     "threadBindings": {
@@ -68,7 +58,6 @@
     }
   },
 
-  // ---- Cron Jobs (Event-Driven Triggers) ----
   "cron": [
     {
       "schedule": "*/5 * * * *",
@@ -99,7 +88,6 @@
     }
   ],
 
-  // ---- Composio Plugin (Tool Integrations) ----
   "plugins": {
     "composio": {
       "enabled": true

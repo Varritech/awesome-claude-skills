@@ -123,7 +123,7 @@ For each action item:
 1. `COMPOSIO_SEARCH_TOOLS` → find Notion database tools
 2. `NOTION_INSERT_ROW_DATABASE` with:
    - `database_id`: `config.workspace.notion.meeting_log_db_id`
-   - `properties`:
+   - `properties_json`: (JSON-stringified object — Composio requires a string, not a dict)
      - "Meeting Title": `{ "title": [{ "text": { "content": "<meeting.title>" } }] }`
      - "Date": `{ "date": { "start": "<meeting.created_at>" } }`
      - "Attendees": `{ "multi_select": [{ "name": "<name>" }, ...] }`

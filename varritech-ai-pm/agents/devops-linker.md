@@ -54,7 +54,7 @@ Process a GitHub PR merge and update all linked ClickUp tasks.
 
 5. `NOTION_INSERT_ROW_DATABASE` [Required]
    - `database_id`: `config.workspace.notion.changelog_db_id`
-   - Properties:
+   - `properties_json`: (JSON-stringified object)
      - "PR Title": `{ "title": [{ "text": { "content": "<pr.title>" } }] }`
      - "PR URL": `{ "url": "<pr.html_url>" }`
      - "Date": `{ "date": { "start": "<pr.merged_at>" } }`
