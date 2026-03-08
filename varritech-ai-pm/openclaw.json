@@ -1,0 +1,108 @@
+{
+  // ============================================================
+  // Varritech AI PM — OpenClaw Gateway Configuration
+  // ============================================================
+  // Deploy: Place in ~/.openclaw/openclaw.json or merge into existing config.
+  // Docs: https://docs.openclaw.ai/gateway/configuration
+
+  // ---- Channel Connections ----
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "mode": "socket",
+      "botToken": "xoxb-PLACEHOLDER",
+      "appToken": "xapp-PLACEHOLDER",
+      "dmPolicy": "allowlist",
+      "allowFrom": ["*"],
+      "groupPolicy": "mention",
+      "groupAllowFrom": ["*"],
+      "groups": {
+        "*": { "requireMention": true }
+      },
+      "textChunkLimit": 4000,
+      "streaming": "partial",
+      "commands": { "native": true }
+    },
+    "whatsapp": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "allowFrom": [],
+      "groupPolicy": "mention",
+      "groupAllowFrom": ["*"],
+      "groups": {
+        "*": { "requireMention": true }
+      }
+    }
+  },
+
+  // ---- Agent Definitions ----
+  "agents": {
+    "list": [
+      {
+        "id": "varritech-pm",
+        "default": true,
+        "workspace": "~/.openclaw/workspaces/varritech-pm"
+      }
+    ]
+  },
+
+  // ---- Channel → Agent Bindings ----
+  "bindings": [
+    {
+      "agentId": "varritech-pm",
+      "match": { "channel": "slack" }
+    },
+    {
+      "agentId": "varritech-pm",
+      "match": { "channel": "whatsapp" }
+    }
+  ],
+
+  // ---- Session Configuration ----
+  "session": {
+    "dmScope": "per-channel-peer",
+    "threadBindings": {
+      "enabled": true,
+      "idleHours": 24,
+      "maxAgeHours": 0
+    }
+  },
+
+  // ---- Cron Jobs (Event-Driven Triggers) ----
+  "cron": [
+    {
+      "schedule": "*/5 * * * *",
+      "agentId": "varritech-pm",
+      "message": "Check for new Fathom meetings and process any unprocessed recordings.",
+      "delivery": {
+        "mode": "announce",
+        "to": "slack:project-updates"
+      }
+    },
+    {
+      "schedule": "0 9 * * 1-5",
+      "agentId": "varritech-pm",
+      "message": "Check for overdue tasks and send escalation notifications.",
+      "delivery": {
+        "mode": "announce",
+        "to": "slack:pm-alerts"
+      }
+    },
+    {
+      "schedule": "0 17 * * 5",
+      "agentId": "varritech-pm",
+      "message": "Generate weekly project digest and send to stakeholders.",
+      "delivery": {
+        "mode": "announce",
+        "to": "slack:project-updates"
+      }
+    }
+  ],
+
+  // ---- Composio Plugin (Tool Integrations) ----
+  "plugins": {
+    "composio": {
+      "enabled": true
+    }
+  }
+}

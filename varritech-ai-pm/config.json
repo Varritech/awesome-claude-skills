@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+
+  "workspace": {
+    "clickup": {
+      "team_id": "PLACEHOLDER",
+      "space_id": "PLACEHOLDER",
+      "default_list_id": "PLACEHOLDER",
+      "sprint_folder_prefix": "Sprint",
+      "statuses": {
+        "open": "Open",
+        "in_progress": "In Progress",
+        "in_review": "In Review",
+        "done": "Done",
+        "closed": "Closed"
+      },
+      "pr_merged_status": "Done",
+      "priority_map": {
+        "urgent": 1,
+        "high": 2,
+        "normal": 3,
+        "low": 4
+      }
+    },
+    "notion": {
+      "meeting_log_db_id": "PLACEHOLDER",
+      "sprint_reports_db_id": "PLACEHOLDER",
+      "sow_tracker_db_id": "PLACEHOLDER",
+      "changelog_db_id": "PLACEHOLDER",
+      "comms_log_db_id": "PLACEHOLDER",
+      "pm_state_db_id": "PLACEHOLDER"
+    },
+    "github": {
+      "repos": [
+        { "owner": "Varritech", "repo": "PLACEHOLDER" }
+      ],
+      "task_id_pattern": "CU-([a-z0-9]+)"
+    }
+  },
+
+  "team": [
+    {
+      "name": "Christian Varriale",
+      "email": "christian@varritech.com",
+      "clickup_user_id": "PLACEHOLDER",
+      "slack_user_id": "PLACEHOLDER",
+      "github_username": "christianvarriale",
+      "role": "PM Lead",
+      "is_escalation_contact": true
+    }
+  ],
+
+  "channels": {
+    "project_updates": "project-updates",
+    "pm_alerts": "pm-alerts",
+    "standup": "daily-standup",
+    "project_channels": {}
+  },
+
+  "sprints": {
+    "duration_days": 14,
+    "default_story_points": 1,
+    "velocity_window": 3,
+    "auto_create_next": true
+  },
+
+  "escalation": {
+    "overdue_warning_days": 1,
+    "overdue_escalation_days": 3,
+    "overdue_critical_days": 5,
+    "escalation_email": "christian@varritech.com"
+  },
+
+  "projects": {},
+
+  "fathom": {
+    "poll_interval_seconds": 300,
+    "auto_process": true,
+    "default_task_priority": 3,
+    "default_due_days": 7
+  }
+}
