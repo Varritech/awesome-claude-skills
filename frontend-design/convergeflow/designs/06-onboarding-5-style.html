@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow — Choose Your Style</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+    body{background:#111113;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+    @media(prefers-reduced-motion:reduce){*{transition-duration:0ms!important;animation-duration:0ms!important}}
+
+    /* Top bar - minimal, like Linear's breadcrumb */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;position:fixed;top:0;left:0;right:0;z-index:10}
+    .topbar-left{display:flex;align-items:center;gap:10px}
+    .topbar-logo{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center}
+    .topbar-brand{font-size:15px;font-weight:700;letter-spacing:-0.02em;font-style:italic;color:rgba(255,255,255,0.6)}
+
+    /* Step indicator - inline text, not circles */
+    .topbar-steps{display:flex;align-items:center;gap:0}
+    .topbar-step{font-size:12px;font-weight:500;color:rgba(255,255,255,0.12);padding:6px 0;position:relative}
+    .topbar-step.done{color:rgba(255,255,255,0.25)}
+    .topbar-step.active{color:#fff;font-weight:700}
+    .topbar-sep{width:20px;text-align:center;font-size:10px;color:rgba(255,255,255,0.08)}
+    /* Thin progress line under topbar */
+    .progress-track{position:fixed;top:62px;left:0;right:0;height:1px;background:rgba(255,255,255,0.04);z-index:10}
+    .progress-fill{height:1px;background:linear-gradient(90deg,#F97316,#FB923C);width:0;animation:fillProgress 800ms cubic-bezier(0.23,1,0.32,1) 300ms forwards}
+    @keyframes fillProgress{to{width:90%}}
+
+    /* Main content */
+    .main{max-width:720px;margin:0 auto;padding:100px 32px 60px}
+
+    /* Header */
+    .header{margin-bottom:48px}
+    .header h1{font-size:32px;font-weight:700;letter-spacing:-0.04em;line-height:1.15;margin-bottom:8px}
+    .header h1 span{color:#F97316}
+    .header p{font-size:15px;color:rgba(255,255,255,0.3);line-height:1.5}
+
+    /* Persona grid */
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:40px}
+    @media(max-width:600px){.grid{grid-template-columns:1fr;gap:12px}}
+
+    /* Persona card */
+    .card{background:#1B1B1F;border-radius:20px;padding:28px 24px;cursor:pointer;position:relative;overflow:hidden;transition:transform 200ms cubic-bezier(0.23,1,0.32,1),background 150ms ease}
+    .card:hover{background:#1F1F25;transform:translateY(-2px)}
+    .card:active{transform:translateY(0)}
+    .card.on{background:#1F1F25}
+    .card.on::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-radius:20px;box-shadow:inset 0 0 0 1.5px rgba(249,115,22,0.4);pointer-events:none}
+
+    /* Selected badge */
+    .card-badge{position:absolute;top:20px;right:20px;width:22px;height:22px;border-radius:50%;background:#F97316;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(0.5);transition:opacity 200ms cubic-bezier(0.23,1,0.32,1),transform 200ms cubic-bezier(0.23,1,0.32,1)}
+    .card.on .card-badge{opacity:1;transform:scale(1)}
+
+    /* Avatar row */
+    .card-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+    .avatar{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .avatar.c{background:linear-gradient(135deg,#F97316,#EA580C)}
+    .avatar.n{background:linear-gradient(135deg,#22C55E,#16A34A)}
+    .avatar.e{background:linear-gradient(135deg,#6366F1,#4F46E5)}
+    .avatar.h{background:linear-gradient(135deg,#F59E0B,#D97706)}
+    .card-name{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+
+    /* Description */
+    .card-desc{font-size:13px;color:rgba(255,255,255,0.3);line-height:1.5;margin-bottom:18px}
+
+    /* Email preview */
+    .card-email{background:#161618;border-radius:14px;padding:18px 20px}
+    .email-subj{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .email-subj-dot{width:6px;height:6px;border-radius:50%;background:#F97316;flex-shrink:0}
+    .email-subj-text{font-size:11px;color:rgba(255,255,255,0.2);font-weight:500}
+    .email-body{font-size:13px;color:rgba(255,255,255,0.35);line-height:1.65}
+    .email-sig{font-size:11px;color:rgba(255,255,255,0.12);margin-top:12px}
+
+    /* Footer */
+    .footer{display:flex;align-items:center;justify-content:space-between}
+    .back{font-size:13px;color:rgba(255,255,255,0.2);text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:6px;transition:color 150ms ease}
+    .back:hover{color:rgba(255,255,255,0.4)}
+    .go{background:#F97316;color:#fff;font-size:14px;font-weight:700;padding:14px 36px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;opacity:0.25;pointer-events:none;transition:opacity 250ms cubic-bezier(0.23,1,0.32,1),transform 150ms ease}
+    .go.on{opacity:1;pointer-events:auto}
+    .go.on:hover{transform:translateY(-1px)}
+    .go.on:active{transform:translateY(0)}
+
+    /* Entry animation */
+    .main{animation:enter 600ms cubic-bezier(0.23,1,0.32,1)}
+    @keyframes enter{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Stagger cards */
+    .card:nth-child(1){animation:cardIn 500ms cubic-bezier(0.23,1,0.32,1) 100ms both}
+    .card:nth-child(2){animation:cardIn 500ms cubic-bezier(0.23,1,0.32,1) 180ms both}
+    .card:nth-child(3){animation:cardIn 500ms cubic-bezier(0.23,1,0.32,1) 260ms both}
+    .card:nth-child(4){animation:cardIn 500ms cubic-bezier(0.23,1,0.32,1) 340ms both}
+    @keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+    @media(max-width:600px){
+      .topbar{padding:16px 20px}
+      .main{padding:88px 20px 40px}
+      .header h1{font-size:26px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar with integrated step indicator -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4L12 12L4 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4L20 12L12 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="topbar-brand">ConvergeFlow</span>
+  </div>
+  <div class="topbar-steps">
+    <span class="topbar-step done">Account</span>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-step done">Domain</span>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-step done">Inboxes</span>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-step done">Niche</span>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-step active">Launch</span>
+  </div>
+</div>
+<div class="progress-track"><div class="progress-fill"></div></div>
+
+<!-- Main -->
+<div class="main">
+
+  <div class="header">
+    <h1>Last step. <span>How should your emails sound?</span></h1>
+    <p>Pick a writing style. Each one sounds different. You can always change it later.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- The Closer -->
+    <div class="card" onclick="pick(this)">
+      <div class="card-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="card-head">
+        <div class="avatar"><img src="assets/closer.jpg" alt="The Closer" style="width:100%;height:100%;object-fit:cover;border-radius:16px;"></div>
+        <div class="card-name">The Closer</div>
+      </div>
+      <div class="card-desc">Direct and confident. Gets straight to the point.</div>
+      <div class="card-email">
+        <div class="email-subj"><div class="email-subj-dot"></div><span class="email-subj-text">Quick question about your roof</span></div>
+        <div class="email-body">Hi Mike, I noticed some shingles lifting on your roof at 42 Elm St. We're doing work in your neighborhood this week. Want a free quote before it gets worse?</div>
+        <div class="email-sig">— Jake, Jake's Roofing</div>
+      </div>
+    </div>
+
+    <!-- The Neighbor -->
+    <div class="card" onclick="pick(this)">
+      <div class="card-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="card-head">
+        <div class="avatar"><img src="assets/neighbor.jpg" alt="The Neighbor" style="width:100%;height:100%;object-fit:cover;border-radius:16px;"></div>
+        <div class="card-name">The Neighbor</div>
+      </div>
+      <div class="card-desc">Friendly and warm. Like a recommendation from next door.</div>
+      <div class="card-email">
+        <div class="email-subj"><div class="email-subj-dot"></div><span class="email-subj-text">Hey from a local roofer</span></div>
+        <div class="email-body">Hey Mike! Just finished a roof for the Johnsons down the street. They were really happy with how it turned out. If you ever need anything, we'd love to help.</div>
+        <div class="email-sig">— Jake, Jake's Roofing</div>
+      </div>
+    </div>
+
+    <!-- The Expert -->
+    <div class="card" onclick="pick(this)">
+      <div class="card-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="card-head">
+        <div class="avatar"><img src="assets/expert.jpg" alt="The Expert" style="width:100%;height:100%;object-fit:cover;border-radius:16px;"></div>
+        <div class="card-name">The Expert</div>
+      </div>
+      <div class="card-desc">Professional and knowledgeable. Builds trust with expertise.</div>
+      <div class="card-email">
+        <div class="email-subj"><div class="email-subj-dot"></div><span class="email-subj-text">Roof inspection before storm season</span></div>
+        <div class="email-body">Hi Mike, with the recent storms, homes built before 2005 often show early wear on ridge caps and flashing. A quick inspection can catch small issues before they become costly repairs.</div>
+        <div class="email-sig">— Jake, Jake's Roofing</div>
+      </div>
+    </div>
+
+    <!-- The Helper -->
+    <div class="card" onclick="pick(this)">
+      <div class="card-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="card-head">
+        <div class="avatar"><img src="assets/helper.jpg" alt="The Helper" style="width:100%;height:100%;object-fit:cover;border-radius:16px;"></div>
+        <div class="card-name">The Helper</div>
+      </div>
+      <div class="card-desc">Helpful and genuine. Focused on solving problems.</div>
+      <div class="card-email">
+        <div class="email-subj"><div class="email-subj-dot"></div><span class="email-subj-text">Can I help with your roof?</span></div>
+        <div class="email-body">Hi Mike, I know dealing with roof stuff can be stressful, especially when you're not sure how bad it is. I'm happy to come take a look for free. No pressure at all.</div>
+        <div class="email-sig">— Jake, Jake's Roofing</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <a class="back" href="05-onboarding-4-industry.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Back
+    </a>
+    <button class="go" id="go" onclick="window.location.href='07-dashboard.html'">Start sending emails</button>
+  </div>
+
+</div>
+
+<script>
+function pick(el){
+  document.querySelectorAll('.card').forEach(function(c){c.classList.remove('on')});
+  el.classList.add('on');
+  document.getElementById('go').classList.add('on');
+}
+</script>
+</body>
+</html>

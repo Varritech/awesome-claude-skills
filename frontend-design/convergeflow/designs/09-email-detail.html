@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow - Email Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-page: #111113;
+      --bg-card: #1B1B1F;
+      --bg-elevated: #222228;
+      --orange: #F97316;
+      --mint: #D4E4DD;
+      --green: #22C55E;
+      --red: #EF4444;
+      --amber: #F59E0B;
+      --indigo: #6366F1;
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.5);
+      --text-tertiary: rgba(255,255,255,0.35);
+      --text-quaternary: rgba(255,255,255,0.2);
+      --text-faint: rgba(255,255,255,0.1);
+      --radius-card: 24px;
+      --radius-btn: 14px;
+      --radius-icon: 10px;
+      --radius-badge: 6px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    input, textarea, select { font-family: inherit; }
+
+    /* ---- SIDEBAR (desktop >= 768px) ---- */
+    .sidebar{width:64px;background:#1B1B1F;display:flex;flex-direction:column;align-items:center;padding:16px 0;flex-shrink:0;position:fixed;top:0;bottom:0;left:0;z-index:40}
+    .nav-icon{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;cursor:pointer;position:relative;text-decoration:none}
+    .nav-icon.active{background:rgba(249,115,22,0.1)}
+    .nav-icon.active::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 2px 2px 0;background:#F97316}
+    .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F97316,#FB923C);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;color:#fff}
+    @media(max-width:767px){.sidebar{display:none}}
+
+    /* ---- MOBILE BOTTOM NAV (< 768px) ---- */
+    .mobile-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg-card); border-top: 1px solid var(--text-faint);
+      justify-content: space-around; align-items: center;
+      height: 64px; z-index: 50;
+    }
+    @media (min-width: 768px) { .mobile-nav { display: none; } }
+    .mobile-nav a {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-tertiary); transition: color 150ms ease;
+    }
+    .mobile-nav a:hover { color: var(--text-secondary); }
+    .mobile-nav a.active { color: var(--orange); }
+    .mobile-nav a svg { width: 20px; height: 20px; }
+
+    /* ---- MAIN CONTENT ---- */
+    .main { padding-bottom: 80px; }
+    @media (min-width: 768px) { .main { margin-left: 64px; padding-bottom: 0; } }
+    .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+    @media (min-width: 768px) { .container { padding: 32px; } }
+
+    /* ---- BACK LINK ---- */
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      margin-bottom: 24px; transition: color 150ms ease;
+    }
+    .back-link:hover { color: var(--text-primary); }
+    .back-link svg { width: 16px; height: 16px; }
+
+    /* ---- HEADER CARD ---- */
+    .header-card {
+      background: var(--bg-card); border-radius: var(--radius-card);
+      padding: 24px; margin-bottom: 24px;
+    }
+    .header-top {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .header-title { font-size: 20px; font-weight: 700; }
+    @media (min-width: 768px) { .header-title { font-size: 24px; } }
+    .badge {
+      display: inline-flex; align-items: center;
+      font-size: 11px; font-weight: 700; padding: 6px 12px;
+      border-radius: var(--radius-badge);
+    }
+    .badge-green { background: #D4E4DD; color: #1B1B1F; }
+    .badge-amber { background: #D4E4DD; color: #1B1B1F; }
+    .badge-indigo { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); }
+    .badge-red { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); }
+
+    .stats-row {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card {
+      background: var(--bg-elevated); border-radius: 14px;
+      padding: 12px 16px; text-align: center;
+    }
+    .stat-value { font-size: 22px; font-weight: 700; }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ---- FILTER PILLS ---- */
+    .pills {
+      display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+    }
+    .pills::-webkit-scrollbar { display: none; }
+    .pill {
+      white-space: nowrap; padding: 8px 16px; border-radius: 100px;
+      font-size: 13px; font-weight: 500; border: none;
+      background: rgba(255,255,255,0.06); color: var(--text-tertiary);
+      transition: background 150ms ease, color 150ms ease;
+    }
+    .pill:hover { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+    .pill.active { background: var(--mint); color: var(--bg-card); font-weight: 700; }
+
+    /* ---- EMAIL LIST ---- */
+    .email-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .email-row {
+      background: var(--bg-card); border-radius: var(--radius-card);
+      overflow: hidden; transition: transform 150ms ease;
+    }
+    .email-row:hover { transform: translateY(-2px); }
+
+    .email-row-header {
+      padding: 16px 20px; cursor: pointer; display: flex;
+      align-items: flex-start; gap: 16px; flex-wrap: wrap;
+    }
+    @media (min-width: 600px) {
+      .email-row-header { align-items: center; flex-wrap: nowrap; }
+    }
+    .email-main { flex: 1; min-width: 0; }
+    .email-to { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .email-subject { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-meta {
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .email-time { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+    .email-chevron {
+      color: var(--text-tertiary); transition: transform 150ms ease;
+      width: 18px; height: 18px; flex-shrink: 0;
+    }
+    .email-row.open .email-chevron { transform: rotate(180deg); }
+
+    /* ---- EMAIL EXPANDED ---- */
+    .email-expanded {
+      display: none; padding: 0 20px 20px 20px;
+    }
+    .email-row.open .email-expanded { display: block; }
+
+    .email-body-container {
+      background: var(--bg-elevated); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .email-body-text {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .email-body-edit {
+      display: none; width: 100%;
+      background: var(--bg-card); border: none;
+      border-radius: 14px; padding: 14px 18px;
+      font-size: 13px; color: var(--text-primary); line-height: 1.7;
+      resize: vertical; min-height: 120px; outline: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .email-body-edit:focus { box-shadow: 0 0 0 2px rgba(249,115,22,0.25); }
+    .email-body-edit::placeholder { color: var(--text-tertiary); }
+    .email-row.editing .email-body-text { display: none; }
+    .email-row.editing .email-body-edit { display: block; }
+
+    .reply-block {
+      border-left: 3px solid var(--orange); padding-left: 16px;
+      margin-top: 16px;
+    }
+    .reply-label {
+      font-size: 11px; font-weight: 700; color: var(--orange);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .reply-text { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+    .email-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; border-radius: var(--radius-btn);
+      padding: 10px 20px; transition: all 150ms ease;
+      border: none;
+    }
+    .btn:hover { transform: scale(1.02); }
+    .btn-secondary { background: var(--bg-card); color: var(--text-primary); font-weight: 500; }
+    .btn-secondary:hover { background: var(--bg-elevated); }
+    .btn-mint { background: var(--mint); color: var(--bg-card); font-weight: 700; }
+    .btn-mint:hover { opacity: 0.9; }
+    .btn-danger { background: rgba(239,68,68,0.1); color: var(--red); font-weight: 500; }
+    .btn-danger:hover { background: rgba(239,68,68,0.18); }
+    .btn-primary { background: var(--orange); color: #fff; font-weight: 700; padding: 14px 28px; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-save { display: none; }
+    .email-row.editing .btn-save { display: inline-flex; }
+    .email-row.editing .btn-edit-trigger { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 0ms !important;
+        animation-duration: 0ms !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar">
+    <a href="07-dashboard.html" style="width:36px;height:36px;border-radius:14px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4L12 12L4 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4L20 12L12 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <a href="07-dashboard.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+    <a href="08-your-emails.html" class="nav-icon active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+    <a href="10-find-customers.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></a>
+    <a href="11-email-styles.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a>
+    <a href="12-how-its-going.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></a>
+    <div style="flex:1;"></div>
+    <a href="13-settings.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></a>
+    <a href="15-need-help.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></a>
+    <div class="avatar">JR</div>
+  </aside>
+
+  <!-- Mobile Bottom Nav -->
+  <nav class="mobile-nav">
+    <a href="07-dashboard.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></a>
+    <a href="08-your-emails.html" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Emails</span></a>
+    <a href="10-find-customers.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Customers</span></a>
+    <a href="12-how-its-going.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Stats</span></a>
+    <a href="13-settings.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Account</span></a>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="container">
+
+      <!-- Back Link -->
+      <a href="08-your-emails.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Your Emails
+      </a>
+
+      <!-- Header Card -->
+      <div class="header-card">
+        <div class="header-top">
+          <h1 class="header-title">Roofing - Dallas Area</h1>
+          <span class="badge badge-green">Active</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value">42</div>
+            <div class="stat-label">Sent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">24</div>
+            <div class="stat-label">Opened</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">7</div>
+            <div class="stat-label">Replied</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">3</div>
+            <div class="stat-label">Interested</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="pills">
+        <button class="pill active" data-filter="all">All Emails</button>
+        <button class="pill" data-filter="sent">Sent</button>
+        <button class="pill" data-filter="opened">Opened</button>
+        <button class="pill" data-filter="replied">Replied</button>
+        <button class="pill" data-filter="bounced">Bounced</button>
+      </div>
+
+      <!-- Email List -->
+      <div class="email-list">
+
+        <!-- Email 1: Replied -->
+        <div class="email-row" data-status="replied">
+          <div class="email-row-header" onclick="toggleEmail(this)">
+            <div class="email-main">
+              <div class="email-to">Mike Thompson - Thompson Construction</div>
+              <div class="email-subject">Quick question about your roof</div>
+            </div>
+            <div class="email-meta">
+              <span class="badge badge-green">Replied</span>
+              <span class="email-time">Today, 9:14 AM</span>
+              <svg class="email-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="email-expanded">
+            <div class="email-body-container">
+              <div class="email-body-text">Hey Mike,
+
+I saw your crew was working on that new build off Elm Street. Nice work. I do residential and commercial roofing here in Dallas and wanted to see if you ever need a hand with roofing on your projects.
+
+We handle everything from inspections to full installs, and our schedule has some openings this month.
+
+Worth a quick chat? Happy to swing by your site anytime.
+
+- Jake, Jake's Roofing</div>
+              <textarea class="email-body-edit">Hey Mike,
+
+I saw your crew was working on that new build off Elm Street. Nice work. I do residential and commercial roofing here in Dallas and wanted to see if you ever need a hand with roofing on your projects.
+
+We handle everything from inspections to full installs, and our schedule has some openings this month.
+
+Worth a quick chat? Happy to swing by your site anytime.
+
+- Jake, Jake's Roofing</textarea>
+
+              <div class="reply-block">
+                <div class="reply-label">Reply from Mike</div>
+                <div class="reply-text">Yeah we've been looking for a roofer actually. Can you come by the Elm Street site Thursday morning? We've got a duplex that needs a full tear-off and replace. Bring your numbers.</div>
+              </div>
+            </div>
+            <div class="email-actions">
+              <button class="btn btn-secondary btn-edit-trigger" onclick="toggleEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+              <button class="btn btn-primary btn-save" onclick="saveEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save</button>
+              <button class="btn btn-mint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Regenerate</button>
+              <button class="btn btn-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email 2: Replied -->
+        <div class="email-row" data-status="replied">
+          <div class="email-row-header" onclick="toggleEmail(this)">
+            <div class="email-main">
+              <div class="email-to">Sarah Chen - Chen Properties</div>
+              <div class="email-subject">Roofing estimate for your property</div>
+            </div>
+            <div class="email-meta">
+              <span class="badge badge-green">Replied</span>
+              <span class="email-time">Today, 9:22 AM</span>
+              <svg class="email-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="email-expanded">
+            <div class="email-body-container">
+              <div class="email-body-text">Hi Sarah,
+
+I noticed you manage a few properties over in the Oak Lawn area. With winter coming up, now is the best time to get roofs checked before any storms hit.
+
+I offer free inspections and can usually get you a quote the same day. Most of my clients save money by catching small issues early.
+
+Want me to stop by one of your properties this week?
+
+- Jake, Jake's Roofing</div>
+              <textarea class="email-body-edit">Hi Sarah,
+
+I noticed you manage a few properties over in the Oak Lawn area. With winter coming up, now is the best time to get roofs checked before any storms hit.
+
+I offer free inspections and can usually get you a quote the same day. Most of my clients save money by catching small issues early.
+
+Want me to stop by one of your properties this week?
+
+- Jake, Jake's Roofing</textarea>
+
+              <div class="reply-block">
+                <div class="reply-label">Reply from Sarah</div>
+                <div class="reply-text">Send me a quote for the whole house. 2,400 sq ft. Shingle roof, about 15 years old. Can you do next Tuesday?</div>
+              </div>
+            </div>
+            <div class="email-actions">
+              <button class="btn btn-secondary btn-edit-trigger" onclick="toggleEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+              <button class="btn btn-primary btn-save" onclick="saveEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save</button>
+              <button class="btn btn-mint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Regenerate</button>
+              <button class="btn btn-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email 3: Opened -->
+        <div class="email-row" data-status="opened">
+          <div class="email-row-header" onclick="toggleEmail(this)">
+            <div class="email-main">
+              <div class="email-to">Dave Morrison - Morrison &amp; Sons</div>
+              <div class="email-subject">Roof inspection before winter</div>
+            </div>
+            <div class="email-meta">
+              <span class="badge badge-amber">Opened</span>
+              <span class="email-time">Today, 9:31 AM</span>
+              <svg class="email-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="email-expanded">
+            <div class="email-body-container">
+              <div class="email-body-text">Hey Dave,
+
+Storm season is right around the corner. I've been helping businesses in Dallas get their roofs checked and patched up before things get rough.
+
+Takes about 30 minutes, totally free, and I'll send you photos of anything I find. No pressure, no sales pitch.
+
+Got 30 minutes this week?
+
+- Jake, Jake's Roofing</div>
+              <textarea class="email-body-edit">Hey Dave,
+
+Storm season is right around the corner. I've been helping businesses in Dallas get their roofs checked and patched up before things get rough.
+
+Takes about 30 minutes, totally free, and I'll send you photos of anything I find. No pressure, no sales pitch.
+
+Got 30 minutes this week?
+
+- Jake, Jake's Roofing</textarea>
+            </div>
+            <div class="email-actions">
+              <button class="btn btn-secondary btn-edit-trigger" onclick="toggleEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+              <button class="btn btn-primary btn-save" onclick="saveEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save</button>
+              <button class="btn btn-mint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Regenerate</button>
+              <button class="btn btn-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email 4: Sent -->
+        <div class="email-row" data-status="sent">
+          <div class="email-row-header" onclick="toggleEmail(this)">
+            <div class="email-main">
+              <div class="email-to">Lisa Park - Park Realty Group</div>
+              <div class="email-subject">Commercial roofing services</div>
+            </div>
+            <div class="email-meta">
+              <span class="badge badge-indigo">Sent</span>
+              <span class="email-time">Today, 9:45 AM</span>
+              <svg class="email-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="email-expanded">
+            <div class="email-body-container">
+              <div class="email-body-text">Hi Lisa,
+
+I work with a few property management companies in the Dallas area and wanted to reach out. If you have any commercial buildings that need roof work, I'd love to help.
+
+We do flat roofs, metal, shingle, you name it. And we're fully licensed and insured.
+
+Happy to give you a free assessment on any of your properties. Just let me know.
+
+- Jake, Jake's Roofing</div>
+              <textarea class="email-body-edit">Hi Lisa,
+
+I work with a few property management companies in the Dallas area and wanted to reach out. If you have any commercial buildings that need roof work, I'd love to help.
+
+We do flat roofs, metal, shingle, you name it. And we're fully licensed and insured.
+
+Happy to give you a free assessment on any of your properties. Just let me know.
+
+- Jake, Jake's Roofing</textarea>
+            </div>
+            <div class="email-actions">
+              <button class="btn btn-secondary btn-edit-trigger" onclick="toggleEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+              <button class="btn btn-primary btn-save" onclick="saveEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save</button>
+              <button class="btn btn-mint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Regenerate</button>
+              <button class="btn btn-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email 5: Bounced -->
+        <div class="email-row" data-status="bounced">
+          <div class="email-row-header" onclick="toggleEmail(this)">
+            <div class="email-main">
+              <div class="email-to">James Wilson - Wilson Development</div>
+              <div class="email-subject">Free roof assessment</div>
+            </div>
+            <div class="email-meta">
+              <span class="badge badge-red">Bounced</span>
+              <span class="email-time">Today, 10:02 AM</span>
+              <svg class="email-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="email-expanded">
+            <div class="email-body-container">
+              <div class="email-body-text">Hey James,
+
+I'm Jake from Jake's Roofing here in Dallas. I help developers like you keep their projects on track with fast, reliable roof work.
+
+Right now I'm offering free assessments for new clients. Takes less than an hour and you'll get a full report with photos.
+
+Want to set something up?
+
+- Jake, Jake's Roofing</div>
+              <textarea class="email-body-edit">Hey James,
+
+I'm Jake from Jake's Roofing here in Dallas. I help developers like you keep their projects on track with fast, reliable roof work.
+
+Right now I'm offering free assessments for new clients. Takes less than an hour and you'll get a full report with photos.
+
+Want to set something up?
+
+- Jake, Jake's Roofing</textarea>
+            </div>
+            <div class="email-actions">
+              <button class="btn btn-secondary btn-edit-trigger" onclick="toggleEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+              <button class="btn btn-primary btn-save" onclick="saveEdit(event, this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save</button>
+              <button class="btn btn-mint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Regenerate</button>
+              <button class="btn btn-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /email-list -->
+
+    </div><!-- /container -->
+  </div><!-- /main -->
+
+  <script>
+
+    // Toggle email expand/collapse
+    function toggleEmail(header) {
+      var row = header.closest('.email-row');
+      row.classList.toggle('open');
+      // Close editing if collapsing
+      if (!row.classList.contains('open')) {
+        row.classList.remove('editing');
+      }
+      }
+
+    // Toggle edit mode
+    function toggleEdit(e, btn) {
+      e.stopPropagation();
+      var row = btn.closest('.email-row');
+      row.classList.toggle('editing');
+      if (row.classList.contains('editing')) {
+        var textarea = row.querySelector('.email-body-edit');
+        textarea.focus();
+      }
+    }
+
+    // Save edit
+    function saveEdit(e, btn) {
+      e.stopPropagation();
+      var row = btn.closest('.email-row');
+      var textarea = row.querySelector('.email-body-edit');
+      var textDisplay = row.querySelector('.email-body-text');
+      textDisplay.textContent = textarea.value;
+      row.classList.remove('editing');
+    }
+
+    // Filter pills
+    var pills = document.querySelectorAll('.pill');
+    pills.forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        pills.forEach(function(p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+        var filter = pill.getAttribute('data-filter');
+        var rows = document.querySelectorAll('.email-row');
+        rows.forEach(function(row) {
+          if (filter === 'all') {
+            row.style.display = '';
+          } else {
+            row.style.display = row.getAttribute('data-status') === filter ? '' : 'none';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

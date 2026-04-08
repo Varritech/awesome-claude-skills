@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow — Design System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+    body{background:#111113;color:#fff;font-family:'DM Sans',sans-serif}
+    .label{font-size:10px;font-weight:500;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:12px}
+    .sublabel{font-size:10px;color:rgba(255,255,255,0.15);margin-top:6px}
+    .divider{height:1px;background:rgba(255,255,255,0.04);margin:40px 0}
+  </style>
+</head>
+<body>
+<div style="max-width:1200px;margin:0 auto;padding:48px 40px;">
+
+  <!-- HEADER -->
+  <div style="margin-bottom:48px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;">
+      <div style="width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <p style="font-size:24px;font-weight:700;letter-spacing:-0.04em;">ConvergeFlow</p>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,0.2);">Design System · Cuberto Style · Component Library</p>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 1. COLORS                  -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Colors — Backgrounds</p>
+  <div style="display:flex;gap:8px;margin-bottom:24px;">
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#111113;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);"></div><p class="sublabel">Page<br>#111113</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#1B1B1F;"></div><p class="sublabel">Card<br>#1B1B1F</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#222228;"></div><p class="sublabel">Elevated<br>#222228</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,0.06);"></div><p class="sublabel">Subtle<br>white/6%</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#D4E4DD;"></div><p class="sublabel">Mint<br>#D4E4DD</p></div>
+  </div>
+  <p class="label">Colors — Accent</p>
+  <div style="display:flex;gap:8px;margin-bottom:8px;">
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#F97316;"></div><p class="sublabel">Orange<br>#F97316</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#EF4444;"></div><p class="sublabel">Red<br>#EF4444</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#22C55E;"></div><p class="sublabel">Green<br>#22C55E</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#6366F1;"></div><p class="sublabel">Indigo<br>#6366F1</p></div>
+    <div style="text-align:center;"><div style="width:80px;height:80px;border-radius:20px;background:#F59E0B;"></div><p class="sublabel">Amber<br>#F59E0B</p></div>
+  </div>
+  <p class="label" style="margin-top:16px;">Colors — Text Hierarchy</p>
+  <div style="display:flex;gap:24px;margin-bottom:0;">
+    <div><span style="font-size:14px;font-weight:700;color:#FFFFFF;">Primary #FFFFFF</span></div>
+    <div><span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.5);">Secondary 50%</span></div>
+    <div><span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.35);">Muted 35%</span></div>
+    <div><span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.2);">Dim 20%</span></div>
+    <div><span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.1);">Ghost 10%</span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 2. TYPOGRAPHY              -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Typography — DM Sans</p>
+  <div style="background:#1B1B1F;border-radius:24px;padding:32px;margin-bottom:0;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:48px;font-weight:700;letter-spacing:-0.04em;">$5,078.78</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Display · 48px · 700 · -0.04em</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:36px;font-weight:700;letter-spacing:-0.04em;">200</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Metric · 36px · 700 · -0.04em</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em;">$92,510</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Heading · 24px · 700 · -0.03em</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:16px;font-weight:700;">Hi Ghulam</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Title · 16px · 700</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.5);">Web Development</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Body · 14px · 500 · 50%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:12px;color:rgba(255,255,255,0.25);">12 task now</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Caption · 12px · 400 · 25%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:16px;">
+      <span style="font-size:11px;color:rgba(255,255,255,0.2);">Profile is 68% More than last Month</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.15);">Small · 11px · 400 · 20%</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 3. RADIUS & SPACING        -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Radius</p>
+  <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:0;">
+    <div style="text-align:center;"><div style="width:64px;height:64px;background:#1B1B1F;border-radius:50%;"></div><p class="sublabel">Full<br>50%</p></div>
+    <div style="text-align:center;"><div style="width:64px;height:64px;background:#1B1B1F;border-radius:24px;"></div><p class="sublabel">Card<br>24px</p></div>
+    <div style="text-align:center;"><div style="width:64px;height:64px;background:#1B1B1F;border-radius:14px;"></div><p class="sublabel">Button<br>14px</p></div>
+    <div style="text-align:center;"><div style="width:64px;height:64px;background:#1B1B1F;border-radius:10px;"></div><p class="sublabel">Icon<br>10px</p></div>
+    <div style="text-align:center;"><div style="width:64px;height:64px;background:#1B1B1F;border-radius:6px;"></div><p class="sublabel">Badge<br>6px</p></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 4. INPUTS                  -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Inputs</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:0;">
+    <!-- Default -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Default</p>
+      <input type="text" placeholder="Search here..." style="width:100%;background:#1B1B1F;border:none;border-radius:14px;padding:14px 18px;font-size:14px;color:rgba(255,255,255,0.35);outline:none;font-family:'DM Sans',sans-serif;"/>
+    </div>
+    <!-- Filled -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Filled</p>
+      <input type="text" value="Jake's Roofing" style="width:100%;background:#1B1B1F;border:none;border-radius:14px;padding:14px 18px;font-size:14px;color:#fff;outline:none;font-family:'DM Sans',sans-serif;"/>
+    </div>
+    <!-- Focused -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Focused</p>
+      <input type="text" value="Dallas, TX" style="width:100%;background:#1B1B1F;border:2px solid #F97316;border-radius:14px;padding:12px 16px;font-size:14px;color:#fff;outline:none;font-family:'DM Sans',sans-serif;"/>
+    </div>
+    <!-- Error -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Error</p>
+      <input type="text" value="invalid@" style="width:100%;background:#1B1B1F;border:2px solid #EF4444;border-radius:14px;padding:12px 16px;font-size:14px;color:#EF4444;outline:none;font-family:'DM Sans',sans-serif;"/>
+    </div>
+    <!-- With icon -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">With Icon</p>
+      <div style="position:relative;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search leads..." style="width:100%;background:#1B1B1F;border:none;border-radius:14px;padding:14px 18px 14px 42px;font-size:14px;color:rgba(255,255,255,0.35);outline:none;font-family:'DM Sans',sans-serif;"/>
+      </div>
+    </div>
+    <!-- Select -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Select</p>
+      <div style="background:#1B1B1F;border-radius:14px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+        <span style="font-size:14px;color:#fff;">Roofing</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+    <!-- Toggle On -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Toggle On</p>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+        <div style="width:44px;height:24px;border-radius:12px;background:#F97316;position:relative;cursor:pointer;"><div style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></div></div>
+        <span style="font-size:13px;color:rgba(255,255,255,0.5);">Enabled</span>
+      </div>
+    </div>
+    <!-- Toggle Off -->
+    <div>
+      <p class="sublabel" style="margin-bottom:8px;margin-top:0;">Toggle Off</p>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+        <div style="width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,0.06);position:relative;cursor:pointer;"><div style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.2);"></div></div>
+        <span style="font-size:13px;color:rgba(255,255,255,0.2);">Disabled</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 5. BUTTONS                 -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Buttons</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+    <button style="background:#F97316;color:#fff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Primary</button>
+    <button style="background:#1B1B1F;color:#fff;font-size:14px;font-weight:500;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Secondary</button>
+    <button style="background:#D4E4DD;color:#1B1B1F;font-size:14px;font-weight:700;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Mint</button>
+    <button style="background:transparent;color:#F97316;font-size:14px;font-weight:500;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Ghost</button>
+    <button style="background:rgba(239,68,68,0.1);color:#EF4444;font-size:14px;font-weight:500;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Danger</button>
+  </div>
+  <p class="label">Button Sizes</p>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <button style="background:#F97316;color:#fff;font-size:12px;font-weight:700;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Small</button>
+    <button style="background:#F97316;color:#fff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Medium</button>
+    <button style="background:#F97316;color:#fff;font-size:16px;font-weight:700;padding:18px 36px;border-radius:16px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Large</button>
+    <!-- Icon button -->
+    <button style="background:#1B1B1F;width:48px;height:48px;border-radius:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+    </button>
+    <!-- Circle icon button -->
+    <button style="background:rgba(255,255,255,0.06);width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 6. LABELS / BADGES         -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Labels — Pill (Cuberto)</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:13px;font-weight:500;padding:10px 20px;border-radius:24px;background:#D4E4DD;color:#1B1B1F;">Selected</span>
+    <span style="font-size:13px;font-weight:500;padding:10px 20px;border-radius:24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);">Default</span>
+    <span style="font-size:13px;font-weight:500;padding:10px 20px;border-radius:24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);">Default</span>
+    <span style="font-size:13px;font-weight:500;padding:10px 20px;border-radius:24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);">Default</span>
+  </div>
+  <p class="label">Badges — Status</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;background:#F97316;color:#fff;">20%</span>
+    <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;background:#22C55E;color:#fff;">+43%</span>
+    <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;background:#EF4444;color:#fff;">-5%</span>
+    <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;background:#6366F1;color:#fff;">New</span>
+  </div>
+  <p class="label">Status Dots</p>
+  <div style="display:flex;gap:20px;">
+    <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#6366F1;"></div><span style="font-size:13px;color:rgba(255,255,255,0.5);">To Do</span></div>
+    <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></div><span style="font-size:13px;color:rgba(255,255,255,0.5);">Progress</span></div>
+    <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#22C55E;"></div><span style="font-size:13px;color:rgba(255,255,255,0.5);">Completed</span></div>
+    <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div><span style="font-size:13px;color:rgba(255,255,255,0.5);">Error</span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 7. AVATARS                 -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Avatars</p>
+  <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:0;">
+    <div style="text-align:center;"><div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F97316,#FB923C);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;">G</div><p class="sublabel">56px</p></div>
+    <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#818CF8);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">JR</div><p class="sublabel">40px</p></div>
+    <div style="text-align:center;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div><p class="sublabel">Icon 36px</p></div>
+    <div style="text-align:center;"><div style="width:36px;height:36px;border-radius:10px;background:rgba(0,0,0,0.08);background:#D4E4DD;display:flex;align-items:center;justify-content:center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1B1F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+    </div><p class="sublabel">Mint Icon</p></div>
+    <!-- Three-dot menu -->
+    <div style="text-align:center;"><div style="display:flex;gap:3px;padding:8px;cursor:pointer;"><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3);"></div></div><p class="sublabel">Menu</p></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 8. ICONS                   -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Icons — Outline (Cuberto style)</p>
+  <div style="display:flex;gap:12px;margin-bottom:0;">
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+    <div style="width:48px;height:48px;border-radius:14px;background:#1B1B1F;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- 9. CUBERTO ASSEMBLED COMPS -->
+  <!-- ═══════════════════════════ -->
+  <p class="label">Assembled Components (from Cuberto shots)</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+
+    <!-- Metric card -->
+    <div style="width:180px;background:#1B1B1F;border-radius:24px;padding:24px;">
+      <p style="font-size:11px;color:rgba(255,255,255,0.2);">Tasks Done</p>
+      <p style="font-size:40px;font-weight:700;letter-spacing:-0.04em;line-height:1;margin-top:8px;">200</p>
+      <p style="font-size:16px;color:rgba(255,255,255,0.2);margin-top:4px;">45%</p>
+    </div>
+
+    <!-- Donut -->
+    <div style="width:160px;background:#1B1B1F;border-radius:24px;padding:24px;display:flex;align-items:center;justify-content:center;">
+      <svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#222228" stroke-width="10"/><circle cx="50" cy="50" r="38" fill="none" stroke="#F97316" stroke-width="10" stroke-linecap="round" stroke-dasharray="239" stroke-dashoffset="155" transform="rotate(-90 50 50)"/><circle cx="50" cy="50" r="38" fill="none" stroke="#71717A" stroke-width="10" stroke-dasharray="239" stroke-dashoffset="167" transform="rotate(36 50 50)"/><text x="50" y="54" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="DM Sans">35%</text></svg>
+    </div>
+
+    <!-- Sparkline metric -->
+    <div style="width:200px;background:#1B1B1F;border-radius:24px;padding:24px;">
+      <p style="font-size:11px;color:rgba(255,255,255,0.2);">Total Income</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <p style="font-size:24px;font-weight:700;letter-spacing:-0.03em;">$1200</p>
+        <svg width="48" height="20" viewBox="0 0 48 20"><path d="M2,16 C10,10 18,18 26,6 C34,-2 42,12 46,8" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <p style="font-size:12px;color:#F97316;margin-top:4px;">45%</p>
+    </div>
+
+    <!-- Orange card -->
+    <div style="width:140px;background:#F97316;border-radius:24px;padding:24px;color:#fff;">
+      <p style="font-size:11px;color:rgba(255,255,255,0.6);">Order</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:-0.03em;margin-top:8px;">4,76k</p>
+    </div>
+
+    <!-- Gauge -->
+    <div style="width:180px;background:#1B1B1F;border-radius:24px;padding:24px;display:flex;flex-direction:column;align-items:center;">
+      <svg width="120" height="75" viewBox="0 0 120 75"><path d="M12,68 A48,48 0 0,1 108,68" fill="none" stroke="#222228" stroke-width="8" stroke-linecap="round"/><path d="M12,68 A48,48 0 0,1 108,68" fill="none" stroke="#B8D8CA" stroke-width="8" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="60"/><line x1="60" y1="66" x2="78" y2="34" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="60" cy="66" r="3" fill="#fff"/></svg>
+      <p style="font-size:24px;font-weight:700;margin-top:4px;">60%</p>
+    </div>
+
+    <!-- Ring progress -->
+    <div style="width:120px;background:#1B1B1F;border-radius:24px;padding:24px;display:flex;align-items:center;justify-content:center;">
+      <svg width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="28" fill="none" stroke="#222228" stroke-width="5"/><circle cx="36" cy="36" r="28" fill="none" stroke="#D4E4DD" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="102" transform="rotate(-90 36 36)"/><text x="36" y="40" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="DM Sans">42%</text></svg>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

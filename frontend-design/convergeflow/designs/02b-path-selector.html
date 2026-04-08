@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow — Choose Your Path</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+    body{background:#111113;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+    @media(prefers-reduced-motion:reduce){*{transition-duration:0ms!important;animation-duration:0ms!important}}
+
+    .shell{width:100%;max-width:640px}
+
+    /* Logo */
+    .logo{display:flex;align-items:center;gap:12px;margin-bottom:48px;justify-content:center}
+    .logo-icon{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center}
+    .logo-text{font-size:20px;font-weight:700;letter-spacing:-0.03em;font-style:italic}
+
+    /* Heading */
+    .heading{text-align:center;margin-bottom:40px}
+    .heading h1{font-size:28px;font-weight:700;letter-spacing:-0.04em;line-height:1.2}
+    .heading p{font-size:14px;color:rgba(255,255,255,0.25);margin-top:8px}
+
+    /* Path cards */
+    .paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:40px}
+    .path-card{border-radius:24px;padding:32px;cursor:pointer;border:2px solid transparent;transition:border-color 150ms ease}
+    .path-card:hover{border-color:rgba(249,115,22,0.3)}
+    .path-card.selected{border-color:#F97316}
+    .path-self{background:#1B1B1F}
+    .path-dwy{background:linear-gradient(135deg,#1E1B10,#1B1B1F)}
+    .path-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+    .path-icon-self{background:#222228}
+    .path-icon-dwy{background:#F97316}
+    .path-title{font-size:16px;font-weight:700;margin-bottom:6px}
+    .path-desc{font-size:13px;color:rgba(255,255,255,0.25);line-height:1.5}
+    .pills{margin-top:20px;display:flex;gap:6px}
+    .pill{font-size:11px;padding:6px 12px;border-radius:24px}
+    .pill-default{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.25)}
+    .pill-orange{background:rgba(249,115,22,0.15);color:#F97316}
+
+    /* Button */
+    .btn-primary{width:100%;background:#F97316;color:#fff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:transform 150ms ease,box-shadow 150ms ease;opacity:0.35;pointer-events:none}
+    .btn-primary.enabled{opacity:1;pointer-events:auto}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(249,115,22,0.3)}
+
+    .back-link{display:block;text-align:center;margin-top:20px;font-size:13px;color:rgba(255,255,255,0.35);text-decoration:none;cursor:pointer;transition:color 150ms ease}
+    .back-link:hover{color:rgba(255,255,255,0.6)}
+
+    /* Animate in */
+    .shell{animation:fadeUp 0.5s ease-out}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+    @media(max-width:520px){
+      .paths{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4L12 12L4 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4L20 12L12 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">ConvergeFlow</span>
+  </div>
+
+  <!-- Heading -->
+  <div class="heading">
+    <h1>Let's get you some customers.</h1>
+    <p>Pick how you want to get started.</p>
+  </div>
+
+  <!-- Two paths -->
+  <div class="paths">
+
+    <!-- Path 1: Self-Serve -->
+    <div class="path-card path-self" id="path-self" onclick="selectPath('self')">
+      <div class="path-icon path-icon-self">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      </div>
+      <p class="path-title">I'll set it up myself</p>
+      <p class="path-desc">Takes about 2 minutes. Connect your domain, pick your niche, and launch.</p>
+      <div class="pills">
+        <span class="pill pill-default">5 clicks</span>
+        <span class="pill pill-default">Free</span>
+      </div>
+    </div>
+
+    <!-- Path 2: OpenClaw DWY -->
+    <div class="path-card path-dwy" id="path-dwy" onclick="selectPath('dwy')">
+      <div class="path-icon path-icon-dwy">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <p class="path-title">Handle it for me</p>
+      <p class="path-desc">Too busy to sit at a laptop? Just tell us what you need over WhatsApp. We'll do everything.</p>
+      <div class="pills">
+        <span class="pill pill-orange">OpenClaw</span>
+        <span class="pill pill-orange">DWY</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Continue button -->
+  <button class="btn-primary" id="continueBtn" onclick="handleContinue()">Continue</button>
+  <a class="back-link" href="02-onboarding-1-signup.html">Back</a>
+
+</div>
+
+<script>
+  var selectedPath = null;
+
+  function selectPath(path) {
+    selectedPath = path;
+    document.getElementById('path-self').style.border = '2px solid transparent';
+    document.getElementById('path-dwy').style.border = '2px solid transparent';
+    document.getElementById('path-' + path).style.border = '2px solid #F97316';
+    document.getElementById('continueBtn').classList.add('enabled');
+  }
+
+  function handleContinue() {
+    if (!selectedPath) return;
+    if (selectedPath === 'self') {
+      window.location.href = '03-onboarding-2-domain.html';
+    } else {
+      window.location.href = '02c-openclaw-chat.html';
+    }
+  }
+</script>
+
+</body>
+</html>

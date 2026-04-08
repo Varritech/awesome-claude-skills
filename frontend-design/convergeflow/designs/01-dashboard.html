@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow - Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            brand: {
+              DEFAULT: '#2563EB',
+              light: '#3B82F6',
+              dark: '#1D4ED8',
+            },
+            accent: '#F97316',
+            surface: {
+              900: '#0F172A',
+              800: '#1E293B',
+              700: '#334155',
+              600: '#475569',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: #0F172A; color: #F8FAFC; }
+    @media (prefers-reduced-motion: reduce) { * { transition-duration: 0ms !important; animation-duration: 0ms !important; } }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Mobile Bottom Nav (visible < 768px) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-surface-800 border-t border-surface-700 flex justify-around items-center h-16 z-50 md:hidden">
+    <a href="#" class="flex flex-col items-center gap-1 text-brand cursor-pointer">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span class="text-xs font-medium">Home</span>
+    </a>
+    <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+      <i data-lucide="mail" class="w-5 h-5"></i>
+      <span class="text-xs">Your Emails</span>
+    </a>
+    <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+      <i data-lucide="users" class="w-5 h-5"></i>
+      <span class="text-xs">Customers</span>
+    </a>
+    <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+      <i data-lucide="user" class="w-5 h-5"></i>
+      <span class="text-xs">Account</span>
+    </a>
+  </nav>
+
+  <!-- Desktop Sidebar (visible >= 768px) -->
+  <aside class="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-surface-800 border-r border-surface-700 flex-col z-40">
+    <!-- Logo -->
+    <div class="px-6 py-5 border-b border-surface-700">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4L12 12L4 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4L20 12L12 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="text-lg font-bold tracking-tight"style="font-style:italic;">ConvergeFlow</span>
+      </div>
+    </div>
+
+    <!-- Nav Items -->
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand/10 text-brand font-medium cursor-pointer transition-colors duration-150">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        Home
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="mail" class="w-5 h-5"></i>
+        Your Emails
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        Find Customers
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="pen-tool" class="w-5 h-5"></i>
+        Email Styles
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        How It's Going
+      </a>
+    </nav>
+
+    <!-- Bottom Section -->
+    <div class="px-3 py-4 border-t border-surface-700 space-y-1">
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+        Your Account
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-surface-700 hover:text-slate-200 cursor-pointer transition-colors duration-150">
+        <i data-lucide="help-circle" class="w-5 h-5"></i>
+        Need Help?
+      </a>
+    </div>
+
+    <!-- User -->
+    <div class="px-4 py-4 border-t border-surface-700">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand font-semibold text-sm">JR</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">Jake's Roofing</p>
+          <p class="text-xs text-slate-500 truncate">jake@jakesroofing.com</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="md:ml-64 pb-20 md:pb-0">
+    <div class="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-8">
+
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold mb-1">Hey Jake, here's your update</h1>
+        <p class="text-slate-400">Your emails are working. Here's what happened today.</p>
+      </div>
+
+      <!-- Key Metrics - 4 cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
+        <!-- Emails Sent -->
+        <div class="bg-surface-800 rounded-xl border border-surface-700 p-4 md:p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+              <i data-lucide="send" class="w-4 h-4 text-brand"></i>
+            </div>
+          </div>
+          <p class="text-2xl md:text-3xl font-bold">42</p>
+          <p class="text-sm text-slate-400 mt-1">Emails Sent</p>
+        </div>
+
+        <!-- Replies -->
+        <div class="bg-surface-800 rounded-xl border border-surface-700 p-4 md:p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <i data-lucide="message-circle" class="w-4 h-4 text-green-500"></i>
+            </div>
+          </div>
+          <p class="text-2xl md:text-3xl font-bold">7</p>
+          <p class="text-sm text-slate-400 mt-1">Replies</p>
+        </div>
+
+        <!-- Interested -->
+        <div class="bg-surface-800 rounded-xl border border-surface-700 p-4 md:p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+            </div>
+          </div>
+          <p class="text-2xl md:text-3xl font-bold">3</p>
+          <p class="text-sm text-slate-400 mt-1">Interested</p>
+        </div>
+
+        <!-- Calls Booked -->
+        <div class="bg-surface-800 rounded-xl border border-surface-700 p-4 md:p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+              <i data-lucide="phone" class="w-4 h-4 text-accent"></i>
+            </div>
+          </div>
+          <p class="text-2xl md:text-3xl font-bold text-accent">1</p>
+          <p class="text-sm text-slate-400 mt-1">Calls Booked</p>
+        </div>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div class="grid md:grid-cols-5 gap-4 md:gap-6">
+
+        <!-- Left Column (3/5) - Recent Activity -->
+        <div class="md:col-span-3 space-y-4">
+          <!-- Recent Replies -->
+          <div class="bg-surface-800 rounded-xl border border-surface-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-surface-700 flex items-center justify-between">
+              <h2 class="font-semibold">Recent Replies</h2>
+              <a href="#" class="text-sm text-brand hover:text-brand-light cursor-pointer transition-colors duration-150">View all</a>
+            </div>
+            <div class="divide-y divide-surface-700">
+              <!-- Reply 1 - Interested -->
+              <div class="px-5 py-4 hover:bg-surface-700/50 cursor-pointer transition-colors duration-150">
+                <div class="flex items-start gap-3">
+                  <div class="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="thumbs-up" class="w-4 h-4 text-green-500"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-medium text-sm">Mike Thompson</p>
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">Interested</span>
+                    </div>
+                    <p class="text-sm text-slate-400 truncate">"Yeah we've been looking for a roofer. Can you come by Thursday?"</p>
+                    <p class="text-xs text-slate-500 mt-1">2 hours ago</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reply 2 - Interested -->
+              <div class="px-5 py-4 hover:bg-surface-700/50 cursor-pointer transition-colors duration-150">
+                <div class="flex items-start gap-3">
+                  <div class="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="thumbs-up" class="w-4 h-4 text-green-500"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-medium text-sm">Sarah Chen</p>
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">Interested</span>
+                    </div>
+                    <p class="text-sm text-slate-400 truncate">"Send me a quote for the whole house. 2,400 sq ft."</p>
+                    <p class="text-xs text-slate-500 mt-1">5 hours ago</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reply 3 - Not Now -->
+              <div class="px-5 py-4 hover:bg-surface-700/50 cursor-pointer transition-colors duration-150">
+                <div class="flex items-start gap-3">
+                  <div class="w-9 h-9 rounded-full bg-slate-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-medium text-sm">Dave Morrison</p>
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 font-medium">Not now</span>
+                    </div>
+                    <p class="text-sm text-slate-400 truncate">"Not right now but maybe in the spring. Can you follow up?"</p>
+                    <p class="text-xs text-slate-500 mt-1">Yesterday</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column (2/5) - Status & CTA -->
+        <div class="md:col-span-2 space-y-4">
+
+          <!-- Email Status -->
+          <div class="bg-surface-800 rounded-xl border border-surface-700 p-5">
+            <h2 class="font-semibold mb-4">Your Emails</h2>
+            <div class="space-y-4">
+              <!-- Active email set -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span class="text-sm font-medium">Roofing - Dallas Area</span>
+                  </div>
+                  <span class="text-xs text-slate-400">Active</span>
+                </div>
+                <div class="w-full bg-surface-700 rounded-full h-1.5">
+                  <div class="bg-brand h-1.5 rounded-full" style="width: 68%"></div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1.5">34 of 50 sent today</p>
+              </div>
+
+              <!-- Second email set -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <span class="text-sm font-medium">Gutters - Fort Worth</span>
+                  </div>
+                  <span class="text-xs text-amber-400">Warming up</span>
+                </div>
+                <div class="w-full bg-surface-700 rounded-full h-1.5">
+                  <div class="bg-amber-500 h-1.5 rounded-full" style="width: 35%"></div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1.5">Day 5 of 14 - almost ready</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inbox Health -->
+          <div class="bg-surface-800 rounded-xl border border-surface-700 p-5">
+            <h2 class="font-semibold mb-4">Inbox Health</h2>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-6 h-6 text-green-500"></i>
+              </div>
+              <div>
+                <p class="text-xl font-bold text-green-400">Great</p>
+                <p class="text-xs text-slate-400">Your reputation is solid</p>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Delivered</span>
+                <span class="font-medium text-green-400">98.2%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Opened</span>
+                <span class="font-medium">51.3%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Bounced</span>
+                <span class="font-medium text-slate-400">0.4%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scale CTA -->
+          <div class="bg-gradient-to-br from-brand/20 to-brand/5 rounded-xl border border-brand/20 p-5">
+            <h3 class="font-semibold mb-2">Want to send more emails?</h3>
+            <p class="text-sm text-slate-400 mb-4">Book a quick call and we'll set you up.</p>
+            <button class="w-full bg-accent hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-lg cursor-pointer transition-colors duration-150 text-sm">
+              Book a Call
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

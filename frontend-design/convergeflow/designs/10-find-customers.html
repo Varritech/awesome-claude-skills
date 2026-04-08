@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConvergeFlow - Find Customers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-page: #111113;
+      --bg-card: #1B1B1F;
+      --bg-elevated: #222228;
+      --orange: #F97316;
+      --mint: #D4E4DD;
+      --green: #22C55E;
+      --red: #EF4444;
+      --amber: #F59E0B;
+      --indigo: #6366F1;
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.5);
+      --text-tertiary: rgba(255,255,255,0.35);
+      --text-quaternary: rgba(255,255,255,0.2);
+      --text-faint: rgba(255,255,255,0.1);
+      --radius-card: 24px;
+      --radius-btn: 14px;
+      --radius-icon: 10px;
+      --radius-badge: 6px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    input, select { font-family: inherit; }
+
+    /* ---- SIDEBAR (desktop >= 768px) ---- */
+    .sidebar{width:64px;background:#1B1B1F;display:flex;flex-direction:column;align-items:center;padding:16px 0;flex-shrink:0;position:fixed;top:0;bottom:0;left:0;z-index:40}
+    .nav-icon{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;cursor:pointer;position:relative;text-decoration:none}
+    .nav-icon.active{background:rgba(249,115,22,0.1)}
+    .nav-icon.active::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 2px 2px 0;background:#F97316}
+    .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F97316,#FB923C);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;color:#fff}
+    @media(max-width:767px){.sidebar{display:none}}
+
+    /* ---- MOBILE BOTTOM NAV (< 768px) ---- */
+    .mobile-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg-card); border-top: 1px solid var(--text-faint);
+      justify-content: space-around; align-items: center;
+      height: 64px; z-index: 50;
+    }
+    @media (min-width: 768px) { .mobile-nav { display: none; } }
+    .mobile-nav a {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-tertiary); transition: color 150ms ease;
+    }
+    .mobile-nav a:hover { color: var(--text-secondary); }
+    .mobile-nav a.active { color: var(--orange); }
+    .mobile-nav a svg { width: 20px; height: 20px; }
+
+    /* ---- MAIN CONTENT ---- */
+    .main { padding-bottom: 160px; }
+    @media (min-width: 768px) { .main { margin-left: 64px; padding-bottom: 100px; } }
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+    @media (min-width: 768px) { .container { padding: 32px; } }
+
+    /* ---- HEADER ---- */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .page-header p { font-size: 14px; color: var(--text-secondary); }
+
+    /* ---- FILTER BAR ---- */
+    .filter-bar {
+      position: sticky; top: 0; z-index: 30;
+      background: var(--bg-page);
+      padding: 12px 0 16px 0;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .filter-bar::before {
+      content: ''; position: absolute; top: -12px; left: -16px; right: -16px; bottom: 0;
+      background: var(--bg-page); z-index: -1;
+    }
+    .search-wrap {
+      flex: 1; min-width: 200px; position: relative;
+    }
+    .search-wrap svg {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none;
+    }
+    .search-input {
+      width: 100%; background: var(--bg-card); border: 2px solid transparent;
+      border-radius: var(--radius-btn); padding: 14px 18px 14px 40px;
+      font-size: 14px; color: var(--text-primary); outline: none;
+      transition: border-color 150ms ease;
+    }
+    .search-input::placeholder { color: var(--text-tertiary); }
+    .search-input:focus { border-color: var(--orange); }
+
+    .select-wrap {
+      position: relative; min-width: 150px;
+    }
+    .select-wrap svg {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none;
+    }
+    .select-wrap .select-icon-left {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none;
+    }
+    .filter-select {
+      width: 100%; appearance: none; background: var(--bg-card);
+      border: 2px solid transparent; border-radius: var(--radius-btn);
+      padding: 14px 40px 14px 40px;
+      font-size: 14px; color: var(--text-primary); outline: none;
+      cursor: pointer; transition: border-color 150ms ease;
+    }
+    .filter-select:focus { border-color: var(--orange); }
+    .filter-select option { background: var(--bg-card); color: var(--text-primary); }
+
+    .filter-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-card); border: 2px solid transparent;
+      border-radius: var(--radius-btn); padding: 14px 18px;
+      font-size: 14px; font-weight: 500; color: var(--text-primary);
+      transition: border-color 150ms ease, background 150ms ease;
+      position: relative;
+    }
+    .filter-btn:hover { background: var(--bg-elevated); }
+    .filter-btn svg { width: 16px; height: 16px; }
+    .filter-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; border-radius: 100px;
+      background: var(--orange); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 0 6px;
+    }
+
+    /* ---- STATS BAR ---- */
+    .stats-bar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px; padding: 0 4px;
+    }
+    .stats-bar-count { font-size: 14px; font-weight: 700; }
+    .stats-bar-new {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600; color: var(--green);
+      background: rgba(34,197,94,0.12); padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    /* ---- LEAD LIST ---- */
+    .lead-list {
+      background: var(--bg-card); border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+    .lead-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--text-faint);
+      transition: background 150ms ease;
+      cursor: pointer;
+    }
+    .lead-row:last-child { border-bottom: none; }
+    .lead-row:hover { background: var(--bg-elevated); }
+
+    /* Custom checkbox */
+    .lead-check {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border-radius: var(--radius-badge); border: 2px solid var(--text-quaternary);
+      background: transparent; display: flex; align-items: center; justify-content: center;
+      transition: all 150ms ease; cursor: pointer;
+    }
+    .lead-check.checked {
+      background: var(--orange); border-color: var(--orange);
+    }
+    .lead-check.checked svg { display: block; }
+    .lead-check svg { display: none; width: 12px; height: 12px; color: #fff; }
+
+    /* Avatar */
+    .lead-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+
+    /* Lead info */
+    .lead-info { flex: 1; min-width: 0; }
+    .lead-name { font-size: 14px; font-weight: 600; }
+    .lead-business { font-size: 13px; color: var(--text-secondary); }
+    .lead-details {
+      display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 4px;
+    }
+    .lead-detail {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; color: var(--text-tertiary);
+    }
+    .lead-detail svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* Freshness */
+    .freshness {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .freshness-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .freshness-green .freshness-dot { background: var(--green); }
+    .freshness-green { color: var(--green); }
+    .freshness-amber .freshness-dot { background: var(--amber); }
+    .freshness-amber { color: var(--amber); }
+    .freshness-red .freshness-dot { background: var(--red); }
+    .freshness-red { color: var(--red); }
+
+    /* Responsive lead row */
+    @media (max-width: 640px) {
+      .lead-row { flex-wrap: wrap; gap: 10px; padding: 14px 16px; }
+      .lead-info { width: calc(100% - 70px); }
+      .freshness { width: 100%; padding-left: 34px; margin-top: -4px; }
+    }
+
+    /* ---- BOTTOM ACTION BAR ---- */
+    .action-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 45;
+      transition: transform 300ms ease, opacity 300ms ease;
+    }
+    .action-bar.hidden { transform: translateY(100%); opacity: 0; pointer-events: none; }
+    @media (min-width: 768px) { .action-bar { left: 64px; } }
+    .action-bar-inner {
+      max-width: 960px; margin: 0 auto;
+      padding: 0 16px 16px 16px;
+    }
+    @media (min-width: 768px) { .action-bar-inner { padding: 0 32px 24px 32px; } }
+    .action-bar-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+    }
+    .action-bar-count {
+      font-size: 14px; font-weight: 600; white-space: nowrap;
+    }
+    .action-bar-spacer { flex: 1; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; border-radius: var(--radius-btn);
+      padding: 10px 20px; transition: all 150ms ease;
+      border: none;
+    }
+    .btn:hover { transform: scale(1.02); }
+    .btn-primary { background: var(--orange); color: #fff; font-weight: 700; padding: 14px 28px; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); font-weight: 500;
+      padding: 10px 16px;
+    }
+    .btn-ghost:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* Mobile bottom nav offset for action bar */
+    @media (max-width: 767px) {
+      .action-bar { bottom: 64px; }
+    }
+
+    /* ---- IMPORT BUTTON ---- */
+    .import-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-elevated); border: none;
+      border-radius: var(--radius-btn); padding: 14px 18px;
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      transition: background 150ms ease, color 150ms ease;
+      cursor: pointer;
+    }
+    .import-btn:hover { background: #2a2a30; color: var(--text-primary); }
+    .import-btn svg { width: 16px; height: 16px; }
+
+    /* ---- IMPORT MODAL ---- */
+    .import-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 60;
+      background: rgba(17,17,19,0.8);
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .import-overlay.visible { display: flex; }
+    .import-modal {
+      background: var(--bg-card);
+      border-radius: var(--radius-card);
+      padding: 28px;
+      max-width: 600px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .import-modal h2 {
+      font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;
+    }
+    .import-modal .import-sub {
+      font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;
+    }
+    .import-options {
+      display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;
+    }
+    .import-option {
+      background: var(--bg-page); border-radius: 16px; padding: 20px;
+    }
+    .import-option-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .import-option-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--bg-elevated);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--text-secondary);
+    }
+    .import-option-icon svg { width: 18px; height: 18px; }
+    .import-option-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .import-option-desc { font-size: 13px; color: var(--text-tertiary); }
+    .import-drop-zone {
+      border: 2px dashed var(--text-quaternary);
+      border-radius: var(--radius-btn);
+      padding: 28px 20px;
+      text-align: center;
+      font-size: 13px; color: var(--text-tertiary);
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+    .import-drop-zone:hover {
+      border-color: var(--text-secondary);
+      background: rgba(255,255,255,0.02);
+    }
+    .import-input {
+      width: 100%; background: var(--bg-elevated);
+      border: 2px solid transparent; border-radius: var(--radius-btn);
+      padding: 12px 16px; font-size: 14px; color: var(--text-primary);
+      outline: none; transition: border-color 150ms ease;
+    }
+    .import-input::placeholder { color: var(--text-tertiary); }
+    .import-input:focus { border-color: var(--orange); }
+    .import-textarea {
+      width: 100%; background: var(--bg-elevated);
+      border: 2px solid transparent; border-radius: var(--radius-btn);
+      padding: 12px 16px; font-size: 14px; color: var(--text-primary);
+      outline: none; resize: vertical; min-height: 80px;
+      transition: border-color 150ms ease; font-family: 'DM Sans', sans-serif;
+    }
+    .import-textarea::placeholder { color: var(--text-tertiary); }
+    .import-textarea:focus { border-color: var(--orange); }
+    .import-actions {
+      display: flex; align-items: center; gap: 16px; justify-content: flex-end;
+    }
+    .import-cancel {
+      background: none; border: none;
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      cursor: pointer; padding: 10px 4px;
+      transition: color 150ms ease;
+    }
+    .import-cancel:hover { color: var(--text-primary); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 0ms !important;
+        animation-duration: 0ms !important;
+        transform: none !important;
+      }
+    }
+
+    /* Inline help tips */
+    .inline-tip{background:#222228;border-radius:14px;padding:14px 18px;border-left:3px solid #F97316;display:flex;align-items:flex-start;gap:10px;position:relative;margin-bottom:16px;}
+    .inline-tip-text{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5;flex:1;}
+    .inline-tip-close{position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;padding:0;line-height:0;}
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar">
+    <a href="07-dashboard.html" style="width:36px;height:36px;border-radius:14px;background:linear-gradient(135deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4L12 12L4 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4L20 12L12 20" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <a href="07-dashboard.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+    <a href="08-your-emails.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+    <a href="10-find-customers.html" class="nav-icon active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></a>
+    <a href="11-email-styles.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a>
+    <a href="12-how-its-going.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></a>
+    <div style="flex:1;"></div>
+    <a href="13-settings.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></a>
+    <a href="15-need-help.html" class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></a>
+    <div class="avatar">JR</div>
+  </aside>
+
+  <!-- Mobile Bottom Nav -->
+  <nav class="mobile-nav">
+    <a href="07-dashboard.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></a>
+    <a href="08-your-emails.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>Emails</span></a>
+    <a href="10-find-customers.html" class="active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Customers</span></a>
+    <a href="12-how-its-going.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Stats</span></a>
+    <a href="13-settings.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Account</span></a>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="container">
+
+      <!-- Header -->
+      <div class="page-header">
+        <h1>Find Customers</h1>
+        <p>We found leads in your area. Pick who you want to reach.</p>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" placeholder="Search by name or business..." id="searchInput">
+        </div>
+        <div class="select-wrap">
+          <svg class="select-icon-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <select class="filter-select">
+            <option>Dallas, TX</option>
+            <option>Fort Worth, TX</option>
+            <option>Arlington, TX</option>
+            <option>Plano, TX</option>
+          </select>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="select-wrap">
+          <svg class="select-icon-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+          <select class="filter-select">
+            <option selected>Roofing</option>
+            <option>General Contractor</option>
+            <option>Property Management</option>
+            <option>Real Estate</option>
+          </select>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <button class="filter-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>
+          Filters
+          <span class="filter-count">2</span>
+        </button>
+        <button class="import-btn" onclick="toggleImportModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </button>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <span class="stats-bar-count">47 leads found</span>
+        <span class="stats-bar-new">12 new this week</span>
+      </div>
+
+      <!-- Inline help tip -->
+      <div class="inline-tip">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span class="inline-tip-text">We check every email before sending. Old or invalid addresses are flagged so you never waste a send.</span>
+        <button class="inline-tip-close" onclick="this.parentElement.style.display='none'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+
+      <!-- Lead List -->
+      <div class="lead-list" id="leadList">
+
+        <!-- Lead 1 -->
+        <div class="lead-row" data-name="Mike Thompson" data-business="Thompson Construction">
+          <div class="lead-check checked" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #6366F1, #818CF8);">MT</div>
+          <div class="lead-info">
+            <div class="lead-name">Mike Thompson</div>
+            <div class="lead-business">Thompson Construction</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> mike@thompsonconstruction.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0142</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 3 days ago</span>
+        </div>
+
+        <!-- Lead 2 -->
+        <div class="lead-row" data-name="Sarah Chen" data-business="Chen Properties">
+          <div class="lead-check checked" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #F97316, #FB923C);">SC</div>
+          <div class="lead-info">
+            <div class="lead-name">Sarah Chen</div>
+            <div class="lead-business">Chen Properties</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> sarah@chenproperties.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0287</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 1 day ago</span>
+        </div>
+
+        <!-- Lead 3 -->
+        <div class="lead-row" data-name="Dave Morrison" data-business="Morrison & Sons">
+          <div class="lead-check checked" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #22C55E, #4ADE80);">DM</div>
+          <div class="lead-info">
+            <div class="lead-name">Dave Morrison</div>
+            <div class="lead-business">Morrison &amp; Sons</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> dave@morrisonandsons.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0391</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 5 days ago</span>
+        </div>
+
+        <!-- Lead 4 -->
+        <div class="lead-row" data-name="Lisa Park" data-business="Park Realty Group">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #EAB308, #FACC15);">LP</div>
+          <div class="lead-info">
+            <div class="lead-name">Lisa Park</div>
+            <div class="lead-business">Park Realty Group</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> lisa@parkrealtygroup.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (972) 555-0156</span>
+            </div>
+          </div>
+          <span class="freshness freshness-amber"><span class="freshness-dot"></span>Verified 45 days ago</span>
+        </div>
+
+        <!-- Lead 5 -->
+        <div class="lead-row" data-name="James Wilson" data-business="Wilson Development">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #6366F1, #A78BFA);">JW</div>
+          <div class="lead-info">
+            <div class="lead-name">James Wilson</div>
+            <div class="lead-business">Wilson Development</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> james@wilsondev.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0478</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 2 days ago</span>
+        </div>
+
+        <!-- Lead 6 -->
+        <div class="lead-row" data-name="Carlos Ramirez" data-business="Ramirez Builders">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #EC4899, #F472B6);">CR</div>
+          <div class="lead-info">
+            <div class="lead-name">Carlos Ramirez</div>
+            <div class="lead-business">Ramirez Builders</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> carlos@ramirezbuilders.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (469) 555-0223</span>
+            </div>
+          </div>
+          <span class="freshness freshness-amber"><span class="freshness-dot"></span>Verified 30 days ago</span>
+        </div>
+
+        <!-- Lead 7 -->
+        <div class="lead-row" data-name="Rachel Adams" data-business="Adams Property Group">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #14B8A6, #2DD4BF);">RA</div>
+          <div class="lead-info">
+            <div class="lead-name">Rachel Adams</div>
+            <div class="lead-business">Adams Property Group</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> rachel@adamsproperty.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0534</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 7 days ago</span>
+        </div>
+
+        <!-- Lead 8 -->
+        <div class="lead-row" data-name="Tom Bradley" data-business="Bradley Commercial">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #F97316, #FDBA74);">TB</div>
+          <div class="lead-info">
+            <div class="lead-name">Tom Bradley</div>
+            <div class="lead-business">Bradley Commercial</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> tom@bradleycommercial.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (972) 555-0667</span>
+            </div>
+          </div>
+          <span class="freshness freshness-red"><span class="freshness-dot"></span>90+ days</span>
+        </div>
+
+        <!-- Lead 9 -->
+        <div class="lead-row" data-name="Angela Foster" data-business="Foster Homes LLC">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA);">AF</div>
+          <div class="lead-info">
+            <div class="lead-name">Angela Foster</div>
+            <div class="lead-business">Foster Homes LLC</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> angela@fosterhomes.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (214) 555-0819</span>
+            </div>
+          </div>
+          <span class="freshness freshness-green"><span class="freshness-dot"></span>Verified 4 days ago</span>
+        </div>
+
+        <!-- Lead 10 -->
+        <div class="lead-row" data-name="Kevin Nguyen" data-business="Nguyen Contracting">
+          <div class="lead-check" onclick="toggleCheck(event, this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lead-avatar" style="background: linear-gradient(135deg, #0EA5E9, #38BDF8);">KN</div>
+          <div class="lead-info">
+            <div class="lead-name">Kevin Nguyen</div>
+            <div class="lead-business">Nguyen Contracting</div>
+            <div class="lead-details">
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> kevin@nguyencontracting.com</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Dallas, TX</span>
+              <span class="lead-detail"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (469) 555-0945</span>
+            </div>
+          </div>
+          <span class="freshness freshness-amber"><span class="freshness-dot"></span>Verified 60 days ago</span>
+        </div>
+
+      </div><!-- /lead-list -->
+
+    </div><!-- /container -->
+  </div><!-- /main -->
+
+  <!-- Import Modal -->
+  <div class="import-overlay" id="importOverlay" onclick="if(event.target===this)toggleImportModal()">
+    <div class="import-modal">
+      <h2>Bring your own leads</h2>
+      <p class="import-sub">Upload a file or paste from a spreadsheet. We'll clean up duplicates.</p>
+
+      <div class="import-options">
+        <!-- Upload CSV -->
+        <div class="import-option">
+          <div class="import-option-header">
+            <div class="import-option-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="import-option-title">Upload CSV</div>
+              <div class="import-option-desc">Drop a .csv file or click to browse</div>
+            </div>
+          </div>
+          <div class="import-drop-zone" onclick="document.getElementById('csvFileInput').click()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;opacity:0.4;display:inline-block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><br>
+            Drag a file here, or click to pick one
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+          </div>
+        </div>
+
+        <!-- Google Sheets -->
+        <div class="import-option">
+          <div class="import-option-header">
+            <div class="import-option-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
+            </div>
+            <div>
+              <div class="import-option-title">Google Sheets</div>
+              <div class="import-option-desc">Paste your Google Sheets link</div>
+            </div>
+          </div>
+          <input type="url" class="import-input" placeholder="https://docs.google.com/spreadsheets/d/...">
+        </div>
+
+        <!-- Copy & Paste -->
+        <div class="import-option">
+          <div class="import-option-header">
+            <div class="import-option-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </div>
+            <div>
+              <div class="import-option-title">Copy &amp; Paste</div>
+              <div class="import-option-desc">Paste names and emails, one per line</div>
+            </div>
+          </div>
+          <textarea class="import-textarea" placeholder="John Smith, john@example.com&#10;Jane Doe, jane@example.com"></textarea>
+        </div>
+      </div>
+
+      <div class="import-actions">
+        <button class="import-cancel" onclick="toggleImportModal()">Cancel</button>
+        <button class="btn btn-primary" style="font-size:14px;">Import leads</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Action Bar -->
+  <div class="action-bar" id="actionBar">
+    <div class="action-bar-inner">
+      <div class="action-bar-card">
+        <span class="action-bar-count" id="selectedCount">3 selected</span>
+        <div class="action-bar-spacer"></div>
+        <button class="btn btn-ghost" onclick="selectAll()">Select all</button>
+        <button class="btn btn-primary">Add to emails</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Checkbox toggle
+    function toggleCheck(e, el) {
+      e.stopPropagation();
+      el.classList.toggle('checked');
+      updateSelectedCount();
+    }
+
+    // Update selected count and action bar visibility
+    function updateSelectedCount() {
+      var checked = document.querySelectorAll('.lead-check.checked');
+      var bar = document.getElementById('actionBar');
+      var countEl = document.getElementById('selectedCount');
+      if (checked.length > 0) {
+        bar.classList.remove('hidden');
+        countEl.textContent = checked.length + ' selected';
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    // Select all
+    function selectAll() {
+      var visible = document.querySelectorAll('.lead-row');
+      visible.forEach(function(row) {
+        if (row.style.display !== 'none') {
+          row.querySelector('.lead-check').classList.add('checked');
+        }
+      });
+      updateSelectedCount();
+    }
+
+    // Search filter
+    var searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', function() {
+      var q = searchInput.value.toLowerCase();
+      var rows = document.querySelectorAll('.lead-row');
+      rows.forEach(function(row) {
+        var name = (row.getAttribute('data-name') || '').toLowerCase();
+        var biz = (row.getAttribute('data-business') || '').toLowerCase();
+        if (name.indexOf(q) !== -1 || biz.indexOf(q) !== -1) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+
+    // Import modal toggle
+    function toggleImportModal() {
+      var overlay = document.getElementById('importOverlay');
+      overlay.classList.toggle('visible');
+    }
+
+    // Init
+    updateSelectedCount();
+  </script>
+</body>
+</html>
