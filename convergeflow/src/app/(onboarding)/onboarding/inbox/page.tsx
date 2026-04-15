@@ -206,6 +206,24 @@ export default function InboxPage() {
             </div>
           )}
 
+          {/* Trust disclaimer */}
+          <div className="bg-[#222228] rounded-[14px] p-5 mb-4 text-left">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E85002" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <p className="text-[13px] text-white/60 font-medium">Your account is safe with us</p>
+              </div>
+              <ul className="text-[12px] text-white/40 leading-relaxed space-y-1.5 pl-[30px]">
+                <li>We use safe sending limits to protect your domain reputation</li>
+                <li>Emails are sent gradually — never in bulk blasts</li>
+                <li>Your credentials are encrypted and never stored in plain text</li>
+              </ul>
+            </div>
+          </div>
+
           {/* Warmup notice */}
           <div className="bg-[#D4E4DD] rounded-[14px] p-5 flex items-start gap-3.5 mb-7 text-left">
             <div className="w-10 h-10 min-w-[40px] rounded-[10px] bg-[rgba(27,27,31,0.1)] flex items-center justify-center">
