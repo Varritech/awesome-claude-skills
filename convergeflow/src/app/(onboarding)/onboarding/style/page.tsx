@@ -145,10 +145,32 @@ export default function StylePage() {
 
         {/* How it Works — trust layer */}
         <div className="bg-cf-card rounded-[20px] p-7 mb-8">
-          <p className="text-[13px] font-bold text-white/60 mb-3 font-heading uppercase tracking-wide">How it works</p>
-          <p className="text-[14px] text-white/40 leading-relaxed">
-            Every template, sequence, and sending pattern inside ConvergeFlow is built on proven strategies from the best cold email marketers in the world — so you don&apos;t have to spend months experimenting. Just pick your style, choose your leads, and we handle the rest: personalization, deliverability, follow-ups, and tracking. No guesswork required.
+          <p className="text-[13px] font-bold text-white/60 mb-5 font-heading uppercase tracking-wide">How it works</p>
+          <p className="text-[14px] text-white/45 leading-relaxed mb-6">
+            Every template, sequence, and sending pattern inside ConvergeFlow is built on proven strategies from the best cold email marketers in the world — so you don&apos;t have to spend months experimenting.
           </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-[#161618] rounded-[14px] p-4 text-center">
+              <div className="text-2xl mb-2">🎯</div>
+              <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Select leads</p>
+              <p className="text-[11px] text-white/30">We find the right people</p>
+            </div>
+            <div className="bg-[#161618] rounded-[14px] p-4 text-center">
+              <div className="text-2xl mb-2">✍️</div>
+              <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Personalize</p>
+              <p className="text-[11px] text-white/30">AI writes for each lead</p>
+            </div>
+            <div className="bg-[#161618] rounded-[14px] p-4 text-center">
+              <div className="text-2xl mb-2">🚀</div>
+              <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Send</p>
+              <p className="text-[11px] text-white/30">Safe limits, zero spam</p>
+            </div>
+            <div className="bg-[#161618] rounded-[14px] p-4 text-center">
+              <div className="text-2xl mb-2">📊</div>
+              <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Track</p>
+              <p className="text-[11px] text-white/30">Opens, replies, booked calls</p>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
