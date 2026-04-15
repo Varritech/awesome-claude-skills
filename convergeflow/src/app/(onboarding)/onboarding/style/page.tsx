@@ -5,22 +5,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
-import { UsersIcon, PenIcon, SendIcon, ChartIcon, ZapIcon, HeartIcon, BookIcon, HelpIcon } from "@/components/icons";
+import { UsersIcon, PenIcon, SendIcon, ChartIcon } from "@/components/icons";
 
 type Persona = "closer" | "neighbor" | "expert" | "helper";
-
-const personaIcons: Record<Persona, React.ComponentType<{ size?: number; className?: string }>> = {
-  closer: ZapIcon,
-  neighbor: HeartIcon,
-  expert: BookIcon,
-  helper: HelpIcon,
-};
 
 const personas: {
   id: Persona;
   name: string;
   desc: string;
-  avatarGradient: string;
+  avatar: string;
   subject: string;
   body: string;
   sig: string;
@@ -29,7 +22,7 @@ const personas: {
     id: "closer",
     name: "The Closer",
     desc: "Direct and confident. Gets straight to the point.",
-    avatarGradient: "linear-gradient(135deg,#E85002,#C44400)",
+    avatar: "/avatars/closer.png",
     subject: "Quick question about your roof",
     body: "Hi Mike, I noticed some shingles lifting on your roof at 42 Elm St. We're doing work in your neighborhood this week. Want a free quote before it gets worse?",
     sig: "— Jake, Jake's Roofing",
@@ -38,7 +31,7 @@ const personas: {
     id: "neighbor",
     name: "The Neighbor",
     desc: "Friendly and warm. Like a recommendation from next door.",
-    avatarGradient: "linear-gradient(135deg,#365E3D,#2A4D30)",
+    avatar: "/avatars/neighbor.png",
     subject: "Hey from a local roofer",
     body: "Hey Mike! Just finished a roof for the Johnsons down the street. They were really happy with how it turned out. If you ever need anything, we'd love to help.",
     sig: "— Jake, Jake's Roofing",
@@ -47,7 +40,7 @@ const personas: {
     id: "expert",
     name: "The Expert",
     desc: "Professional and knowledgeable. Builds trust with expertise.",
-    avatarGradient: "linear-gradient(135deg,#513C5E,#3D2D48)",
+    avatar: "/avatars/expert.png",
     subject: "Roof inspection before storm season",
     body: "Hi Mike, with the recent storms, homes built before 2005 often show early wear on ridge caps and flashing. A quick inspection can catch small issues before they become costly repairs.",
     sig: "— Jake, Jake's Roofing",
@@ -56,7 +49,7 @@ const personas: {
     id: "helper",
     name: "The Helper",
     desc: "Helpful and genuine. Focused on solving problems.",
-    avatarGradient: "linear-gradient(135deg,#D49A36,#B8842E)",
+    avatar: "/avatars/helper.png",
     subject: "Can I help with your roof?",
     body: "Hi Mike, I know dealing with roof stuff can be stressful, especially when you're not sure how bad it is. I'm happy to come take a look for free. No pressure at all.",
     sig: "— Jake, Jake's Roofing",
@@ -113,14 +106,12 @@ export default function StylePage() {
 
                 {/* Avatar + Name */}
                 <div className="flex items-center gap-3.5 mb-3.5">
-                  <div
-                    className="w-12 h-12 min-w-[48px] rounded-[16px] flex items-center justify-center"
-                    style={{ background: persona.avatarGradient }}
-                  >
-                    {(() => {
-                      const Icon = personaIcons[persona.id];
-                      return <Icon size={22} className="text-white/90" />;
-                    })()}
+                  <div className="w-12 h-12 min-w-[48px] rounded-[16px] overflow-hidden">
+                    <img
+                      src={persona.avatar}
+                      alt={persona.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <span className="text-[15px] font-bold tracking-[-0.01em] font-heading">{persona.name}</span>
                 </div>
