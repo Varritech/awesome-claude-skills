@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Backgrounds - Cuberto dark stepping (NO borders) */
+  --bg-page: #111113;
+  --bg-card: #1B1B1F;
+  --bg-elevated: #222228;
+  --bg-subtle: rgba(255, 255, 255, 0.06);
+  --bg-card-in-card: #161618;
+
+  /* Accent colors */
+  --color-orange: #F97316;
+  --color-orange-dark: #EA580C;
+  --color-mint: #D4E4DD;
+  --color-mint-dark: #B8D8CA;
+  --color-green: #22C55E;
+  --color-red: #EF4444;
+  --color-amber: #F59E0B;
+  --color-indigo: #6366F1;
+  --color-indigo-light: #818CF8;
+
+  /* Text hierarchy */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --text-subtle: rgba(255, 255, 255, 0.2);
+  --text-ghost: rgba(255, 255, 255, 0.15);
+  --text-faint: rgba(255, 255, 255, 0.1);
+
+  /* Radii */
+  --radius-card: 24px;
+  --radius-button: 14px;
+  --radius-inner: 16px;
+  --radius-badge: 6px;
+  --radius-icon: 10px;
+  --radius-pill: 9999px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+
+  /* Sidebar */
+  --sidebar-width: 64px;
+  --mobile-nav-height: 64px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg-page);
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+/* No borders on cards - bg stepping only */
+/* Cursor pointer on all clickable elements */
+[role="button"],
+button,
+a {
+  cursor: pointer;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
