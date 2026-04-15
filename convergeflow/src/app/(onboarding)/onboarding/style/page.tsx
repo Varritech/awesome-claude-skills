@@ -145,56 +145,10 @@ export default function StylePage() {
 
         {/* How it Works — trust layer */}
         <div className="bg-cf-card rounded-[20px] p-7 mb-8">
-          <p className="text-[13px] font-bold text-white/60 mb-4 font-heading uppercase tracking-wide">How it works</p>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85002" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <span className="text-[13px] text-white/50">Select leads</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85002" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </div>
-              <span className="text-[13px] text-white/50">Personalize</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85002" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m22 2-7 20-4-9-9-4Z" />
-                  <path d="M22 2 11 13" />
-                </svg>
-              </div>
-              <span className="text-[13px] text-white/50">Send</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85002" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3v18h18" />
-                  <path d="m19 9-5 5-4-4-3 3" />
-                </svg>
-              </div>
-              <span className="text-[13px] text-white/50">Track</span>
-            </div>
-          </div>
+          <p className="text-[13px] font-bold text-white/60 mb-3 font-heading uppercase tracking-wide">How it works</p>
+          <p className="text-[14px] text-white/40 leading-relaxed">
+            Every template, sequence, and sending pattern inside ConvergeFlow is built on proven strategies from the best cold email marketers in the world — so you don&apos;t have to spend months experimenting. Just pick your style, choose your leads, and we handle the rest: personalization, deliverability, follow-ups, and tracking. No guesswork required.
+          </p>
         </div>
 
         {/* Footer */}
