@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
+import { UsersIcon, PenIcon, SendIcon, ChartIcon } from "@/components/icons";
 
 type Persona = "closer" | "neighbor" | "expert" | "helper";
 
@@ -151,41 +152,29 @@ export default function StylePage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="w-10 h-10 rounded-[12px] bg-cf-orange flex items-center justify-center mx-auto mb-2.5">
-                <svg width="18" height="16" viewBox="0 0 24 20" fill="none">
-                  <path d="M4 2L12 10L4 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 2L20 10L12 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              <div className="w-10 h-10 rounded-[10px] bg-[#222228] flex items-center justify-center mx-auto mb-2.5">
+                <UsersIcon size={18} className="text-white/50" />
               </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Select leads</p>
               <p className="text-[11px] text-white/30">We find the right people</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="w-10 h-10 rounded-[12px] bg-cf-orange flex items-center justify-center mx-auto mb-2.5">
-                <svg width="18" height="16" viewBox="0 0 24 20" fill="none">
-                  <path d="M4 2L12 10L4 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 2L20 10L12 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              <div className="w-10 h-10 rounded-[10px] bg-[#222228] flex items-center justify-center mx-auto mb-2.5">
+                <PenIcon size={18} className="text-white/50" />
               </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Personalize</p>
               <p className="text-[11px] text-white/30">AI writes for each lead</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="w-10 h-10 rounded-[12px] bg-cf-orange flex items-center justify-center mx-auto mb-2.5">
-                <svg width="18" height="16" viewBox="0 0 24 20" fill="none">
-                  <path d="M4 2L12 10L4 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 2L20 10L12 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              <div className="w-10 h-10 rounded-[10px] bg-[#222228] flex items-center justify-center mx-auto mb-2.5">
+                <SendIcon size={18} className="text-white/50" />
               </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Send</p>
               <p className="text-[11px] text-white/30">Safe limits, zero spam</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="w-10 h-10 rounded-[12px] bg-cf-orange flex items-center justify-center mx-auto mb-2.5">
-                <svg width="18" height="16" viewBox="0 0 24 20" fill="none">
-                  <path d="M4 2L12 10L4 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 2L20 10L12 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              <div className="w-10 h-10 rounded-[10px] bg-[#222228] flex items-center justify-center mx-auto mb-2.5">
+                <ChartIcon size={18} className="text-white/50" />
               </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Track</p>
               <p className="text-[11px] text-white/30">Opens, replies, booked calls</p>
