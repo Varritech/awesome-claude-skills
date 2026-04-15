@@ -56,7 +56,7 @@ export function RingProgress({
           fill="#fff"
           fontSize={size * 0.19}
           fontWeight={700}
-          fontFamily="var(--font-dm-sans), sans-serif"
+          fontFamily="var(--font-jetbrains), 'JetBrains Mono', monospace"
         >
           {percentage}%
         </text>
@@ -145,7 +145,7 @@ export function DonutChart({
             fill="#fff"
             fontSize={size * 0.16}
             fontWeight={700}
-            fontFamily="var(--font-dm-sans), sans-serif"
+            fontFamily="var(--font-jetbrains), 'JetBrains Mono', monospace"
           >
             {centerLabel}
           </text>
@@ -239,16 +239,16 @@ export function Gauge({
         {/* Center dot */}
         <circle cx={centerX} cy={centerY} r={3} fill="#fff" />
         {/* Min/Max labels */}
-        <text x="12" y={size * 0.58} fill="rgba(255,255,255,0.15)" fontSize="9" fontFamily="var(--font-dm-sans), sans-serif">
+        <text x="12" y={size * 0.58} fill="rgba(255,255,255,0.15)" fontSize="9" fontFamily="var(--font-jetbrains), 'JetBrains Mono', monospace">
           0
         </text>
-        <text x={size - 28} y={size * 0.58} fill="rgba(255,255,255,0.15)" fontSize="9" fontFamily="var(--font-dm-sans), sans-serif">
+        <text x={size - 28} y={size * 0.58} fill="rgba(255,255,255,0.15)" fontSize="9" fontFamily="var(--font-jetbrains), 'JetBrains Mono', monospace">
           {max}
         </text>
       </svg>
-      <p className="text-2xl font-bold mt-2">{value}%</p>
+      <p className="text-2xl font-bold mt-2 font-mono">{value}%</p>
       {statusText && <p className="text-[11px] text-white/20">{statusText}</p>}
-      {label && <p className="text-sm font-bold mt-1">{label}</p>}
+      {label && <p className="text-sm font-bold mt-1 font-heading">{label}</p>}
     </div>
   );
 }
@@ -402,7 +402,7 @@ export function MiniRing({
           fill={color}
           fontSize={size * 0.2}
           fontWeight={700}
-          fontFamily="var(--font-dm-sans), sans-serif"
+          fontFamily="var(--font-jetbrains), 'JetBrains Mono', monospace"
         >
           {label}
         </text>

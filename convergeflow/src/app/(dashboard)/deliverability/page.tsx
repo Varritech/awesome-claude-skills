@@ -64,7 +64,7 @@ export default function DeliverabilityPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight">Deliverability</h1>
+        <h1 className="text-[22px] font-bold tracking-tight font-heading">Deliverability</h1>
         <p className="text-[13px] text-white/25 mt-1">
           Monitor your email health and DNS setup
         </p>
@@ -75,7 +75,7 @@ export default function DeliverabilityPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <ShieldIcon size={18} className="text-white/30" />
-            <p className="text-sm font-bold">DNS Records</p>
+            <p className="text-sm font-bold font-heading">DNS Records</p>
           </div>
           <button className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5">
             <RefreshIcon size={14} />
@@ -121,13 +121,13 @@ export default function DeliverabilityPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
         {/* Inbox Health */}
         <Card className="flex flex-col items-center">
-          <p className="text-sm font-bold mb-4 self-start">Inbox Health</p>
+          <p className="text-sm font-bold mb-4 self-start font-heading">Inbox Health</p>
           <Gauge value={90} statusText="Great" />
         </Card>
 
         {/* Blacklist Check */}
         <Card>
-          <p className="text-sm font-bold mb-4">Blacklist Check</p>
+          <p className="text-sm font-bold mb-4 font-heading">Blacklist Check</p>
           <div className="flex flex-col gap-3">
             {blacklistChecks.map((check) => {
               const config = blackListStatusConfig[check.status];
@@ -151,7 +151,7 @@ export default function DeliverabilityPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold">Tracking Domain</p>
+            <p className="text-sm font-bold font-heading">Tracking Domain</p>
             <Toggle defaultChecked />
           </div>
           <p className="text-[12px] text-white/25 leading-relaxed">
@@ -165,13 +165,13 @@ export default function DeliverabilityPage() {
         </Card>
 
         <Card>
-          <p className="text-sm font-bold mb-4">Inbox Placement</p>
+          <p className="text-sm font-bold mb-4 font-heading">Inbox Placement</p>
           <div className="flex flex-col gap-3">
             {inboxProviders.map((provider) => (
               <div key={provider.name}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[12px] text-white/50">{provider.name}</span>
-                  <span className="text-[12px] font-medium">{provider.percentage}%</span>
+                  <span className="text-[12px] font-medium font-mono">{provider.percentage}%</span>
                 </div>
                 <div className="w-full h-[6px] rounded-full bg-cf-elevated">
                   <div

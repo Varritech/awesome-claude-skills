@@ -60,7 +60,7 @@ export default function DomainPage() {
       <div className="max-w-[480px] mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-[30px] font-bold tracking-tight leading-tight mb-2">
+          <h1 className="text-[30px] font-bold tracking-tight leading-tight mb-2 font-heading">
             First step.{" "}
             <span className="text-cf-orange">Connect your website.</span>
           </h1>
@@ -105,7 +105,7 @@ export default function DomainPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2.5 mb-1">
-                    <span className="text-[15px] font-bold">
+                    <span className="text-[15px] font-bold font-heading">
                       Use my own website
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export default function DomainPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2.5 mb-1">
-                    <span className="text-[15px] font-bold">
+                    <span className="text-[15px] font-bold font-heading">
                       Use a ConvergeFlow address
                     </span>
                     <span className="text-[11px] font-bold px-2.5 py-[3px] rounded-[6px] bg-[#D4E4DD] text-[#1B1B1F] whitespace-nowrap">
@@ -156,7 +156,7 @@ export default function DomainPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={!selected}
-                className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-['DM_Sans'] ${
+                className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
                   selected
                     ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                     : "opacity-35 cursor-default"
@@ -176,7 +176,7 @@ export default function DomainPage() {
           {/* DNS Records Section */}
           {showDns && (
             <div className="text-left">
-              <p className="text-[15px] font-bold mb-1.5">
+              <p className="text-[15px] font-bold mb-1.5 font-heading">
                 Add these records to your website host
               </p>
               <p className="text-[13px] text-white/50 leading-relaxed mb-5">
@@ -266,7 +266,7 @@ export default function DomainPage() {
                 <button
                   type="button"
                   onClick={() => router.push("/onboarding/inbox")}
-                  className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)] font-['DM_Sans']"
+                  className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)] font-heading uppercase tracking-wide"
                 >
                   Verify &amp; Continue
                 </button>

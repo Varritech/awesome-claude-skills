@@ -51,7 +51,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(
         <p className="text-[11px] text-white/20">{label}</p>
         <div className="flex items-end justify-between mt-3">
           <div>
-            <p className="text-4xl font-bold tracking-tighter leading-none">{value}</p>
+            <p className="text-4xl font-bold tracking-tighter leading-none font-mono">{value}</p>
             {subtitle && (
               <p className={`text-[11px] mt-1.5 ${accent === "green" ? "text-cf-green" : accent === "amber" ? "text-cf-amber" : "text-white/15"}`}>
                 {subtitle}
@@ -86,7 +86,7 @@ export const ActionCard = forwardRef<HTMLDivElement, ActionCardProps>(
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold">{title}</p>
+          <p className="text-sm font-bold font-heading">{title}</p>
           <p className="text-[11px] text-white/20 mt-0.5">{description}</p>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/15 flex-shrink-0">

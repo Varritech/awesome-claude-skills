@@ -25,7 +25,7 @@ export default function PathPage() {
       <div className="max-w-[640px] mx-auto">
         {/* Heading */}
         <div className="text-center mb-10">
-          <h1 className="text-[28px] font-bold tracking-tight leading-tight mb-2">
+          <h1 className="text-[28px] font-bold tracking-tight leading-tight mb-2 font-heading">
             Let&apos;s get you some customers.
           </h1>
           <p className="text-sm text-white/25">
@@ -60,7 +60,7 @@ export default function PathPage() {
                 <line x1="12" y1="18" x2="12.01" y2="18" />
               </svg>
             </div>
-            <p className="text-base font-bold mb-1.5">
+            <p className="text-base font-bold mb-1.5 font-heading">
               I&apos;ll set it up myself
             </p>
             <p className="text-[13px] text-white/25 leading-relaxed mb-5">
@@ -103,7 +103,7 @@ export default function PathPage() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p className="text-base font-bold mb-1.5">
+            <p className="text-base font-bold mb-1.5 font-heading">
               Handle it for me
             </p>
             <p className="text-[13px] text-white/25 leading-relaxed mb-5">
@@ -126,7 +126,7 @@ export default function PathPage() {
           type="button"
           onClick={handleContinue}
           disabled={!selected}
-          className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-['DM_Sans'] ${
+          className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
             selected
               ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
               : "opacity-35 cursor-default"

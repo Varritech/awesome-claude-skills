@@ -74,7 +74,7 @@ export default function StylePage() {
       <div className="max-w-[720px] mx-auto animate-[enter_0.6s_cubic-bezier(0.23,1,0.32,1)]">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-[32px] font-bold tracking-[-0.04em] leading-tight mb-2">
+          <h1 className="text-[32px] font-bold tracking-[-0.04em] leading-tight mb-2 font-heading">
             Last step.{" "}
             <span className="text-cf-orange">How should your emails sound?</span>
           </h1>
@@ -123,7 +123,7 @@ export default function StylePage() {
                       }}
                     />
                   </div>
-                  <span className="text-[15px] font-bold tracking-[-0.01em]">{persona.name}</span>
+                  <span className="text-[15px] font-bold tracking-[-0.01em] font-heading">{persona.name}</span>
                 </div>
 
                 {/* Description */}
@@ -159,7 +159,7 @@ export default function StylePage() {
             type="button"
             onClick={handleLaunch}
             disabled={!selected}
-            className={`bg-cf-orange text-white text-sm font-bold py-3.5 px-9 rounded-[14px] border-none cursor-pointer transition-all duration-250 font-['DM_Sans'] ${
+            className={`bg-cf-orange text-white text-sm font-bold py-3.5 px-9 rounded-[14px] border-none cursor-pointer transition-all duration-250 font-heading uppercase tracking-wide ${
               selected
                 ? "opacity-100 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-25 cursor-default"

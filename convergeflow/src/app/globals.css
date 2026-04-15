@@ -10,9 +10,11 @@
   --bg-subtle: rgba(255, 255, 255, 0.06);
   --bg-card-in-card: #161618;
 
-  /* Accent colors */
-  --color-orange: #F97316;
-  --color-orange-dark: #EA580C;
+  /* Brand colors (from brand guidelines 2026) */
+  --color-orange: #E85002;
+  --color-orange-dark: #C44400;
+  --color-olive: #707653;
+  --color-sand: #D9C3AB;
   --color-mint: #D4E4DD;
   --color-mint-dark: #B8D8CA;
   --color-green: #22C55E;
@@ -20,6 +22,13 @@
   --color-amber: #F59E0B;
   --color-indigo: #6366F1;
   --color-indigo-light: #818CF8;
+
+  /* Gray scale (brand) */
+  --color-absolute-black: #050505;
+  --color-dark-gray: #333333;
+  --color-mid-gray: #646464;
+  --color-light-gray: #A7A7A7;
+  --color-off-white: #F9F9F9;
 
   /* Text hierarchy */
   --text-primary: #FFFFFF;
@@ -66,7 +75,7 @@
 body {
   color: var(--text-primary);
   background: var(--bg-page);
-  font-family: var(--font-dm-sans), sans-serif;
+  font-family: var(--font-chivo), "Chivo", sans-serif;
 }
 
 /* No borders on cards - bg stepping only */

@@ -52,7 +52,7 @@ export default function StylesPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight">Email Styles</h1>
+        <h1 className="text-[22px] font-bold tracking-tight font-heading">Email Styles</h1>
         <p className="text-[13px] text-white/25 mt-1">
           Pick your writing persona
         </p>
@@ -70,7 +70,7 @@ export default function StylesPage() {
           >
             <div className="flex items-center gap-2.5 mb-2">
               <span className="text-xl">{persona.emoji}</span>
-              <h3 className="text-[15px] font-bold">{persona.name}</h3>
+              <h3 className="text-[15px] font-bold font-heading">{persona.name}</h3>
             </div>
             <p className="text-[12px] text-white/35 leading-relaxed mb-3">
               {persona.description}
@@ -92,7 +92,7 @@ export default function StylesPage() {
       {/* Email preview */}
       <Card className="mb-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-bold">Preview</p>
+          <p className="text-sm font-bold font-heading">Preview</p>
           <button
             className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5"
             onClick={() => setCustomizing(!customizing)}
@@ -114,7 +114,7 @@ export default function StylesPage() {
       </Card>
 
       {/* Save button */}
-      <button className="w-full py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity">
+      <button className="w-full py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity font-heading uppercase tracking-wide">
         Save Style
       </button>
     </>

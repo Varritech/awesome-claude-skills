@@ -20,7 +20,7 @@ export default function InboxPage() {
       <div className="max-w-[480px] mx-auto">
         {/* Card */}
         <div className="bg-cf-card rounded-[24px] p-10 text-center animate-[fadeUp_0.5s_ease-out]">
-          <h1 className="text-[24px] font-bold tracking-tight mb-2">
+          <h1 className="text-[24px] font-bold tracking-tight mb-2 font-heading">
             Where should we send your emails from?
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-8">
@@ -49,7 +49,7 @@ export default function InboxPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-[15px] font-bold mb-1">Connect Gmail</p>
+                <p className="text-[15px] font-bold mb-1 font-heading">Connect Gmail</p>
                 <p className="text-[13px] text-white/50 leading-relaxed">
                   One click. We&apos;ll handle the rest.
                 </p>
@@ -76,7 +76,7 @@ export default function InboxPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-[15px] font-bold mb-1">Connect Yahoo</p>
+                <p className="text-[15px] font-bold mb-1 font-heading">Connect Yahoo</p>
                 <p className="text-[13px] text-white/50 leading-relaxed">
                   Quick and easy.
                 </p>
@@ -103,7 +103,7 @@ export default function InboxPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-[15px] font-bold mb-1">Other provider</p>
+                <p className="text-[15px] font-bold mb-1 font-heading">Other provider</p>
                 <p className="text-[13px] text-white/50 leading-relaxed">
                   Use your own email service.
                 </p>
@@ -156,7 +156,7 @@ export default function InboxPage() {
                     <input
                       type="text"
                       placeholder="smtp.example.com"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
                   </div>
                   <div className="w-[100px]">
@@ -164,7 +164,7 @@ export default function InboxPage() {
                     <input
                       type="text"
                       placeholder="587"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
                   </div>
                 </div>
@@ -174,7 +174,7 @@ export default function InboxPage() {
                     <input
                       type="text"
                       placeholder="imap.example.com"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
                   </div>
                   <div className="w-[100px]">
@@ -182,7 +182,7 @@ export default function InboxPage() {
                     <input
                       type="text"
                       placeholder="993"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export default function InboxPage() {
                   <input
                     type="email"
                     placeholder="you@example.com"
-                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                   />
                 </div>
                 <div>
@@ -199,7 +199,7 @@ export default function InboxPage() {
                   <input
                     type="password"
                     placeholder="Your email password"
-                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                   />
                 </div>
               </div>
@@ -224,7 +224,7 @@ export default function InboxPage() {
             type="button"
             onClick={handleContinue}
             disabled={!selected}
-            className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-['DM_Sans'] ${
+            className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
               selected
                 ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-35 cursor-default"

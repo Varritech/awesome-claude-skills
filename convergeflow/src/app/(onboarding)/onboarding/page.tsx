@@ -14,7 +14,7 @@ export default function OnboardingLandingPage() {
           <div className="w-16 h-16 rounded-[16px] bg-gradient-to-br from-cf-orange to-cf-orange-dark flex items-center justify-center mx-auto mb-6">
             <LogoIcon size={28} className="text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 font-heading">
             Cold email made simple
           </h1>
           <p className="text-lg text-white/35 max-w-md mx-auto leading-relaxed">
@@ -29,7 +29,7 @@ export default function OnboardingLandingPage() {
             <div className="w-10 h-10 rounded-cf-icon bg-cf-orange/15 flex items-center justify-center mx-auto mb-4">
               <ZapIcon size={20} className="text-cf-orange" />
             </div>
-            <h3 className="text-sm font-bold mb-1">5-minute setup</h3>
+            <h3 className="text-sm font-bold mb-1 font-heading">5-minute setup</h3>
             <p className="text-[11px] text-white/35">
               Domain, inbox, templates - all configured in a few clicks.
             </p>
@@ -38,7 +38,7 @@ export default function OnboardingLandingPage() {
             <div className="w-10 h-10 rounded-cf-icon bg-cf-mint/15 flex items-center justify-center mx-auto mb-4">
               <MailIcon size={20} className="text-cf-mint" />
             </div>
-            <h3 className="text-sm font-bold mb-1">Land in primary</h3>
+            <h3 className="text-sm font-bold mb-1 font-heading">Land in primary</h3>
             <p className="text-[11px] text-white/35">
               SPF, DKIM, DMARC auto-configured so you hit the inbox, not spam.
             </p>
@@ -47,7 +47,7 @@ export default function OnboardingLandingPage() {
             <div className="w-10 h-10 rounded-cf-icon bg-cf-green/15 flex items-center justify-center mx-auto mb-4">
               <ChartIcon size={20} className="text-cf-green" />
             </div>
-            <h3 className="text-sm font-bold mb-1">Industry templates</h3>
+            <h3 className="text-sm font-bold mb-1 font-heading">Industry templates</h3>
             <p className="text-[11px] text-white/35">
               Proven sequences for roofing, solar, HVAC, and more.
             </p>

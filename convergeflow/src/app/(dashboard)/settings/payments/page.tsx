@@ -60,7 +60,7 @@ export default function PaymentsPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight">Plan & Billing</h1>
+        <h1 className="text-[22px] font-bold tracking-tight font-heading">Plan & Billing</h1>
         <p className="text-[13px] text-white/25 mt-1">
           Manage your subscription and payment method
         </p>
@@ -80,10 +80,10 @@ export default function PaymentsPage() {
                 Most Popular
               </span>
             )}
-            <h3 className="text-[18px] font-bold">{plan.name}</h3>
+            <h3 className="text-[18px] font-bold font-heading">{plan.name}</h3>
             <p className="text-[12px] text-white/25 mt-1">{plan.emails}</p>
             <div className="flex items-end gap-1 mt-4 mb-5">
-              <span className="text-[36px] font-bold tracking-tighter leading-none">
+              <span className="text-[36px] font-bold tracking-tighter leading-none font-mono">
                 ${plan.price}
               </span>
               <span className="text-[13px] text-white/25 mb-1">
@@ -118,7 +118,7 @@ export default function PaymentsPage() {
 
       {/* Payment method */}
       <Card>
-        <p className="text-sm font-bold mb-4">Payment Method</p>
+        <p className="text-sm font-bold mb-4 font-heading">Payment Method</p>
         <div className="flex items-center gap-3 py-2">
           <div className="w-10 h-7 rounded bg-cf-elevated flex items-center justify-center">
             <CreditCardIcon size={16} className="text-white/40" />

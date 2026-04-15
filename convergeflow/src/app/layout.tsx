@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { Archivo, Chivo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-dm-sans",
+  weight: ["700", "900"],
+  variable: "--font-archivo",
+  display: "swap",
+});
+
+const chivo = Chivo({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-chivo",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -22,7 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} font-sans antialiased`}>
+      <body
+        className={`${archivo.variable} ${chivo.variable} ${jetbrainsMono.variable} font-body antialiased`}
+      >
         {children}
       </body>
     </html>

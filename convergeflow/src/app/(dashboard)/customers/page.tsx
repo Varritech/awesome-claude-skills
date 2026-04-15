@@ -84,7 +84,7 @@ export default function CustomersPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight">Find Customers</h1>
+          <h1 className="text-[22px] font-bold tracking-tight font-heading">Find Customers</h1>
           <p className="text-[13px] text-white/25 mt-1">
             Browse leads in your area
           </p>
@@ -171,7 +171,7 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <p className="text-[14px] font-bold">{lead.score}</p>
+                  <p className="text-[14px] font-bold font-mono">{lead.score}</p>
                   <p className="text-[10px] text-white/20">Score</p>
                 </div>
               </div>

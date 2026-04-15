@@ -63,12 +63,12 @@ export default function EmailsPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight">Your Emails</h1>
+          <h1 className="text-[22px] font-bold tracking-tight font-heading">Your Emails</h1>
           <p className="text-[13px] text-white/25 mt-1">
             Manage your email campaigns
           </p>
         </div>
-        <button className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2">
+        <button className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2 font-heading uppercase tracking-wide">
           <PlusIcon size={16} />
           New Campaign
         </button>
@@ -100,7 +100,7 @@ export default function EmailsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h3 className="text-[15px] font-bold">{set.name}</h3>
+                    <h3 className="text-[15px] font-bold font-heading">{set.name}</h3>
                     <span
                       className={`px-3 py-1 rounded-[var(--radius-pill)] text-[11px] font-medium ${config.bg} ${config.text}`}
                     >
@@ -128,17 +128,17 @@ export default function EmailsPage() {
               <div className="flex gap-5 text-[12px]">
                 <div>
                   <span className="text-white/20">Sent</span>{" "}
-                  <span className="font-medium">
+                  <span className="font-medium font-mono">
                     {set.sent}/{set.total}
                   </span>
                 </div>
                 <div>
                   <span className="text-white/20">Replies</span>{" "}
-                  <span className="font-medium">{set.replies}</span>
+                  <span className="font-medium font-mono">{set.replies}</span>
                 </div>
                 <div>
                   <span className="text-white/20">Interested</span>{" "}
-                  <span className="font-medium text-cf-green">{set.interested}</span>
+                  <span className="font-medium text-cf-green font-mono">{set.interested}</span>
                 </div>
               </div>
             </Card>

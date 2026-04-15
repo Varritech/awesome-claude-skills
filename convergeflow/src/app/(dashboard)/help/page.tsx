@@ -67,7 +67,7 @@ export default function HelpPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight">Need Help?</h1>
+        <h1 className="text-[22px] font-bold tracking-tight font-heading">Need Help?</h1>
         <p className="text-[13px] text-white/25 mt-1">
           We&apos;re here when you need us
         </p>
@@ -84,7 +84,7 @@ export default function HelpPage() {
               >
                 <Icon size={20} className="text-white" />
               </div>
-              <h3 className="text-[14px] font-bold">{method.label}</h3>
+              <h3 className="text-[14px] font-bold font-heading">{method.label}</h3>
               <p className="text-[12px] text-white/25 mt-1">
                 {method.description}
               </p>
@@ -98,7 +98,7 @@ export default function HelpPage() {
 
       {/* FAQ accordion */}
       <Card className="mb-5">
-        <p className="text-sm font-bold mb-4">Frequently Asked Questions</p>
+        <p className="text-sm font-bold mb-4 font-heading">Frequently Asked Questions</p>
         <div className="flex flex-col">
           {faqs.map((faq, i) => (
             <div
@@ -132,7 +132,7 @@ export default function HelpPage() {
       {/* OpenClaw upsell */}
       <Card variant="orange" className="flex items-center justify-between gap-5 max-md:flex-col max-md:text-center">
         <div>
-          <h3 className="text-lg font-bold tracking-tight">
+          <h3 className="text-lg font-bold tracking-tight font-heading">
             Need more than email?
           </h3>
           <p className="text-[13px] text-white/30">

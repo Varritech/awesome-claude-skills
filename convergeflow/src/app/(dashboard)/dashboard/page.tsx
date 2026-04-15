@@ -21,7 +21,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Header */}
-      <h1 className="text-[22px] font-bold tracking-tight">Hey there, Jake!</h1>
+      <h1 className="text-[22px] font-bold tracking-tight font-heading">Hey there, Jake!</h1>
       <p className="text-[13px] text-white/25 mt-1 mb-7">
         Your emails are working. Here&apos;s what happened today.
       </p>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
           <p className="text-[11px] text-black/35">Calls Booked</p>
           <div className="flex items-end justify-between mt-3">
             <div>
-              <p className="text-[36px] font-bold tracking-tighter leading-none">
+              <p className="text-[36px] font-bold tracking-tighter leading-none font-mono">
                 1
               </p>
               <p className="text-[11px] text-black/30 mt-1.5">booked today</p>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
         {/* Right: Chart */}
         <Card>
           <div className="flex justify-between items-center mb-5">
-            <p className="text-sm font-bold">Email Performance</p>
+            <p className="text-sm font-bold font-heading">Email Performance</p>
             <div className="flex gap-[3px] cursor-pointer">
               <div className="w-1 h-1 rounded-full bg-white/30" />
               <div className="w-1 h-1 rounded-full bg-white/30" />
@@ -136,7 +136,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         {/* Email Status */}
         <Card>
-          <p className="text-sm font-bold mb-5">Your Emails</p>
+          <p className="text-sm font-bold mb-5 font-heading">Your Emails</p>
           <div className="flex flex-col gap-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -168,7 +168,7 @@ export default function DashboardPage() {
         {/* Recent Replies */}
         <Card>
           <div className="flex justify-between items-center mb-4">
-            <p className="text-sm font-bold">Recent Replies</p>
+            <p className="text-sm font-bold font-heading">Recent Replies</p>
             <div className="flex gap-[3px] cursor-pointer">
               <div className="w-1 h-1 rounded-full bg-white/30" />
               <div className="w-1 h-1 rounded-full bg-white/30" />
@@ -217,7 +217,7 @@ export default function DashboardPage() {
 
         {/* Inbox Health */}
         <Card className="flex flex-col items-center">
-          <p className="text-sm font-bold mb-4 self-start">Inbox Health</p>
+          <p className="text-sm font-bold mb-4 self-start font-heading">Inbox Health</p>
           <Gauge value={90} statusText="Great" />
         </Card>
       </div>
@@ -228,14 +228,14 @@ export default function DashboardPage() {
         className="flex items-center justify-between gap-5 max-md:flex-col max-md:text-center"
       >
         <div>
-          <h3 className="text-lg font-bold tracking-tight">
+          <h3 className="text-lg font-bold tracking-tight font-heading">
             Want to send more emails?
           </h3>
           <p className="text-[13px] text-white/30">
             Book a quick call and we&apos;ll set you up with a bigger plan.
           </p>
         </div>
-        <button className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-sans shrink-0 hover:opacity-90 transition-opacity">
+        <button className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-heading uppercase tracking-wide shrink-0 hover:opacity-90 transition-opacity">
           Book a Call
         </button>
       </Card>

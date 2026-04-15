@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight">Analytics</h1>
+          <h1 className="text-[22px] font-bold tracking-tight font-heading">Analytics</h1>
           <p className="text-[13px] text-white/25 mt-1">
             See how your emails are performing
           </p>
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <Card className="md:col-span-2">
           <div className="flex items-center justify-between mb-5">
-            <p className="text-sm font-bold">Sends Over Time</p>
+            <p className="text-sm font-bold font-heading">Sends Over Time</p>
             <div className="flex gap-[3px] cursor-pointer">
               <div className="w-1 h-1 rounded-full bg-white/30" />
               <div className="w-1 h-1 rounded-full bg-white/30" />
@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
         </Card>
 
         <Card className="flex flex-col items-center">
-          <p className="text-sm font-bold mb-4 self-start">Reply Breakdown</p>
+          <p className="text-sm font-bold mb-4 self-start font-heading">Reply Breakdown</p>
           <DonutChart
             segments={[
               { value: 45, color: "#22C55E", label: "Interested" },
@@ -127,7 +127,7 @@ export default function AnalyticsPage() {
 
       {/* Data table */}
       <Card>
-        <p className="text-sm font-bold mb-4">Campaign Details</p>
+        <p className="text-sm font-bold mb-4 font-heading">Campaign Details</p>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
                   <td className="py-3 text-right text-white/50">{row.sent}</td>
                   <td className="py-3 text-right text-white/50">{row.opened}</td>
                   <td className="py-3 text-right text-white/50">{row.replied}</td>
-                  <td className="py-3 text-right font-medium">{row.rate}</td>
+                  <td className="py-3 text-right font-medium font-mono">{row.rate}</td>
                 </tr>
               ))}
             </tbody>

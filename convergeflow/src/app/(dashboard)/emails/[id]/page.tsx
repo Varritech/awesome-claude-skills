@@ -87,7 +87,7 @@ export default function EmailDetailPage() {
       <Card className="mb-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-[22px] font-bold tracking-tight">
+            <h1 className="text-[22px] font-bold tracking-tight font-heading">
               Roofing - Dallas
             </h1>
             <p className="text-[13px] text-white/25 mt-1">
@@ -101,19 +101,19 @@ export default function EmailDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-[11px] text-white/20">Sent</p>
-            <p className="text-[20px] font-bold">18/25</p>
+            <p className="text-[20px] font-bold font-mono">18/25</p>
           </div>
           <div>
             <p className="text-[11px] text-white/20">Replied</p>
-            <p className="text-[20px] font-bold">4</p>
+            <p className="text-[20px] font-bold font-mono">4</p>
           </div>
           <div>
             <p className="text-[11px] text-white/20">Interested</p>
-            <p className="text-[20px] font-bold text-cf-green">2</p>
+            <p className="text-[20px] font-bold text-cf-green font-mono">2</p>
           </div>
           <div>
             <p className="text-[11px] text-white/20">Open Rate</p>
-            <p className="text-[20px] font-bold">68%</p>
+            <p className="text-[20px] font-bold font-mono">68%</p>
           </div>
         </div>
       </Card>

@@ -6,7 +6,7 @@ import { MailIcon } from "@/components/icons";
 export default function SettingsPage() {
   return (
     <>
-      <h1 className="text-[22px] font-bold tracking-tight mb-7">Settings</h1>
+      <h1 className="text-[22px] font-bold tracking-tight mb-7 font-heading">Settings</h1>
 
       {/* Profile */}
       <Card className="mb-5">
@@ -15,7 +15,7 @@ export default function SettingsPage() {
             JR
           </div>
           <div>
-            <h3 className="text-[15px] font-bold">Jake Robinson</h3>
+            <h3 className="text-[15px] font-bold font-heading">Jake Robinson</h3>
             <p className="text-[12px] text-white/25">jake@convergeflow.io</p>
           </div>
           <button className="ml-auto px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors">
@@ -44,7 +44,7 @@ export default function SettingsPage() {
 
       {/* Connected Inboxes */}
       <Card className="mb-5">
-        <p className="text-sm font-bold mb-4">Connected Inboxes</p>
+        <p className="text-sm font-bold mb-4 font-heading">Connected Inboxes</p>
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3 py-2">
             <div className="w-9 h-9 rounded-[var(--radius-icon)] bg-cf-elevated flex items-center justify-center">
@@ -74,7 +74,7 @@ export default function SettingsPage() {
 
       {/* Domains */}
       <Card className="mb-5">
-        <p className="text-sm font-bold mb-4">Sending Domains</p>
+        <p className="text-sm font-bold mb-4 font-heading">Sending Domains</p>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between py-2">
             <div>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
       {/* Toggles */}
       <Card className="mb-5">
-        <p className="text-sm font-bold mb-4">Preferences</p>
+        <p className="text-sm font-bold mb-4 font-heading">Preferences</p>
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
@@ -128,7 +128,7 @@ export default function SettingsPage() {
       {/* Plan */}
       <Card className="mb-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-bold">Your Plan</p>
+          <p className="text-sm font-bold font-heading">Your Plan</p>
           <a
             href="/settings/payments"
             className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity"
@@ -138,16 +138,16 @@ export default function SettingsPage() {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[15px] font-bold">Starter</p>
+            <p className="text-[15px] font-bold font-heading">Starter</p>
             <p className="text-[12px] text-white/25">50 emails/day</p>
           </div>
-          <p className="text-[15px] font-bold">$49/mo</p>
+          <p className="text-[15px] font-bold font-mono">$49/mo</p>
         </div>
       </Card>
 
       {/* Danger zone */}
       <Card variant="elevated" className="border border-red-500/20">
-        <p className="text-sm font-bold text-red-400 mb-3">Danger Zone</p>
+        <p className="text-sm font-bold text-red-400 mb-3 font-heading">Danger Zone</p>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">Delete Account</p>

@@ -33,7 +33,7 @@ export function OnboardingLayout({ children, currentStep }: OnboardingLayoutProp
               <LogoIcon size={14} className="text-white" />
             </div>
             <span
-              className="text-[15px] font-bold tracking-tight italic"
+              className="text-[15px] font-bold tracking-tight italic font-heading"
               style={{ color: "rgba(255,255,255,0.6)" }}
             >
               ConvergeFlow

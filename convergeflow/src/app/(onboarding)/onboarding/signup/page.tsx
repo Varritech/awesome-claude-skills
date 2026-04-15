@@ -29,7 +29,7 @@ export default function SignupPage() {
           <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-cf-orange to-cf-orange-dark flex items-center justify-center">
             <LogoIcon size={22} className="text-white" />
           </div>
-          <span className="text-[28px] font-bold tracking-tight italic">
+          <span className="text-[28px] font-bold tracking-tight italic font-heading">
             ConvergeFlow
           </span>
         </div>
@@ -63,7 +63,7 @@ export default function SignupPage() {
 
         {/* Card */}
         <div className="bg-cf-card rounded-[24px] p-10 text-center animate-[fadeUp_0.5s_ease-out]">
-          <h1 className="text-[24px] font-bold tracking-tight mb-2">
+          <h1 className="text-[24px] font-bold tracking-tight mb-2 font-heading">
             Let&apos;s get you some customers.
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-8">
@@ -74,7 +74,7 @@ export default function SignupPage() {
           <button
             type="button"
             onClick={handleGoogleSignup}
-            className="w-full flex items-center justify-center gap-3 bg-white text-[#1B1B1F] text-base font-bold py-4 px-7 rounded-[14px] cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)]"
+            className="w-full flex items-center justify-center gap-3 bg-white text-[#1B1B1F] text-base font-bold py-4 px-7 rounded-[14px] cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)] font-heading uppercase tracking-wide"
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4" />
@@ -99,18 +99,18 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Your email address"
-              className="w-full bg-[#222228] border-none rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-2 focus:border-cf-orange focus:py-3 focus:px-[14px] placeholder:text-white/35 font-['DM_Sans']"
+              className="w-full bg-[#222228] border-none rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-2 focus:border-cf-orange focus:py-3 focus:px-[14px] placeholder:text-white/35"
             />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Pick a password"
-              className="w-full bg-[#222228] border-none rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-2 focus:border-cf-orange focus:py-3 focus:px-[14px] placeholder:text-white/35 font-['DM_Sans']"
+              className="w-full bg-[#222228] border-none rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-2 focus:border-cf-orange focus:py-3 focus:px-[14px] placeholder:text-white/35"
             />
             <button
               type="submit"
-              className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)] mt-1 font-['DM_Sans']"
+              className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)] mt-1 font-heading uppercase tracking-wide"
             >
               Get Started
             </button>

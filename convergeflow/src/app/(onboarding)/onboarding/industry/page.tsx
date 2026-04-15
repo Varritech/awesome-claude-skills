@@ -154,7 +154,7 @@ export default function IndustryPage() {
     <OnboardingLayout currentStep={4}>
       <div className="max-w-[520px] mx-auto">
         <div className="bg-cf-card rounded-[24px] p-10 text-center animate-[fadeUp_0.5s_ease-out]">
-          <h1 className="text-[24px] font-bold tracking-tight mb-2">
+          <h1 className="text-[24px] font-bold tracking-tight mb-2 font-heading">
             What kind of work do you do?
           </h1>
           <p className="text-sm text-white/50 leading-relaxed mb-8">
@@ -185,7 +185,7 @@ export default function IndustryPage() {
                       {industry.icon}
                     </span>
                   </div>
-                  <p className="text-[14px] font-bold mb-1">{industry.name}</p>
+                  <p className="text-[14px] font-bold mb-1 font-heading">{industry.name}</p>
                   <p className="text-[12px] text-white/35 leading-snug">{industry.example}</p>
                 </button>
               );
@@ -200,7 +200,7 @@ export default function IndustryPage() {
                 value={otherText}
                 onChange={(e) => setOtherText(e.target.value)}
                 placeholder="What's your business?"
-                className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange font-['DM_Sans'] placeholder:text-white/35"
+                className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
               />
             </div>
           )}
@@ -210,7 +210,7 @@ export default function IndustryPage() {
             type="button"
             onClick={handleContinue}
             disabled={!canContinue}
-            className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-['DM_Sans'] ${
+            className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
               canContinue
                 ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-40 cursor-default"

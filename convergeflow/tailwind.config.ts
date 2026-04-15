@@ -25,6 +25,13 @@ const config: Config = {
         "cf-amber": "var(--color-amber)",
         "cf-indigo": "var(--color-indigo)",
         "cf-indigo-light": "var(--color-indigo-light)",
+        "cf-olive": "var(--color-olive)",
+        "cf-sand": "var(--color-sand)",
+        "cf-absolute-black": "var(--color-absolute-black)",
+        "cf-dark-gray": "var(--color-dark-gray)",
+        "cf-mid-gray": "var(--color-mid-gray)",
+        "cf-light-gray": "var(--color-light-gray)",
+        "cf-off-white": "var(--color-off-white)",
       },
       borderRadius: {
         "cf-card": "var(--radius-card)",
@@ -39,7 +46,10 @@ const config: Config = {
         "cf-mobile-nav": "var(--mobile-nav-height)",
       },
       fontFamily: {
-        sans: ["var(--font-dm-sans)", "sans-serif"],
+        heading: ["var(--font-archivo)", "Archivo", "sans-serif"],
+        body: ["var(--font-chivo)", "Chivo", "sans-serif"],
+        mono: ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
+        sans: ["var(--font-chivo)", "Chivo", "sans-serif"],
       },
       transitionDuration: {
         "cf-fast": "var(--transition-fast)",
