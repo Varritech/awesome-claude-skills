@@ -16,7 +16,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "sonar": "sonar-scanner",
-    "quality": "npm run lint && npm run format:check && npm run test && npm run test:e2e"
+    "quality": "npm run lint && npm run format:check && npm run test && npm run test:e2e",
+    "audit:security": "npm audit --audit-level=high",
+    "prepare": "cd .. && husky convergeflow/.husky"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -43,12 +45,20 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "happy-dom": "^20.9.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.2",
+    "lint-staged": "^16.4.0",
     "postcss": "^8",
     "prettier": "^3.8.2",
     "sonarqube-scanner": "^4.3.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^1.6.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
