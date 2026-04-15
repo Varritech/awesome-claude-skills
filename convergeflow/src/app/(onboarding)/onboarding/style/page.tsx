@@ -151,22 +151,30 @@ export default function StylePage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="text-2xl mb-2">🎯</div>
+              <div className="w-10 h-10 rounded-[10px] bg-cf-orange/10 flex items-center justify-center mx-auto mb-2.5">
+                <span className="text-cf-orange text-lg font-black font-heading">&raquo;</span>
+              </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Select leads</p>
               <p className="text-[11px] text-white/30">We find the right people</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="text-2xl mb-2">✍️</div>
+              <div className="w-10 h-10 rounded-[10px] bg-cf-orange/10 flex items-center justify-center mx-auto mb-2.5">
+                <span className="text-cf-orange text-lg font-black font-heading">&raquo;</span>
+              </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Personalize</p>
               <p className="text-[11px] text-white/30">AI writes for each lead</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="text-2xl mb-2">🚀</div>
+              <div className="w-10 h-10 rounded-[10px] bg-cf-orange/10 flex items-center justify-center mx-auto mb-2.5">
+                <span className="text-cf-orange text-lg font-black font-heading">&raquo;</span>
+              </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Send</p>
               <p className="text-[11px] text-white/30">Safe limits, zero spam</p>
             </div>
             <div className="bg-[#161618] rounded-[14px] p-4 text-center">
-              <div className="text-2xl mb-2">📊</div>
+              <div className="w-10 h-10 rounded-[10px] bg-cf-orange/10 flex items-center justify-center mx-auto mb-2.5">
+                <span className="text-cf-orange text-lg font-black font-heading">&raquo;</span>
+              </div>
               <p className="text-[12px] font-bold text-white/70 mb-0.5 font-heading">Track</p>
               <p className="text-[11px] text-white/30">Opens, replies, booked calls</p>
             </div>
