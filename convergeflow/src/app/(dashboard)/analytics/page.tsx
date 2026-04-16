@@ -1,27 +1,108 @@
 "use client";
 
-import { MetricCard, Card } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { MetricCard, Card, Skeleton } from "@/components/ui";
 import { MiniRing, BarChart, DonutChart, Sparkline } from "@/components/charts";
+import { apiGet } from "@/lib/api-client";
 
-const weekData = [
-  { label: "Mon", value: 45, isHighlighted: false },
-  { label: "Tue", value: 62, isHighlighted: false },
-  { label: "Wed", value: 78, isHighlighted: true },
-  { label: "Thu", value: 55, isHighlighted: false },
-  { label: "Fri", value: 90, isHighlighted: false },
-  { label: "Sat", value: 35, isHighlighted: false },
-  { label: "Sun", value: 20, isHighlighted: false },
-];
+interface WeekdayDatum {
+  label: string;
+  value: number;
+  isHighlighted?: boolean;
+}
 
-const dateFilters = ["7D", "14D", "30D", "90D"];
+interface AnalyticsTableRow {
+  name: string;
+  sent: number;
+  opened: number;
+  replied: number;
+  rate: string;
+}
 
-const tableData = [
-  { name: "Roofing - Dallas", sent: 42, opened: 28, replied: 7, rate: "68%" },
-  { name: "Gutters - Ft Worth", sent: 25, opened: 15, replied: 3, rate: "52%" },
-  { name: "Solar - Austin", sent: 18, opened: 12, replied: 2, rate: "44%" },
+interface AnalyticsData {
+  totalSent: number;
+  totalSentChangePercent: number;
+  totalSentPercent: number;
+  opened: number;
+  openRatePercent: number;
+  openRateLabel: string;
+  replied: number;
+  repliedChange: number;
+  repliedTrend: number[];
+  booked: number;
+  bookedTrend: number[];
+  weekData: WeekdayDatum[];
+  replyBreakdown: { value: number; color: string; label: string }[];
+  replyRate: string;
+  tableData: AnalyticsTableRow[];
+}
+
+const dateFilters = [
+  { id: "7D", label: "7D" },
+  { id: "14D", label: "14D" },
+  { id: "30D", label: "30D" },
+  { id: "90D", label: "90D" },
 ];
 
 export default function AnalyticsPage() {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState("7D");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiGet<AnalyticsData>(`/api/analytics?timeRange=${timeRange}`)
+      .then((res) => {
+        if (cancelled) return;
+        setData(res ?? null);
+      })
+      .catch((err) => {
+        console.error("Failed to load analytics", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [timeRange]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-7 w-48 mb-2" />
+        <Skeleton className="h-4 w-72 mb-6" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-28" rounded="lg" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+          <Skeleton className="md:col-span-2 h-64" rounded="lg" />
+          <Skeleton className="h-64" rounded="lg" />
+        </div>
+        <Skeleton className="h-48" rounded="lg" />
+      </>
+    );
+  }
+
+  const totalSent = data?.totalSent ?? 0;
+  const totalSentChangePercent = data?.totalSentChangePercent ?? 0;
+  const totalSentPercent = data?.totalSentPercent ?? 0;
+  const opened = data?.opened ?? 0;
+  const openRatePercent = data?.openRatePercent ?? 0;
+  const openRateLabel = data?.openRateLabel ?? `${openRatePercent}% open rate`;
+  const replied = data?.replied ?? 0;
+  const repliedChange = data?.repliedChange ?? 0;
+  const repliedTrend = data?.repliedTrend ?? [0, 0, 0, 0, 0, 0, 0];
+  const booked = data?.booked ?? 0;
+  const bookedTrend = data?.bookedTrend ?? [0, 0, 0, 0, 0, 0, 0];
+  const weekData = data?.weekData ?? [];
+  const replyBreakdown = data?.replyBreakdown ?? [];
+  const replyRate = data?.replyRate ?? "0%";
+  const tableData = data?.tableData ?? [];
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -36,14 +117,15 @@ export default function AnalyticsPage() {
         <div className="flex gap-2">
           {dateFilters.map((filter) => (
             <button
-              key={filter}
+              key={filter.id}
+              onClick={() => setTimeRange(filter.id)}
               className={`px-3.5 py-1.5 rounded-[var(--radius-pill)] text-[12px] font-medium transition-colors ${
-                filter === "7D"
+                filter.id === timeRange
                   ? "bg-cf-orange text-white"
                   : "bg-white/[0.04] text-white/35 hover:bg-white/[0.08]"
               }`}
             >
-              {filter}
+              {filter.label}
             </button>
           ))}
         </div>
@@ -53,26 +135,26 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <MetricCard
           label="Total Sent"
-          value="85"
-          subtitle="+12% vs last"
+          value={String(totalSent)}
+          subtitle={`${totalSentChangePercent >= 0 ? "+" : ""}${totalSentChangePercent}% vs last`}
           accent="orange"
-          chart={<MiniRing percentage={72} label="72%" color="#F97316" />}
+          chart={<MiniRing percentage={totalSentPercent} label={`${totalSentPercent}%`} color="#F97316" />}
         />
         <MetricCard
           label="Opened"
-          value="55"
-          subtitle="64.7% open rate"
+          value={String(opened)}
+          subtitle={openRateLabel}
           accent="green"
-          chart={<MiniRing percentage={65} label="65%" color="#22C55E" />}
+          chart={<MiniRing percentage={openRatePercent} label={`${openRatePercent}%`} color="#22C55E" />}
         />
         <MetricCard
           label="Replied"
-          value="12"
-          subtitle="+5 from last week"
+          value={String(replied)}
+          subtitle={`${repliedChange >= 0 ? "+" : ""}${repliedChange} from last week`}
           accent="amber"
           chart={
             <Sparkline
-              data={[20, 45, 30, 65, 40, 80, 55]}
+              data={repliedTrend}
               color="#F59E0B"
               width={48}
               height={36}
@@ -81,12 +163,12 @@ export default function AnalyticsPage() {
         />
         <MetricCard
           label="Booked"
-          value="3"
+          value={String(booked)}
           subtitle="from replies"
           accent="orange"
           chart={
             <Sparkline
-              data={[10, 20, 15, 30, 25, 40, 35]}
+              data={bookedTrend}
               color="#F97316"
               width={48}
               height={36}
@@ -112,14 +194,10 @@ export default function AnalyticsPage() {
         <Card className="flex flex-col items-center">
           <p className="text-sm font-bold mb-4 self-start font-heading">Reply Breakdown</p>
           <DonutChart
-            segments={[
-              { value: 45, color: "#22C55E", label: "Interested" },
-              { value: 30, color: "#F59E0B", label: "Maybe" },
-              { value: 25, color: "#222228", label: "Not Now" },
-            ]}
+            segments={replyBreakdown.length > 0 ? replyBreakdown : [{ value: 1, color: "#222228", label: "No data" }]}
             size={120}
             strokeWidth={14}
-            centerLabel="42%"
+            centerLabel={replyRate}
             centerSublabel="reply rate"
           />
         </Card>
@@ -140,6 +218,13 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody>
+              {tableData.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-white/30">
+                    No campaigns in this time range.
+                  </td>
+                </tr>
+              )}
               {tableData.map((row) => (
                 <tr
                   key={row.name}

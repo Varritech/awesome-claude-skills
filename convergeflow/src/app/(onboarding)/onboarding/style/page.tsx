@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { UsersIcon, PenIcon, SendIcon, ChartIcon } from "@/components/icons";
+import { apiPatch } from "@/lib/api-client";
 
 type Persona = "closer" | "neighbor" | "expert" | "helper";
 
@@ -59,10 +60,24 @@ const personas: {
 export default function StylePage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Persona | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLaunch = () => {
-    if (!selected) return;
-    router.push("/dashboard");
+  const handleLaunch = async () => {
+    if (!selected || submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await apiPatch("/api/user/onboarding", {
+        persona: selected,
+        onboardingComplete: true,
+      });
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError("Could not save your style. Please try again.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -171,6 +186,10 @@ export default function StylePage() {
           </div>
         </div>
 
+        {error && (
+          <p className="text-[13px] text-red-400 mb-3 text-center">{error}</p>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between">
           <Link
@@ -186,14 +205,14 @@ export default function StylePage() {
           <button
             type="button"
             onClick={handleLaunch}
-            disabled={!selected}
+            disabled={!selected || submitting}
             className={`bg-cf-orange text-white text-sm font-bold py-3.5 px-9 rounded-[14px] border-none cursor-pointer transition-all duration-250 font-heading uppercase tracking-wide ${
-              selected
+              selected && !submitting
                 ? "opacity-100 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-25 cursor-default"
             }`}
           >
-            Start sending emails
+            {submitting ? "Saving..." : "Start sending emails"}
           </button>
         </div>
       </div>
