@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
+import { apiPatch } from "@/lib/api-client";
 
 type Industry = "roofing" | "solar" | "hvac" | "plumbing" | "electrical" | "landscaping" | "general-contracting" | "painting" | "cleaning" | "other";
 
@@ -142,12 +143,26 @@ export default function IndustryPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Industry | null>(null);
   const [otherText, setOtherText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const canContinue = selected === "other" ? otherText.trim().length > 0 : selected !== null;
 
-  const handleContinue = () => {
-    if (!canContinue) return;
-    router.push("/onboarding/style");
+  const handleContinue = async () => {
+    if (!canContinue || submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await apiPatch("/api/user/onboarding", {
+        industry: selected,
+        industryOther: selected === "other" ? otherText.trim() : undefined,
+      });
+      router.push("/onboarding/style");
+    } catch (err) {
+      console.error(err);
+      setError("Could not save your selection. Please try again.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -205,18 +220,22 @@ export default function IndustryPage() {
             </div>
           )}
 
+          {error && (
+            <p className="text-[12px] text-red-400 mb-3">{error}</p>
+          )}
+
           {/* Next Button */}
           <button
             type="button"
             onClick={handleContinue}
-            disabled={!canContinue}
+            disabled={!canContinue || submitting}
             className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
-              canContinue
+              canContinue && !submitting
                 ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-40 cursor-default"
             }`}
           >
-            Next
+            {submitting ? "Saving..." : "Next"}
           </button>
         </div>
 

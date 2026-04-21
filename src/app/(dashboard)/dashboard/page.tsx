@@ -1,27 +1,145 @@
 "use client";
 
-import { MetricCard, ActionCard, Card } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { MetricCard, ActionCard, Card, Skeleton } from "@/components/ui";
 import { MiniRing, Sparkline, BarChart, Gauge, RingProgress } from "@/components/charts";
 import {
   MailIcon,
   UsersIcon,
   PenIcon,
 } from "@/components/icons";
+import { apiGet } from "@/lib/api-client";
+
+interface WeekdayDatum {
+  label: string;
+  value: number;
+  isHighlighted?: boolean;
+}
+
+interface EmailCampaignStatus {
+  name: string;
+  status: "active" | "warming" | "draft" | "paused" | "done";
+}
+
+interface Reply {
+  initials: string;
+  name: string;
+  badge: string;
+  badgeColor: "mint" | "default";
+  preview: string;
+  time: string;
+}
+
+interface AnalyticsData {
+  sent: number;
+  dailyLimit: number;
+  sentPercent: number;
+  replies: number;
+  repliesChangePercent: number;
+  repliesPercent: number;
+  interested: number;
+  interestedNew: number;
+  interestedTrend: number[];
+  calls: number;
+  callsTrend: number[];
+  weekData: WeekdayDatum[];
+  campaigns: EmailCampaignStatus[];
+  inboxHealth: number;
+  inboxHealthLabel: string;
+  sendCompletionPercent: number;
+  recentReplies: Reply[];
+}
+
+const statusDotClass: Record<EmailCampaignStatus["status"], string> = {
+  active: "bg-cf-green",
+  warming: "bg-cf-amber",
+  draft: "bg-cf-indigo",
+  paused: "bg-cf-indigo",
+  done: "bg-white/30",
+};
+
+const statusLabel: Record<EmailCampaignStatus["status"], string> = {
+  active: "Active",
+  warming: "Warming",
+  draft: "Draft",
+  paused: "Paused",
+  done: "Done",
+};
+
+function DashboardSkeleton() {
+  return (
+    <>
+      <Skeleton className="h-7 w-48 mb-2" />
+      <Skeleton className="h-4 w-72 mb-7" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28" rounded="lg" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+        <Skeleton className="h-40" rounded="lg" />
+        <Skeleton className="h-40" rounded="lg" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+        <Skeleton className="h-56" rounded="lg" />
+        <Skeleton className="h-56" rounded="lg" />
+        <Skeleton className="h-56" rounded="lg" />
+      </div>
+    </>
+  );
+}
 
 export default function DashboardPage() {
-  const weekData = [
-    { label: "Mon", value: 25, isHighlighted: false },
-    { label: "Tue", value: 40, isHighlighted: false },
-    { label: "Wed", value: 55, isHighlighted: false },
-    { label: "Thu", value: 42, isHighlighted: true },
-    { label: "Fri", value: 35, isHighlighted: false },
-    { label: "Sat", value: 20, isHighlighted: false },
-  ];
+  const { user } = useUser();
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<AnalyticsData>("/api/analytics?timeRange=today")
+      .then((res) => {
+        if (cancelled) return;
+        setData(res ?? null);
+      })
+      .catch((err) => {
+        console.error("Failed to load analytics", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  const firstName = user?.firstName ?? "there";
+  const sent = data?.sent ?? 0;
+  const dailyLimit = data?.dailyLimit ?? 50;
+  const sentPercent = data?.sentPercent ?? 0;
+  const replies = data?.replies ?? 0;
+  const repliesChangePercent = data?.repliesChangePercent ?? 0;
+  const repliesPercent = data?.repliesPercent ?? 0;
+  const interested = data?.interested ?? 0;
+  const interestedNew = data?.interestedNew ?? 0;
+  const interestedTrend = data?.interestedTrend ?? [0, 0, 0, 0, 0, 0, 0];
+  const calls = data?.calls ?? 0;
+  const callsTrend = data?.callsTrend ?? [0, 0, 0, 0, 0, 0, 0];
+  const weekData = data?.weekData ?? [];
+  const campaigns = data?.campaigns ?? [];
+  const inboxHealth = data?.inboxHealth ?? 0;
+  const inboxHealthLabel = data?.inboxHealthLabel ?? "Unknown";
+  const sendCompletionPercent = data?.sendCompletionPercent ?? 0;
+  const recentReplies = data?.recentReplies ?? [];
 
   return (
     <>
       {/* Header */}
-      <h1 className="text-[22px] font-bold tracking-tight font-heading">Hey there, Jake!</h1>
+      <h1 className="text-[22px] font-bold tracking-tight font-heading">Hey there, {firstName}!</h1>
       <p className="text-[13px] text-white/25 mt-1 mb-7">
         Your emails are working. Here&apos;s what happened today.
       </p>
@@ -52,26 +170,26 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <MetricCard
           label="Emails Sent"
-          value="42"
-          subtitle="of 50 today"
+          value={String(sent)}
+          subtitle={`of ${dailyLimit} today`}
           accent="orange"
-          chart={<MiniRing percentage={68} label="68%" color="#F97316" />}
+          chart={<MiniRing percentage={sentPercent} label={`${sentPercent}%`} color="#F97316" />}
         />
         <MetricCard
           label="Replies"
-          value="7"
-          subtitle="+43% vs last week"
+          value={String(replies)}
+          subtitle={`${repliesChangePercent >= 0 ? "+" : ""}${repliesChangePercent}% vs last week`}
           accent="green"
-          chart={<MiniRing percentage={33} label="33%" color="#22C55E" />}
+          chart={<MiniRing percentage={repliesPercent} label={`${repliesPercent}%`} color="#22C55E" />}
         />
         <MetricCard
           label="Interested"
-          value="3"
-          subtitle="+1 new"
+          value={String(interested)}
+          subtitle={`+${interestedNew} new`}
           accent="amber"
           chart={
             <Sparkline
-              data={[30, 50, 20, 65, 40, 80, 100]}
+              data={interestedTrend}
               color="#F59E0B"
               width={48}
               height={36}
@@ -83,12 +201,12 @@ export default function DashboardPage() {
           <div className="flex items-end justify-between mt-3">
             <div>
               <p className="text-[36px] font-bold tracking-tighter leading-none font-mono">
-                1
+                {calls}
               </p>
               <p className="text-[11px] text-black/30 mt-1.5">booked today</p>
             </div>
             <Sparkline
-              data={[20, 35, 25, 50, 40, 65, 55]}
+              data={callsTrend}
               color="rgba(0,0,0,0.2)"
               width={48}
               height={24}
@@ -138,30 +256,21 @@ export default function DashboardPage() {
         <Card>
           <p className="text-sm font-bold mb-5 font-heading">Your Emails</p>
           <div className="flex flex-col gap-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-cf-green" />
-                <span className="text-[13px] font-medium text-white/50">Roofing - Dallas</span>
+            {campaigns.length === 0 && (
+              <p className="text-[12px] text-white/30">No campaigns yet.</p>
+            )}
+            {campaigns.map((campaign) => (
+              <div key={campaign.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${statusDotClass[campaign.status]}`} />
+                  <span className="text-[13px] font-medium text-white/50">{campaign.name}</span>
+                </div>
+                <span className="text-[11px] text-white/20">{statusLabel[campaign.status]}</span>
               </div>
-              <span className="text-[11px] text-white/20">Active</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-cf-amber" />
-                <span className="text-[13px] font-medium text-white/50">Gutters - Ft Worth</span>
-              </div>
-              <span className="text-[11px] text-white/20">Warming</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-cf-indigo" />
-                <span className="text-[13px] font-medium text-white/50">Solar - Austin</span>
-              </div>
-              <span className="text-[11px] text-white/20">Draft</span>
-            </div>
+            ))}
           </div>
           <div className="flex justify-center mt-5">
-            <RingProgress percentage={66} color="#D4E4DD" />
+            <RingProgress percentage={sendCompletionPercent} color="#D4E4DD" />
           </div>
         </Card>
 
@@ -175,15 +284,14 @@ export default function DashboardPage() {
               <div className="w-1 h-1 rounded-full bg-white/30" />
             </div>
           </div>
-          {[
-            { initials: "MT", name: "Mike Thompson", badge: "Interested", badgeColor: "mint" as const, preview: "Yeah we've been looking for a roofer. Can you come by Thursday?", time: "2h" },
-            { initials: "SC", name: "Sarah Chen", badge: "Interested", badgeColor: "mint" as const, preview: "Send me a quote for the whole house. 2,400 sq ft.", time: "5h" },
-            { initials: "DM", name: "Dave Morrison", badge: "Not Now", badgeColor: "default" as const, preview: "Not right now but maybe in the spring.", time: "1d" },
-          ].map((reply, i) => (
+          {recentReplies.length === 0 && (
+            <p className="text-[12px] text-white/30">No replies yet.</p>
+          )}
+          {recentReplies.map((reply, i) => (
             <div
-              key={i}
+              key={`${reply.name}-${i}`}
               className={`flex items-center gap-3 py-3 cursor-pointer ${
-                i < 2 ? "border-b border-white/[0.04]" : ""
+                i < recentReplies.length - 1 ? "border-b border-white/[0.04]" : ""
               }`}
             >
               <div
@@ -218,7 +326,7 @@ export default function DashboardPage() {
         {/* Inbox Health */}
         <Card className="flex flex-col items-center">
           <p className="text-sm font-bold mb-4 self-start font-heading">Inbox Health</p>
-          <Gauge value={90} statusText="Great" />
+          <Gauge value={inboxHealth} statusText={inboxHealthLabel} />
         </Card>
       </div>
 

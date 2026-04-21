@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, Toggle } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { Card, Toggle, Skeleton } from "@/components/ui";
 import { Gauge } from "@/components/charts";
 import {
   ShieldIcon,
@@ -10,57 +11,114 @@ import {
   GlobeIcon,
   RefreshIcon,
 } from "@/components/icons";
+import { apiGet } from "@/lib/api-client";
 
-const dnsRecords = [
-  {
-    type: "SPF",
-    value: "v=spf1 include:_spf.convergeflow.io ~all",
-    status: "valid" as const,
-  },
-  {
-    type: "DKIM",
-    value: "v=DKIM1; k=rsa; p=MIGfMA0GCS...",
-    status: "valid" as const,
-  },
-  {
-    type: "DMARC",
-    value: "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io",
-    status: "warning" as const,
-  },
-  {
-    type: "MX",
-    value: "10 mail.convergeflow.io",
-    status: "valid" as const,
-  },
-];
+type DnsStatus = "valid" | "warning" | "invalid";
+type BlacklistStatus = "clean" | "listed";
 
-const statusIcons = {
-  valid: { icon: CheckIcon, color: "text-cf-green", bg: "bg-cf-green/15" },
-  warning: { icon: AlertIcon, color: "text-cf-amber", bg: "bg-cf-amber/15" },
-  invalid: { icon: XIcon, color: "text-red-400", bg: "bg-red-500/15" },
+interface DnsRecord {
+  type: string;
+  value: string;
+  status: DnsStatus;
+}
+
+interface BlacklistCheck {
+  name: string;
+  status: BlacklistStatus;
+}
+
+interface InboxProvider {
+  name: string;
+  percentage: number;
+}
+
+interface DeliverabilityData {
+  dnsRecords: DnsRecord[];
+  blacklistChecks: BlacklistCheck[];
+  inboxProviders: InboxProvider[];
+  inboxHealth: number;
+  inboxHealthLabel: string;
+  trackingDomainEnabled: boolean;
+  trackingDomain?: string;
+}
+
+const statusIcons: Record<DnsStatus, { icon: typeof CheckIcon; color: string; bg: string; label: string }> = {
+  valid: { icon: CheckIcon, color: "text-cf-green", bg: "bg-cf-green/15", label: "Valid" },
+  warning: { icon: AlertIcon, color: "text-cf-amber", bg: "bg-cf-amber/15", label: "Warning" },
+  invalid: { icon: XIcon, color: "text-red-400", bg: "bg-red-500/15", label: "Invalid" },
 };
 
-const blacklistChecks = [
-  { name: "Spamhaus", status: "clean" as const },
-  { name: "Barracuda", status: "clean" as const },
-  { name: "SORBS", status: "clean" as const },
-  { name: "SpamCop", status: "clean" as const },
-  { name: "UCEPROTECT", status: "listed" as const },
-];
-
-const blackListStatusConfig = {
+const blackListStatusConfig: Record<BlacklistStatus, { label: string; color: string; dot: string }> = {
   clean: { label: "Clean", color: "text-cf-green", dot: "bg-cf-green" },
   listed: { label: "Listed", color: "text-red-400", dot: "bg-red-400" },
 };
 
-const inboxProviders = [
-  { name: "Gmail", percentage: 95 },
-  { name: "Outlook", percentage: 82 },
-  { name: "Yahoo", percentage: 88 },
-  { name: "Apple Mail", percentage: 90 },
-];
-
 export default function DeliverabilityPage() {
+  const [data, setData] = useState<DeliverabilityData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = () => {
+    return apiGet<DeliverabilityData>("/api/deliverability")
+      .then((res) => {
+        setData(res ?? null);
+      })
+      .catch((err) => {
+        console.error("Failed to load deliverability", err);
+      });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<DeliverabilityData>("/api/deliverability")
+      .then((res) => {
+        if (cancelled) return;
+        setData(res ?? null);
+      })
+      .catch((err) => {
+        console.error("Failed to load deliverability", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-7 w-48 mb-2" />
+        <Skeleton className="h-4 w-72 mb-6" />
+        <Skeleton className="h-64 mb-5" rounded="lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          <Skeleton className="h-56" rounded="lg" />
+          <Skeleton className="h-56" rounded="lg" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          <Skeleton className="h-40" rounded="lg" />
+          <Skeleton className="h-40" rounded="lg" />
+        </div>
+      </>
+    );
+  }
+
+  const dnsRecords = data?.dnsRecords ?? [];
+  const blacklistChecks = data?.blacklistChecks ?? [];
+  const inboxProviders = data?.inboxProviders ?? [];
+  const inboxHealth = data?.inboxHealth ?? 0;
+  const inboxHealthLabel = data?.inboxHealthLabel ?? "Unknown";
+  const trackingDomainEnabled = data?.trackingDomainEnabled ?? false;
+  const trackingDomain = data?.trackingDomain;
+
   return (
     <>
       <div className="mb-6">
@@ -77,14 +135,21 @@ export default function DeliverabilityPage() {
             <ShieldIcon size={18} className="text-white/30" />
             <p className="text-sm font-bold font-heading">DNS Records</p>
           </div>
-          <button className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5">
-            <RefreshIcon size={14} />
-            Refresh
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5 disabled:opacity-60"
+          >
+            <RefreshIcon size={14} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
         <div className="flex flex-col">
+          {dnsRecords.length === 0 && (
+            <p className="text-[12px] text-white/30 py-2">No DNS records configured.</p>
+          )}
           {dnsRecords.map((record, i) => {
-            const config = statusIcons[record.status];
+            const config = statusIcons[record.status] ?? statusIcons.warning;
             const StatusIcon = config.icon;
             return (
               <div
@@ -106,10 +171,8 @@ export default function DeliverabilityPage() {
                     </p>
                   </div>
                 </div>
-                <span
-                  className={`text-[11px] font-medium ${config.color}`}
-                >
-                  {record.status === "valid" ? "Valid" : "Warning"}
+                <span className={`text-[11px] font-medium ${config.color}`}>
+                  {config.label}
                 </span>
               </div>
             );
@@ -122,13 +185,16 @@ export default function DeliverabilityPage() {
         {/* Inbox Health */}
         <Card className="flex flex-col items-center">
           <p className="text-sm font-bold mb-4 self-start font-heading">Inbox Health</p>
-          <Gauge value={90} statusText="Great" />
+          <Gauge value={inboxHealth} statusText={inboxHealthLabel} />
         </Card>
 
         {/* Blacklist Check */}
         <Card>
           <p className="text-sm font-bold mb-4 font-heading">Blacklist Check</p>
           <div className="flex flex-col gap-3">
+            {blacklistChecks.length === 0 && (
+              <p className="text-[12px] text-white/30">No blacklist data yet.</p>
+            )}
             {blacklistChecks.map((check) => {
               const config = blackListStatusConfig[check.status];
               return (
@@ -152,21 +218,26 @@ export default function DeliverabilityPage() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-bold font-heading">Tracking Domain</p>
-            <Toggle defaultChecked />
+            <Toggle defaultChecked={trackingDomainEnabled} />
           </div>
           <p className="text-[12px] text-white/25 leading-relaxed">
             Use a custom domain for tracking links and opens. This improves deliverability
             by keeping your brand consistent.
           </p>
-          <div className="mt-4 flex items-center gap-2">
-            <GlobeIcon size={14} className="text-white/20" />
-            <span className="text-[13px] text-white/50">track.roofingdallas.com</span>
-          </div>
+          {trackingDomain && (
+            <div className="mt-4 flex items-center gap-2">
+              <GlobeIcon size={14} className="text-white/20" />
+              <span className="text-[13px] text-white/50">{trackingDomain}</span>
+            </div>
+          )}
         </Card>
 
         <Card>
           <p className="text-sm font-bold mb-4 font-heading">Inbox Placement</p>
           <div className="flex flex-col gap-3">
+            {inboxProviders.length === 0 && (
+              <p className="text-[12px] text-white/30">No placement data yet.</p>
+            )}
             {inboxProviders.map((provider) => (
               <div key={provider.name}>
                 <div className="flex items-center justify-between mb-1.5">

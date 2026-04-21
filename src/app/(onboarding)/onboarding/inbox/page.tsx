@@ -3,16 +3,67 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/layout";
+import { apiPost } from "@/lib/api-client";
 
 type Provider = "gmail" | "yahoo" | "custom" | null;
+
+interface CustomCredentials {
+  smtpHost: string;
+  smtpPort: string;
+  imapHost: string;
+  imapPort: string;
+  email: string;
+  password: string;
+}
+
+const emptyCustom: CustomCredentials = {
+  smtpHost: "",
+  smtpPort: "587",
+  imapHost: "",
+  imapPort: "993",
+  email: "",
+  password: "",
+};
 
 export default function InboxPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Provider>(null);
+  const [custom, setCustom] = useState<CustomCredentials>(emptyCustom);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleContinue = () => {
-    if (!selected) return;
-    router.push("/onboarding/industry");
+  const handleContinue = async () => {
+    if (!selected || submitting) return;
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      if (selected === "gmail" || selected === "yahoo") {
+        const data = await apiPost<{ authUrl?: string } | null>("/api/inboxes", {
+          provider: selected,
+        });
+        // OAuth flow: if backend returns an authUrl, redirect for consent
+        if (data?.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        }
+        router.push("/onboarding/industry");
+      } else {
+        await apiPost("/api/inboxes", {
+          provider: "custom",
+          credentials: custom,
+        });
+        router.push("/onboarding/industry");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Could not connect inbox. Check your details and try again.");
+      setSubmitting(false);
+    }
+  };
+
+  const updateCustom = (key: keyof CustomCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustom((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
   return (
@@ -155,6 +206,8 @@ export default function InboxPage() {
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">SMTP server</label>
                     <input
                       type="text"
+                      value={custom.smtpHost}
+                      onChange={updateCustom("smtpHost")}
                       placeholder="smtp.example.com"
                       className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
@@ -163,6 +216,8 @@ export default function InboxPage() {
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
                     <input
                       type="text"
+                      value={custom.smtpPort}
+                      onChange={updateCustom("smtpPort")}
                       placeholder="587"
                       className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
@@ -173,6 +228,8 @@ export default function InboxPage() {
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">IMAP server</label>
                     <input
                       type="text"
+                      value={custom.imapHost}
+                      onChange={updateCustom("imapHost")}
                       placeholder="imap.example.com"
                       className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
@@ -181,6 +238,8 @@ export default function InboxPage() {
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
                     <input
                       type="text"
+                      value={custom.imapPort}
+                      onChange={updateCustom("imapPort")}
                       placeholder="993"
                       className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
@@ -190,6 +249,8 @@ export default function InboxPage() {
                   <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Email address</label>
                   <input
                     type="email"
+                    value={custom.email}
+                    onChange={updateCustom("email")}
                     placeholder="you@example.com"
                     className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                   />
@@ -198,6 +259,8 @@ export default function InboxPage() {
                   <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Password</label>
                   <input
                     type="password"
+                    value={custom.password}
+                    onChange={updateCustom("password")}
                     placeholder="Your email password"
                     className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                   />
@@ -237,18 +300,22 @@ export default function InboxPage() {
             </p>
           </div>
 
+          {error && (
+            <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>
+          )}
+
           {/* Next Button */}
           <button
             type="button"
             onClick={handleContinue}
-            disabled={!selected}
+            disabled={!selected || submitting}
             className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
-              selected
+              selected && !submitting
                 ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 : "opacity-35 cursor-default"
             }`}
           >
-            Next
+            {submitting ? "Connecting..." : "Next"}
           </button>
           <a
             href="/onboarding/domain"

@@ -1,53 +1,105 @@
 "use client";
 
-import { useState } from "react";
-import { Card } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { Card, Skeleton } from "@/components/ui";
 import { PenIcon } from "@/components/icons";
+import { apiGet, apiPatch } from "@/lib/api-client";
 
-const personas = [
-  {
-    id: "closer",
-    name: "The Closer",
-    description: "Direct, confident, gets to the point. Perfect for busy decision-makers.",
-    preview:
-      "Hey {name}, I noticed your roofing on Elm St could use some attention. Want me to take a look this week? No strings attached.",
-    traits: ["Direct", "Confident", "Action-oriented"],
-    emoji: "🎯",
-  },
-  {
-    id: "neighbor",
-    name: "The Neighbor",
-    description: "Warm, friendly, feels like talking to someone next door. Builds trust fast.",
-    preview:
-      "Hey {name}! Just wanted to reach out - I saw your place on my route today and couldn't help but notice the roof could use some love. Happy to swing by anytime!",
-    traits: ["Warm", "Friendly", "Trust-building"],
-    emoji: "👋",
-  },
-  {
-    id: "expert",
-    name: "The Expert",
-    description: "Knowledgeable, professional, shares insights that demonstrate expertise.",
-    preview:
-      "Hi {name}, I've been inspecting roofs in your neighborhood this month and noticed a common pattern - most homes built around 2005 are due for an assessment. Happy to share what I've found.",
-    traits: ["Knowledgeable", "Professional", "Insight-driven"],
-    emoji: "🧠",
-  },
-  {
-    id: "helper",
-    name: "The Helper",
-    description: "Empathetic, supportive, focused on solving problems before selling.",
-    preview:
-      "Hi {name}, I know dealing with roof issues can be stressful. I've helped a few folks in your area recently and would love to make the process easy for you too. What questions do you have?",
-    traits: ["Empathetic", "Supportive", "Problem-solver"],
-    emoji: "🤝",
-  },
-];
+interface Persona {
+  id: string;
+  name: string;
+  description: string;
+  preview: string;
+  traits: string[];
+  emoji?: string;
+  isActive?: boolean;
+}
+
+interface PersonasResponse {
+  personas?: Persona[];
+  activeId?: string;
+}
+
+const fallbackEmojis: Record<string, string> = {
+  closer: "🎯",
+  neighbor: "👋",
+  expert: "🧠",
+  helper: "🤝",
+};
 
 export default function StylesPage() {
-  const [selected, setSelected] = useState("closer");
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [selected, setSelected] = useState<string>("");
   const [customizing, setCustomizing] = useState(false);
+  const [customPreview, setCustomPreview] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const activePersona = personas.find((p) => p.id === selected)!;
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<PersonasResponse | Persona[]>("/api/personas")
+      .then((res) => {
+        if (cancelled) return;
+        const list = Array.isArray(res) ? res : (res?.personas ?? []);
+        setPersonas(list);
+        const activeIdFromResponse = Array.isArray(res) ? undefined : res?.activeId;
+        const activeId =
+          activeIdFromResponse ??
+          list.find((p) => p.isActive)?.id ??
+          list[0]?.id ??
+          "";
+        setSelected(activeId);
+        const activePersona = list.find((p) => p.id === activeId);
+        if (activePersona) setCustomPreview(activePersona.preview);
+      })
+      .catch((err) => {
+        console.error("Failed to load personas", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activePersona = personas.find((p) => p.id === selected);
+
+  useEffect(() => {
+    if (activePersona && !customizing) {
+      setCustomPreview(activePersona.preview);
+    }
+  }, [activePersona, customizing]);
+
+  const handleSave = async () => {
+    if (!selected || saving) return;
+    setSaving(true);
+    try {
+      await apiPatch("/api/user/onboarding", {
+        persona: selected,
+        personaPreview: customPreview,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-7 w-48 mb-2" />
+        <Skeleton className="h-4 w-64 mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-36" rounded="lg" />
+          ))}
+        </div>
+        <Skeleton className="h-40 mb-5" rounded="lg" />
+      </>
+    );
+  }
 
   return (
     <>
@@ -66,10 +118,13 @@ export default function StylesPage() {
             className={`cursor-pointer transition-colors ${
               selected === persona.id ? "ring-1 ring-cf-orange" : ""
             }`}
-            onClick={() => setSelected(persona.id)}
+            onClick={() => {
+              setSelected(persona.id);
+              setCustomizing(false);
+            }}
           >
             <div className="flex items-center gap-2.5 mb-2">
-              <span className="text-xl">{persona.emoji}</span>
+              <span className="text-xl">{persona.emoji ?? fallbackEmojis[persona.id] ?? "✉️"}</span>
               <h3 className="text-[15px] font-bold font-heading">{persona.name}</h3>
             </div>
             <p className="text-[12px] text-white/35 leading-relaxed mb-3">
@@ -90,32 +145,39 @@ export default function StylesPage() {
       </div>
 
       {/* Email preview */}
-      <Card className="mb-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-bold font-heading">Preview</p>
-          <button
-            className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5"
-            onClick={() => setCustomizing(!customizing)}
-          >
-            <PenIcon size={14} />
-            {customizing ? "Done" : "Customize"}
-          </button>
-        </div>
-        {customizing ? (
-          <textarea
-            className="w-full bg-cf-elevated rounded-[var(--radius-button)] p-4 text-[13px] text-white/70 leading-relaxed outline-none focus:ring-1 focus:ring-cf-orange/50 resize-none min-h-[120px]"
-            defaultValue={activePersona.preview}
-          />
-        ) : (
-          <p className="text-[13px] text-white/50 leading-relaxed">
-            {activePersona.preview}
-          </p>
-        )}
-      </Card>
+      {activePersona && (
+        <Card className="mb-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-bold font-heading">Preview</p>
+            <button
+              className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity flex items-center gap-1.5"
+              onClick={() => setCustomizing(!customizing)}
+            >
+              <PenIcon size={14} />
+              {customizing ? "Done" : "Customize"}
+            </button>
+          </div>
+          {customizing ? (
+            <textarea
+              className="w-full bg-cf-elevated rounded-[var(--radius-button)] p-4 text-[13px] text-white/70 leading-relaxed outline-none focus:ring-1 focus:ring-cf-orange/50 resize-none min-h-[120px]"
+              value={customPreview}
+              onChange={(e) => setCustomPreview(e.target.value)}
+            />
+          ) : (
+            <p className="text-[13px] text-white/50 leading-relaxed">
+              {customPreview || activePersona.preview}
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Save button */}
-      <button className="w-full py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity font-heading uppercase tracking-wide">
-        Save Style
+      <button
+        onClick={handleSave}
+        disabled={saving || !selected}
+        className="w-full py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity font-heading uppercase tracking-wide disabled:opacity-60"
+      >
+        {saving ? "Saving..." : "Save Style"}
       </button>
     </>
   );

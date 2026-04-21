@@ -1,53 +1,156 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 type DomainOption = "own" | "convergeflow" | null;
+type DnsStatus = "checking" | "valid" | "invalid";
+
+interface DnsRecord {
+  type: string;
+  name: string;
+  host: string;
+  value: string;
+  status: DnsStatus;
+}
+
+interface DomainData {
+  id: string;
+  domain: string;
+  status?: string;
+  dnsRecords?: DnsRecord[];
+}
+
+interface DomainVerifyData {
+  id: string;
+  status: string; // "pending" | "verified" | "failed"
+  dnsRecords?: DnsRecord[];
+}
+
+const fallbackDnsRecords: DnsRecord[] = [
+  {
+    type: "TXT",
+    name: "DKIM",
+    host: "cf._domainkey.yourdomain.com",
+    value: "v=DKIM1; k=rsa; p=MIGfMA0GCSqGS...",
+    status: "checking",
+  },
+  {
+    type: "TXT",
+    name: "SPF",
+    host: "@",
+    value: "v=spf1 include:convergeflow.com ~all",
+    status: "checking",
+  },
+  {
+    type: "TXT",
+    name: "DMARC",
+    host: "_dmarc.yourdomain.com",
+    value: "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.com",
+    status: "checking",
+  },
+];
+
+const statusStyles: Record<DnsStatus, { dot: string; label: string; color: string }> = {
+  checking: { dot: "bg-amber-500 animate-pulse", label: "Checking...", color: "text-white/50" },
+  valid: { dot: "bg-cf-green", label: "Verified", color: "text-cf-green" },
+  invalid: { dot: "bg-red-400", label: "Not found", color: "text-red-400" },
+};
 
 export default function DomainPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<DomainOption>(null);
   const [showDns, setShowDns] = useState(false);
+  const [domainInput, setDomainInput] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [domainId, setDomainId] = useState<string | null>(null);
+  const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>(fallbackDnsRecords);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const dnsRecords = [
-    {
-      type: "TXT",
-      name: "DKIM",
-      host: "cf._domainkey.yourdomain.com",
-      value: "v=DKIM1; k=rsa; p=MIGfMA0GCSqGS...",
-      status: "checking" as const,
-    },
-    {
-      type: "TXT",
-      name: "SPF",
-      host: "@",
-      value: "v=spf1 include:convergeflow.com ~all",
-      status: "checking" as const,
-    },
-    {
-      type: "TXT",
-      name: "DMARC",
-      host: "_dmarc.yourdomain.com",
-      value: "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.com",
-      status: "checking" as const,
-    },
-  ];
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
 
-  const handleNext = () => {
-    if (!selected) return;
+  const allValid = dnsRecords.every((r) => r.status === "valid");
+
+  useEffect(() => {
+    if (!domainId) return;
+    // Poll every 4 seconds until verified
+    const poll = async () => {
+      try {
+        const data = await apiGet<DomainVerifyData>(`/api/domains/${domainId}/verify`);
+        if (data?.dnsRecords?.length) {
+          setDnsRecords(data.dnsRecords);
+        }
+        if (data?.status === "verified" && pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      } catch (err) {
+        console.error("DNS verify poll failed", err);
+      }
+    };
+
+    poll();
+    pollRef.current = setInterval(poll, 4000);
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [domainId]);
+
+  const handleNext = async () => {
+    if (!selected || submitting) return;
+    setError(null);
+
     if (selected === "convergeflow") {
-      router.push("/onboarding/inbox");
-    } else {
+      setSubmitting(true);
+      try {
+        await apiPost<DomainData>("/api/domains", { type: "convergeflow" });
+        router.push("/onboarding/inbox");
+      } catch (err) {
+        console.error(err);
+        setError("Could not provision domain. Please try again.");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    if (!domainInput.trim()) {
+      setError("Enter your website domain to continue.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const data = await apiPost<DomainData>("/api/domains", {
+        type: "own",
+        domain: domainInput.trim(),
+      });
+      if (data?.dnsRecords?.length) setDnsRecords(data.dnsRecords);
+      if (data?.id) setDomainId(data.id);
       setShowDns(true);
+    } catch (err) {
+      console.error(err);
+      setError("Could not save your domain. Check the format and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSelectOption = (option: DomainOption) => {
     setSelected(option);
+    setError(null);
     if (showDns) setShowDns(false);
   };
 
@@ -146,7 +249,26 @@ export default function DomainPage() {
                   </p>
                 </div>
               </button>
+
+              {selected === "own" && (
+                <div className="animate-[fadeUp_0.3s_ease-out]">
+                  <label className="text-[11px] font-medium text-white/35 mb-1.5 block">
+                    Your website domain
+                  </label>
+                  <input
+                    type="text"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    placeholder="yourdomain.com"
+                    className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                  />
+                </div>
+              )}
             </div>
+          )}
+
+          {error && (
+            <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>
           )}
 
           {/* Default Next Button */}
@@ -155,17 +277,17 @@ export default function DomainPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={!selected}
+                disabled={!selected || submitting}
                 className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
-                  selected
+                  selected && !submitting
                     ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                     : "opacity-35 cursor-default"
                 }`}
               >
-                Next
+                {submitting ? "Saving..." : "Next"}
               </button>
               <Link
-                href="/onboarding/path"
+                href="/onboarding"
                 className="block text-center mt-5 text-[13px] text-white/35 hover:text-white/60 transition-colors"
               >
                 Back
@@ -185,90 +307,93 @@ export default function DomainPage() {
               </p>
 
               <div className="flex flex-col gap-2.5 mb-5">
-                {dnsRecords.map((record) => (
-                  <div
-                    key={record.type + record.name}
-                    className="bg-[#222228] rounded-[14px] p-4"
-                  >
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] bg-cf-orange/[0.12] text-cf-orange">
-                          {record.type}
+                {dnsRecords.map((record) => {
+                  const statusStyle = statusStyles[record.status] ?? statusStyles.checking;
+                  return (
+                    <div
+                      key={record.type + record.name}
+                      className="bg-[#222228] rounded-[14px] p-4"
+                    >
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] bg-cf-orange/[0.12] text-cf-orange">
+                            {record.type}
+                          </span>
+                          <span className="text-[13px] font-medium text-white/70">
+                            {record.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
+                          <span className={`text-xs ${statusStyle.color}`}>{statusStyle.label}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[11px] text-white/35 min-w-[48px] font-medium">
+                          Name
                         </span>
-                        <span className="text-[13px] font-medium text-white/70">
-                          {record.name}
+                        <div className="flex-1 bg-cf-card rounded-[10px] py-2.5 px-3.5 text-xs text-white/70 font-mono overflow-x-auto whitespace-nowrap">
+                          {record.host}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(record.host)}
+                          className="w-9 h-9 min-w-[36px] rounded-[10px] bg-cf-card flex items-center justify-center hover:bg-cf-orange/[0.12] transition-colors"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.5)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-white/35 min-w-[48px] font-medium">
+                          Value
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                        <span className="text-xs text-white/50">Checking...</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[11px] text-white/35 min-w-[48px] font-medium">
-                        Name
-                      </span>
-                      <div className="flex-1 bg-cf-card rounded-[10px] py-2.5 px-3.5 text-xs text-white/70 font-mono overflow-x-auto whitespace-nowrap">
-                        {record.host}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(record.host)}
-                        className="w-9 h-9 min-w-[36px] rounded-[10px] bg-cf-card flex items-center justify-center hover:bg-cf-orange/[0.12] transition-colors"
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="rgba(255,255,255,0.5)"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                        <div className="flex-1 bg-cf-card rounded-[10px] py-2.5 px-3.5 text-xs text-white/70 font-mono overflow-x-auto whitespace-nowrap">
+                          {record.value}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(record.value)}
+                          className="w-9 h-9 min-w-[36px] rounded-[10px] bg-cf-card flex items-center justify-center hover:bg-cf-orange/[0.12] transition-colors"
                         >
-                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-white/35 min-w-[48px] font-medium">
-                        Value
-                      </span>
-                      <div className="flex-1 bg-cf-card rounded-[10px] py-2.5 px-3.5 text-xs text-white/70 font-mono overflow-x-auto whitespace-nowrap">
-                        {record.value}
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.5)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                          </svg>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(record.value)}
-                        className="w-9 h-9 min-w-[36px] rounded-[10px] bg-cf-card flex items-center justify-center hover:bg-cf-orange/[0.12] transition-colors"
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="rgba(255,255,255,0.5)"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                        </svg>
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex flex-col gap-3 mt-5">
                 <button
                   type="button"
                   onClick={() => router.push("/onboarding/inbox")}
-                  className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)] font-heading uppercase tracking-wide"
+                  className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                 >
-                  Verify &amp; Continue
+                  {allValid ? "Verified - Continue" : "Verify & Continue"}
                 </button>
                 <button
                   type="button"
