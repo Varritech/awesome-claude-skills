@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Backgrounds - Cuberto dark stepping (NO borders) */
+  --bg-page: #111113;
+  --bg-card: #1B1B1F;
+  --bg-elevated: #222228;
+  --bg-subtle: rgba(255, 255, 255, 0.06);
+  --bg-card-in-card: #161618;
+
+  /* Brand colors (from brand guidelines 2026) */
+  --color-orange: #E85002;
+  --color-orange-dark: #C44400;
+  --color-olive: #707653;
+  --color-sand: #D9C3AB;
+  --color-mint: #D4E4DD;
+  --color-mint-dark: #B8D8CA;
+  --color-green: #22C55E;
+  --color-red: #EF4444;
+  --color-amber: #F59E0B;
+  --color-indigo: #6366F1;
+  --color-indigo-light: #818CF8;
+
+  /* Gray scale (brand) */
+  --color-absolute-black: #050505;
+  --color-dark-gray: #333333;
+  --color-mid-gray: #646464;
+  --color-light-gray: #A7A7A7;
+  --color-off-white: #F9F9F9;
+
+  /* Text hierarchy */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --text-subtle: rgba(255, 255, 255, 0.2);
+  --text-ghost: rgba(255, 255, 255, 0.15);
+  --text-faint: rgba(255, 255, 255, 0.1);
+
+  /* Radii */
+  --radius-card: 24px;
+  --radius-button: 14px;
+  --radius-inner: 16px;
+  --radius-badge: 6px;
+  --radius-icon: 10px;
+  --radius-pill: 9999px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+
+  /* Sidebar */
+  --sidebar-width: 64px;
+  --mobile-nav-height: 64px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg-page);
+  font-family: var(--font-chivo), "Chivo", sans-serif;
+}
+
+/* No borders on cards - bg stepping only */
+/* Cursor pointer on all clickable elements */
+[role="button"],
+button,
+a {
+  cursor: pointer;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

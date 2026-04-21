@@ -1,0 +1,1888 @@
+[
+  {
+    "id": "mem-MEMORY-api-keys---credentials",
+    "key": "api-keys-credentials",
+    "content": "- [api-keys.md](api-keys.md) — Kling AI and other service credentials",
+    "summary": "API Keys & Credentials",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702842
+  },
+  {
+    "id": "mem-MEMORY-video-production",
+    "key": "video-production",
+    "content": "- Remotion ad projects use dual architecture: desktop (1920x1080) + mobile (1080x1920)\n- VEO 3 for backgrounds, Kling 3.0 Omni for testimonials with lip-synced speech\n- ElevenLabs eleven_v3 for voiceover (Brian voice for narration)\n- Render with `--gl=angle` flag to support @remotion/light-leaks WebGL",
+    "summary": "Video Production",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702842
+  },
+  {
+    "id": "mem-api-keys-kling-ai--video-generation---t",
+    "key": "kling-ai-video-generation-testimonials-",
+    "content": "- **Access Key**: `AhkNGCkyJgYQDyRMMFmnk43mphm9egmh`\n- **Secret Key**: `PF4AmdJE8D9bfRJpRgGdBBGGQa8Q3kGC`\n- **API Endpoint**: `https://api.klingai.com/v1/videos/text2video`\n- **Auth**: JWT (HS256) signed with Access Key (iss) + Secret Key\n- **Model**: `kling-v2-master` (Kling 3.0 Omni)\n- **Usage**: Testimonial videos with `generate_audio: true` for lip-synced speech\n- **Env vars**: `KLING_ACCESS_KEY` and `KLING_SECRET_KEY`",
+    "summary": "Kling AI (Video Generation — Testimonials)",
+    "namespace": "api-keys",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale/memory/api-keys.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702843
+  },
+  {
+    "id": "mem-api-keys-elevenlabs--voiceover---music-",
+    "key": "elevenlabs-voiceover-music-",
+    "content": "- **API Key**: `sk_0b5172967661ffd73ae4fad2593e4dc8c82e8e5e5359a63b`\n- **Tier**: Creator\n- **TTS Model**: `eleven_v3` (most expressive)\n- **Music Model**: `music_v1`\n- **Preferred Voice**: Brian (`nPczCjzI2devNBz1zQrb`) — Deep, Resonant and Comforting\n- **Usage**: Voiceover via Composio ELEVENLABS_TEXT_TO_SPEECH, Music via direct API POST /v1/music (binary response)\n- **Note**: Music generation returns binary audio, must use direct API call (not Composio proxy)",
+    "summary": "ElevenLabs (Voiceover & Music)",
+    "namespace": "api-keys",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale/memory/api-keys.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702843
+  },
+  {
+    "id": "mem-MEMORY-email-writing-rules",
+    "key": "email-writing-rules",
+    "content": "- [Email formatting and link rules](feedback_email_writing.md)",
+    "summary": "Email Writing Rules",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-cristiano-s-slack-voice--manda",
+    "key": "cristiano-s-slack-voice-mandatory-for-all-slack-me",
+    "content": "- **No emojis** ever\n- **No em dashes** (use hyphens or commas instead)\n- **No markdown formatting** (no headers, no bullets, no bold) - plain text only\n- Short, direct, lowercase-first, conversational\n- A few sentences max, sounds like how a person actually talks in chat\n- No sign-offs, no formality\n- When referencing a PR or fix for a client channel: **always include the Vercel preview/staging link** for them to test, **never a GitHub PR link** (clients don't use GitHub)",
+    "summary": "Cristiano's Slack Voice (MANDATORY for all Slack messages)",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-clickup-ticket-standard",
+    "key": "clickup-ticket-standard",
+    "content": "- **ALWAYS use the agile ticket format** in [clickup-ticket-format.md](clickup-ticket-format.md) when creating ClickUp tasks\n- Verb-first titles, structured descriptions with user story + acceptance criteria + out of scope\n- Type-specific templates: Feature, Bug, Chore/Tech Debt, Spike/Research\n- 3-8 acceptance criteria per ticket, hybrid Given/When/Then + checklists\n- INVEST criteria as quality gate before sprint entry\n- Never prescribe implementation — state the WHAT, not the HOW",
+    "summary": "ClickUp Ticket Standard",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-git-workflow",
+    "key": "git-workflow",
+    "content": "- **ALWAYS use git worktrees** when writing code to any git repo. This supports working on multiple branches simultaneously without switching the main working directory.\n  - Use `isolation: \"worktree\"` on Task tool agents, or `git worktree add` manually\n  - Each feature/fix branch gets its own worktree so parallel work never conflicts\n- **ALWAYS branch from `main` for new tasks.** Never commit to the current working branch if the task is unrelated.\n- Before making code changes, `git checkout mai",
+    "summary": "Git Workflow",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-varritech-branding",
+    "key": "varritech-branding",
+    "content": "- **Updated Varritech logo path**: `/Users/christianvarriale/Documents/Logos/varritechlogo.png`\n- Use this logo for all future image generation tasks involving Varritech branding\n- Logo is black geometric design on white background (no transparency), 1365x1365px\n\n### Canva Cases Deck Reference\n- **Canva design ID**: `DAHAg-OQjPw` (\"Varritech Cases Deck\", 16 pages)\n- **Canva link**: `https://www.canva.com/design/DAHAg-OQjPw/WdboZPKh2s-4ZXsRyBzMKw/view`\n- Always incorporate design elements from th",
+    "summary": "Varritech Branding",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-varritech-approved-guide-forma",
+    "key": "varritech-approved-guide-format-notion-",
+    "content": "Reference: [OpenClaw self-hosting guide](https://www.notion.so/30484cf74b7a807a82c3d9e1528f67f3)\n\n### Structure Pattern\n1. **Intro hook** — Emoji + bold title paragraph (e.g., \"🚀 The $0-Per-Token Promise\")\n2. **Audience sections** — \"🎯 Is This Guide For You?\" / \"🚫 When to Skip This\" with bullet lists\n3. **Tech stack** — \"🧰 Your Tech Stack\" with bullet list (tool + dash + description)\n4. **Table of contents** — \"📋 What's Inside\" numbered list\n5. **Alternatives comparison** — \"⚖️ The Alternat",
+    "summary": "Varritech Approved Guide Format (Notion)",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-ad-copywriting-system--hormozi",
+    "key": "ad-copywriting-system-hormozi-inspired-",
+    "content": "- **[Full framework + templates](ad-copywriting-system.md)** — Value Equation, Hook/Retain/Reward, 16 hook categories, primary text structure, headline formulas, testing protocol, tone rotation\n- When writing ANY ad copy: use Value Equation to craft hooks, rotate through 16 hook types, vary Hormozi attitudes (direct, empathetic, provocative, data-driven, story-driven, irreverent)\n- Structure: Hook (1 line) → Agitate (2-3 lines) → Solution (2-3 lines) → Proof (1-2 lines) → CTA\n- Test with 3-2-2 m",
+    "summary": "Ad Copywriting System (Hormozi-Inspired)",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-meta-ads-account",
+    "key": "meta-ads-account",
+    "content": "- **Ad Account**: `act_1058527832767816` (Varritech)\n- **Facebook Page ID**: `582081784993030`\n- **Instagram User ID**: `17841471058950057`\n- **System user \"Claude\"** needs Page assigned as asset in Business Settings for ad creation to work\n\n### Varritech Ad Creation Rules\n- **WhatsApp**: Always include WhatsApp as a contact/CTA option in Varritech ads\n- **Creative variations**: Always produce 3 different versions of each: primary text, headline, and description\n- **Call to action**: Always set ",
+    "summary": "Meta Ads Account",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-thunder-unity-avatar-server",
+    "key": "thunder-unity-avatar-server",
+    "content": "- **Repo**: `Varritech/thunder-unity-server` (C#, private)\n- **Purpose**: Unity app providing avatar creation/customization/rendering via REST API (Genies SDK)\n- **Hosted on**: GCP Compute Engine (NOT Vercel)\n- **GCP Project**: `vds-thunder`, Zone: `us-central1-a`\n- **VM**: `unity-avatar-server` (g2-standard-4, NVIDIA L4 GPU, Windows Server 2022) — currently running as **Spot instance** due to L4 on-demand stockout (2026-04-06)\n- **IP**: `34.9.119.227`, Port: `8081` (changed from 34.60.178.100 o",
+    "summary": "Thunder Unity Avatar Server",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-convergeflow-project",
+    "key": "convergeflow-project",
+    "content": "- **[Full project context](project_convergeflow.md)** — Clickable prototype (14 pages), Cuberto design system, PRD epics, brand assets, Kareem call notes, OpenClaw DWY tier\n- Client: Kareem M Maize, Domain: convergeflow.io, Slack: convergeflow-external",
+    "summary": "ConvergeFlow Project",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-reusable-pipelines",
+    "key": "reusable-pipelines",
+    "content": "- **[SOW Banner Generation](sow-banner-generation.md)** — HTML/CSS + Playwright pipeline for Notion cover banners. Full template, rendering steps, permanent hosting via catbox.moe, and known gotchas.\n- **[Branded Visual Templates](branded-visual-templates.md)** — Audio walkthrough cards (play button + waveform), pipeline flow diagrams (stage gate with SVG icons + arrows), SOW cover banners. All Varritech dark theme, rendering pipeline, and design system constants.",
+    "summary": "Reusable Pipelines",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-motion-task-defaults",
+    "key": "motion-task-defaults",
+    "content": "- **Always set priority to ASAP** and auto-schedule when creating Motion tasks — [details](feedback_motion_tasks.md)\n- Use `schedule: \"Work Hours\"`, `deadlineType: \"SOFT\"` unless told otherwise",
+    "summary": "Motion Task Defaults",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-composio---default-integration",
+    "key": "composio-default-integration-tool",
+    "content": "- **ALWAYS use Composio for ALL integrations** — never manually access external services when Composio has a tool\n- Never suggest manual browser access or CLI when Composio can do it\n\n### Connection Workflow (REQUIRED for new toolkits)\n1. **Call `COMPOSIO_SEARCH_TOOLS` first** with `session: {generate_id: true}` and your use case query\n2. **Check `toolkit_connection_statuses`** in the response — if `has_active_connection: false`, you MUST create a connection\n3. **Call `COMPOSIO_MANAGE_CONNECTION",
+    "summary": "Composio — Default Integration Tool",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-step-1--search-for-tools--gets",
+    "key": "step-1-search-for-tools-gets-session-id-",
+    "content": "COMPOSIO_SEARCH_TOOLS(queries=[{use_case: \"query supabase database\"}], session={generate_id: true})",
+    "summary": "Step 1: Search for tools (gets session_id)",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-step-2--create-connection-link",
+    "key": "step-2-create-connection-link",
+    "content": "COMPOSIO_MANAGE_CONNECTIONS(session_id=\"abc123\", toolkits=[\"supabase\"])",
+    "summary": "Step 2: Create connection link",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-step-3--share-link-with-user",
+    "key": "step-3-share-link-with-user",
+    "content": "[Connect supabase](https://connect.composio.dev/link/xxx)",
+    "summary": "Step 3: Share link with user",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-step-4--after-user-completes--",
+    "key": "step-4-after-user-completes-execute-tools",
+    "content": "COMPOSIO_MULTI_EXECUTE_TOOL(session_id=\"abc123\", tools=[{tool_slug: \"SUPABASE_LIST_TABLES\", arguments: {...}}])\n```\n\n### Connected Apps\n- Active: alpha_vantage, canva, clickup, elevenlabs, facebook, fathom, figma, github, gmail, googledrive, linkedin, metaads, notion, polygon, slack, stripe, twelve_data, vercel, zendesk\n- To add new app: follow connection workflow above\n\n### Common Tools\n- Vercel: `VERCEL_GET_DEPLOYMENTS`, `VERCEL_GET_DEPLOYMENT_DETAILS`, `VERCEL_GET_RUNTIME_LOGS`, `VERCEL_ADD_E",
+    "summary": "Step 4: After user completes, execute tools",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-composio---notion-gotchas",
+    "key": "composio-notion-gotchas",
+    "content": "- Composio S3 upload URLs (`backend.composio.dev/api/v3/sl/...`) expire in ~1hr. Use catbox.moe for permanent image hosting.\n- `NOTION_ADD_MULTIPLE_PAGE_CONTENT`: divider blocks can't be `parent_block_id`. Use page ID as parent + divider ID in `after` param.\n- Playwright in Composio sandbox: run via `COMPOSIO_REMOTE_BASH_TOOL` with `PLAYWRIGHT_BROWSERS_PATH=/home/user/.cache/ms-playwright` (workbench runs as root, cache is under /home/user).\n- Sandbox files can disappear between calls (sandbox r",
+    "summary": "Composio / Notion Gotchas",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-writing-style",
+    "key": "writing-style",
+    "content": "- **Never use dashes or em-dashes mid-sentence** in any copy. Rewrite using periods, commas, or separate sentences instead. Dashes mid-sentence are an AI tell.",
+    "summary": "Writing Style",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-zendesk-rules",
+    "key": "zendesk-rules",
+    "content": "- **Never** include Cristiano's name in Zendesk replies. Sign off impersonally or not at all.\n- Don't mention the company name in support responses.\n- Don't close tickets unless explicitly asked. Default to keeping them open.",
+    "summary": "Zendesk Rules",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-git-commit-authorship",
+    "key": "git-commit-authorship",
+    "content": "- **Never** add `Co-Authored-By: Claude` to commits. All commits must be authored solely under Cristiano's name (`Christian Varriale <christian@varritech.com>`).",
+    "summary": "Git Commit Authorship",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-github-push-workflow--mandator",
+    "key": "github-push-workflow-mandatory-never-skip-",
+    "content": "When pushing code or creating PRs on GitHub, ALWAYS follow this sequence:\n1. **Build locally first** — run `npx next build` (or equivalent) BEFORE pushing to catch type errors, missing imports, and build failures locally\n2. **Push the code** to remote\n3. **Check CI immediately** — run `gh pr checks <PR#> --repo <owner/repo>` or `gh pr view <PR#> --json state,mergeable,statusCheckRollup` right after pushing/creating the PR\n4. **Wait for results** — if checks are pending, wait and re-check until t",
+    "summary": "GitHub Push Workflow (Mandatory — NEVER SKIP)",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-cristiano-stock-analysis",
+    "key": "cristiano-stock-analysis",
+    "content": "- **[Full analysis & advisory framework](stock-analysis.md)** -- Complete trading profile, strategy rules, 8-sector portfolio, current recommendations with tiers, Morningstar FV table, earnings calendar, IV notes, and advisory checklist\n- When Cristiano asks for trading advice, follow the advisory process checklist in stock-analysis.md\n- Key: research current prices, check indicators, rank opportunities, present with specific strikes/expiries\n- ALWAYS remind: no spreads, no rolling, no averaging",
+    "summary": "Cristiano Stock Analysis",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-ruflo--claude-flow--dev-standa",
+    "key": "ruflo-claude-flow-dev-standards",
+    "content": "- **[Full patterns reference](ruflo-dev-patterns.md)** — DDD architecture, security-first, Vitest testing, hook system, MCP integration, CLI patterns\n- Apply ruflo patterns to ALL dev tasks: kebab-case files, `strict` TS, Zod validation, DDD layers (`domain/`, `application/`, `infrastructure/`, `api/`), immutable entities, factory functions, branded types\n- Agent defs: Markdown with YAML frontmatter. Skills: `SKILL.md` in named directories\n- Security checklist: Zod input validation, path travers",
+    "summary": "Ruflo (Claude Flow) Dev Standards",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-remotion-video-production-rule",
+    "key": "remotion-video-production-rules",
+    "content": "- **[Full production standards](remotion-video-production.md)** — Dual-project architecture, design inspiration, branding, modern transitions, pacing, audio, voiceover, testimonials\n- **Always produce TWO projects**: desktop (1920x1080) + mobile (1080x1920)\n- **Always research design inspiration first**: 21st.dev, Shutterstock, Figma Community, Dribbble\n- **Modern transitions**: light leaks (`@remotion/light-leaks`), slides, fades, wipes — never repeat consecutively\n- **ZERO DEAD AIR RULE**: Sce",
+    "summary": "Remotion Video Production Rules",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-video-generation---dual-engine",
+    "key": "video-generation-dual-engine",
+    "content": "### VEO 3 (Scene Backgrounds)\n- **Model**: `veo-3.0-generate-001` — ALWAYS use for backgrounds (cinematic stock footage)\n- **Settings**: resolution \"720p\", duration 8s, `generate_audio: true` (ambient SFX)\n- Via Composio `GEMINI_GENERATE_VIDEOS` or Google AI Studio API\n\n### Kling 3.0 Omni (Testimonials)\n- **API**: Official Kling API at `https://api.klingai.com`\n- **Auth**: JWT (HS256) from Access Key + Secret Key. Token expires in 30 min.\n- **Endpoint**: `POST /v1/videos/text2video` (async — ret",
+    "summary": "Video Generation — Dual Engine",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-MEMORY-api-keys---connected-accounts",
+    "key": "api-keys-connected-accounts",
+    "content": "### ElevenLabs\n- **Connected via Composio**: Account ID `ca_l5DqfJvmM7-I`, Status: ACTIVE\n- **Tier**: Creator (monthly)\n- **TTS**: Use via Composio `ELEVENLABS_TEXT_TO_SPEECH` tool\n- **Music API**: Use via direct API call (`POST https://api.elevenlabs.io/v1/music`) with `xi-api-key` header\n  - Composio `proxy_execute` can't return binary audio — must use direct API or Node.js `fetch`\n  - Plan creation works via Composio: `ELEVENLABS_CREATE_MUSIC_PLAN` or `proxy_execute POST /v1/music/plan`\n  - E",
+    "summary": "API Keys & Connected Accounts",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702844
+  },
+  {
+    "id": "mem-ad-copywriting-system-core-philosophy",
+    "key": "core-philosophy",
+    "content": "- \"The right words to the right audience at the right time will lead to the right action.\"\n- Headlines are 80% of your ad spend. Nail the hook or nothing else matters.\n- Write at 3rd grade reading level. Remove friction, not intelligence.\n- Proof over promise. Specifics over generics. Results over features.\n- The point of an ad is to get a click, NOT to explain everything.\n- Always have a \"Reason Why\" for your CTA.\n- Call out who this is NOT for — attracts higher quality leads.",
+    "summary": "Core Philosophy",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-hormozi-value-equation--for-cr",
+    "key": "hormozi-value-equation-for-crafting-hooks-",
+    "content": "**Value = (Dream Outcome × Perceived Likelihood) / (Time Delay × Effort & Sacrifice)**\n\nTo increase perceived value:\n1. **Dream Outcome** — Paint the best-case scenario vividly (\"from $0 to $50K MRR\")\n2. **Perceived Likelihood** — Use \"proven system,\" \"step-by-step,\" \"guaranteed\"\n3. **Time Delay** — Shorter = better (\"in 6 weeks\" beats \"in 6 months\")\n4. **Effort & Sacrifice** — Lower = better (\"without hiring a CTO,\" \"no code needed\")",
+    "summary": "Hormozi Value Equation (for crafting hooks)",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-hook--retain--reward-framework",
+    "key": "hook-retain-reward-framework",
+    "content": "1. **HOOK** (first 1-3 seconds / first line): Stop the scroll\n   - Shock: \"Most founders waste 80% of their dev budget and don't know it.\"\n   - Question: \"What if you could launch in 6 weeks instead of 6 months?\"\n   - Bold Promise: \"We took a client from idea to 50K users in 90 days.\"\n2. **RETAIN** (body): Keep reading\n   - Open loops (\"Here's the part nobody talks about...\")\n   - Actionable insights, not fluff\n   - Pain point reminders — why this matters to THEM\n3. **REWARD** (end): Deliver val",
+    "summary": "Hook, Retain, Reward Framework",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-16-hook-categories--for-meta-a",
+    "key": "16-hook-categories-for-meta-ads-",
+    "content": "Use these as templates — rotate through them for variety:\n\n| # | Type | Template | When to Use |\n|---|------|----------|-------------|\n| 1 | **Problem-Agitation** | \"Tired of [pain]? Here's why it keeps happening.\" | Pain-aware audience |\n| 2 | **Bold Claim** | \"We [specific result] in [timeframe]. Here's how.\" | High-intent, proof-driven |\n| 3 | **Question** | \"What would change if [dream outcome]?\" | Cold audience, curiosity |\n| 4 | **Number/Stat** | \"[X]% of [audience] make this mistake.\" | D",
+    "summary": "16 Hook Categories (for Meta Ads)",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-primary-text-structure--facebo",
+    "key": "primary-text-structure-facebook-instagram-",
+    "content": "```\n[HOOK — 1 line, pattern interrupt]\n\n[AGITATE — 2-3 lines, twist the knife on the pain]\n\n[SOLUTION — 2-3 lines, what we do differently]\n\n[PROOF — 1-2 lines, specific results/testimonials]\n\n[CTA — 1 line, clear next step]\n```",
+    "summary": "Primary Text Structure (Facebook/Instagram)",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-headline-formula--below-image-",
+    "key": "headline-formula-below-image-in-meta-ads-",
+    "content": "- **Formula 1**: [Dream Outcome] in [Timeframe] — Guaranteed\n- **Formula 2**: The [Adjective] Way to [Result] Without [Sacrifice]\n- **Formula 3**: [Number] [Audience] Can't Be Wrong\n- **Formula 4**: Stop [Pain]. Start [Gain].\n- **Formula 5**: [Specific Result] or You Don't Pay",
+    "summary": "Headline Formula (below image in Meta ads)",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-testing-protocol",
+    "key": "testing-protocol",
+    "content": "- **3-2-2 Method**: 3 hooks × 2 primary texts × 2 headlines per concept\n- Test ONE variable at a time (hook, then body, then headline)\n- Replace underperformers weekly (creative fatigue hits in 7-14 days)\n- Target 25%+ hook rate (3s views / impressions)\n- 30%+ = best in class",
+    "summary": "Testing Protocol",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r",
+    "key": "hormozi-attitudes-tones-to-rotate",
+    "content": "1. **Direct/Authoritative**: \"Here's what works. Period.\"\n2. **Empathetic/Understanding**: \"I've been there. It sucks.\"\n3. **Provocative/Challenging**: \"Most people will ignore this. That's why most people fail.\"\n4. **Data-Driven/Logical**: \"The numbers don't lie. 73% of...\"\n5. **Story-Driven/Personal**: \"When I started, I made every mistake in the book...\"\n6. **Irreverent/Bold**: \"Dev agencies are lying to you. Let me explain.\"",
+    "summary": "Hormozi Attitudes / Tones to Rotate",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-ad-copywriting-system-sources",
+    "key": "sources",
+    "content": "- [Hormozi Value Equation for Hooks](https://davidschwertfeger.com/newsletter/alex-hormozis-value-equation-to-write-viral-hooks/)\n- [Hormozi Hook, Retain, Reward](https://itsmostly.com/blog/alex-hormozis-content-strategy-hook-retain-and-reward-explained)\n- [HYROS Facebook Ad Script Framework](https://hyros.com/updates/facebook-ad-script/)\n- [Meta Ad Hooks That Drive Conversions](https://metalla.digital/meta-ad-hooks-that-drive-conversions-in-2025/)\n- [Hormozi MAGIC Headline Formula](https://www.",
+    "summary": "Sources",
+    "namespace": "ad-copywriting-system",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ad-copywriting-system.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates----",
+    "key": "-",
+    "content": "name: Branded Visual Templates\ndescription: Reusable HTML templates for Varritech-branded Notion visuals - audio walkthrough cards, pipeline flow diagrams, SOW cover banners. Includes rendering pipeline and catbox hosting steps.\ntype: reference\n---",
+    "summary": "---",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates-audio-walkthrough-card",
+    "key": "audio-walkthrough-card",
+    "content": "Reference image: https://files.catbox.moe/9l0nme.png\nInspired by: https://iili.io/q0z5t6P.png (from Product Strategy guide)\n\n**Layout:** Dark card (1200x500), play button with concentric circle rings on left, waveform bars underneath, content on right with badge + title + description + topic pills.\n\n**Template:** `/tmp/phleekz-audio-card/audio-card.html`\n\n**Key elements:**\n- Background: #0a0020 with purple radial blob (top-right) and subtle lime blob (bottom-left)\n- Play button: Lime green (#96f",
+    "summary": "Audio Walkthrough Card",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates-pipeline-flow-diagram",
+    "key": "pipeline-flow-diagram",
+    "content": "Reference image: https://files.catbox.moe/2reyal.png\n\n**Layout:** Dark card (1200x460), centered header with badge + title, 5-stage horizontal pipeline with SVG icons in rounded-corner boxes connected by gradient arrows, bottom bar with platform indicators.\n\n**Template:** `/tmp/phleekz-pipeline-card/pipeline.html`\n\n**Key elements:**\n- Stages: 64x64px rounded boxes (border-radius 16px) with SVG stroke icons inside\n- Color coding: .purple (rgba 65,46,145), .green (rgba 150,240,30), .blue (rgba 60,",
+    "summary": "Pipeline Flow Diagram",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates-sow-cover-banner",
+    "key": "sow-cover-banner",
+    "content": "Reference image: https://files.catbox.moe/i0aed6.png\n\n**Layout:** Wide card (1500x600) for Notion page covers.\n\n**Template:** `/tmp/phleekz-sow-banner/banner.html`\n\n**Key elements:**\n- Same Varritech dark theme base\n- \"CHANGE ORDER\" badge in lime green bordered pill\n- Large title (48px) with accent word in lime green\n- Subtitle description in white 60% opacity\n- Topic pills in glassmorphic style (white 6% bg, white 10% border)\n- Fee callout bottom-right: lime green amount + white label\n- Client ",
+    "summary": "SOW Cover Banner",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates-rendering-pipeline",
+    "key": "rendering-pipeline",
+    "content": "1. Write HTML to `/tmp/<project>/template.html`\n2. Render: `npx --yes playwright screenshot --viewport-size=\"WIDTHxHEIGHT\" --full-page template.html output.png`\n   - Note: `--device-scale-factor` flag doesn't work in CLI mode. For 2x, use Playwright Node API instead.\n3. Upload: `curl -sF \"reqtype=fileupload\" -F \"fileToUpload=@output.png\" https://catbox.moe/user/api.php`\n4. Embed in Notion: Use `NOTION_ADD_MULTIPLE_PAGE_CONTENT` with `block_property: \"image\"` and `link: \"<catbox_url>\"`",
+    "summary": "Rendering Pipeline",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-branded-visual-templates-design-system-constants--all-t",
+    "key": "design-system-constants-all-templates-",
+    "content": "- **Background**: #0a0020\n- **Purple blob**: rgba(65,46,145,0.3-0.4)\n- **Lime blob**: rgba(150,240,30,0.06-0.12)\n- **Neon purple blob**: rgba(140,90,240,0.15-0.2)\n- **Accent color**: #96f01e (lime/chartreuse)\n- **Font**: Chakra Petch (400, 500, 600, 700)\n- **Scanlines**: repeating-linear-gradient 2px transparent / 2px rgba(0,0,0,0.1-0.15)\n- **Vignette**: top/bottom linear-gradient fade to black\n- **Logo**: \"VARRITECH\" uppercase, Chakra Petch 700, letter-spacing 2px, white 70% opacity, top-left\n-",
+    "summary": "Design System Constants (all templates)",
+    "namespace": "branded-visual-templates",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/branded-visual-templates.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702845
+  },
+  {
+    "id": "mem-clickup-ticket-format-title-rules",
+    "key": "title-rules",
+    "content": "- Start with a **verb**: Implement, Fix, Add, Remove, Refactor, Investigate, Design, Build, Deploy\n- Complete the phrase \"This ticket will...\"\n- Bad: \"Navigation is wonky\" / Good: \"Fix nav bar bounce on scroll\"",
+    "summary": "Title Rules",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-template-by-type",
+    "key": "template-by-type",
+    "content": "### FEATURE / USER STORY\n```\nDescription:",
+    "summary": "Template by Type",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-summary",
+    "key": "summary",
+    "content": "As a [persona], I want to [action], so that [benefit].",
+    "summary": "Summary",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-context",
+    "key": "context",
+    "content": "[1-3 sentences: why this matters now. Link to epic/PRD if applicable.]",
+    "summary": "Context",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-design",
+    "key": "design",
+    "content": "[Figma link / wireframe / screenshot if UI work]",
+    "summary": "Design",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-acceptance-criteria",
+    "key": "acceptance-criteria",
+    "content": "### Core Behavior\n- Given [precondition], When [action], Then [outcome]\n\n### Requirements\n- [ ] [Specific, testable condition]\n- [ ] [Edge case handled]\n- [ ] [Error state covered]",
+    "summary": "Acceptance Criteria",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-out-of-scope",
+    "key": "out-of-scope",
+    "content": "- [What this ticket does NOT cover]",
+    "summary": "Out of Scope",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-technical-notes--optional-",
+    "key": "technical-notes-optional-",
+    "content": "[Relevant code paths, API contracts. NOT implementation instructions.]\n```\n\n### BUG\n```\nDescription:",
+    "summary": "Technical Notes (optional)",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-summary",
+    "key": "summary",
+    "content": "[One sentence: what is broken and its impact.]",
+    "summary": "Summary",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-severity",
+    "key": "severity",
+    "content": "[L1: Crash/data loss | L2: Feature blocked | L3: Degraded UX | L4: Cosmetic]",
+    "summary": "Severity",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-steps-to-reproduce",
+    "key": "steps-to-reproduce",
+    "content": "1. Navigate to [URL]\n2. Click [element]\n3. Observe [broken behavior]",
+    "summary": "Steps to Reproduce",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-expected-vs-actual",
+    "key": "expected-vs-actual",
+    "content": "- Expected: [what should happen]\n- Actual: [what happens]",
+    "summary": "Expected vs Actual",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-environment",
+    "key": "environment",
+    "content": "Device, OS, Browser, App Version",
+    "summary": "Environment",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-evidence",
+    "key": "evidence",
+    "content": "[Screenshots, console logs, network traces]",
+    "summary": "Evidence",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-acceptance-criteria",
+    "key": "acceptance-criteria",
+    "content": "- [ ] Bug no longer reproduces\n- [ ] Regression test added\n- [ ] No side effects on [related feature]\n```\n\n### CHORE / TECH DEBT\n```\nDescription:",
+    "summary": "Acceptance Criteria",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-summary",
+    "key": "summary",
+    "content": "[What technical improvement and why.]",
+    "summary": "Summary",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-business-justification",
+    "key": "business-justification",
+    "content": "[Performance impact, maintenance cost, security risk, velocity impact. Quantify.]",
+    "summary": "Business Justification",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-current-state---desired-state",
+    "key": "current-state-desired-state",
+    "content": "Current: [what exists and why it's problematic]\nDesired: [what \"done\" looks like]",
+    "summary": "Current State → Desired State",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-acceptance-criteria",
+    "key": "acceptance-criteria",
+    "content": "- [ ] [Specific condition]\n- [ ] Tests pass / no regression\n- [ ] Documentation updated",
+    "summary": "Acceptance Criteria",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-risks",
+    "key": "risks",
+    "content": "[What could go wrong; rollback strategy]\n```\n\n### SPIKE / RESEARCH\n```\nDescription:",
+    "summary": "Risks",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-goal",
+    "key": "goal",
+    "content": "[What question(s) does this answer?]",
+    "summary": "Goal",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-time-box",
+    "key": "time-box",
+    "content": "[Max time: 1-3 days. Hard stop.]",
+    "summary": "Time Box",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-method",
+    "key": "method",
+    "content": "[Prototype, research, benchmark, consult SME]",
+    "summary": "Method",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-deliverable",
+    "key": "deliverable",
+    "content": "[Decision doc, ADR, prototype, comparison matrix]",
+    "summary": "Deliverable",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-acceptance-criteria",
+    "key": "acceptance-criteria",
+    "content": "- [ ] Question(s) answered with evidence\n- [ ] Findings documented\n- [ ] Follow-up tickets created\n```",
+    "summary": "Acceptance Criteria",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-field-mapping-for-clickup-crea",
+    "key": "field-mapping-for-clickup-create-task",
+    "content": "| Field | ClickUp Param | Notes |\n|-------|---------------|-------|\n| Title | `name` | Verb-first, specific |\n| Description | `description` | Use template above |\n| Priority | `priority` | 1=Urgent, 2=High, 3=Normal, 4=Low |\n| Time Estimate | `time_estimate` | In milliseconds (1hr = 3600000) |\n| Start Date | `start_date` | Unix ms timestamp |\n| Due Date | `due_date` | Unix ms timestamp |\n| Tags | `tags` | Area/component markers |\n| Status | `status` | Use list's valid statuses |",
+    "summary": "Field Mapping for CLICKUP_CREATE_TASK",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-quality-rules--invest-",
+    "key": "quality-rules-invest-",
+    "content": "- **Independent**: No blockers before work starts\n- **Negotiable**: Describe WHAT, not HOW\n- **Valuable**: \"So that\" clause is mandatory\n- **Estimable**: Team can estimate in 30 seconds\n- **Small**: Completable in 1-3 days (5 story points max)\n- **Testable**: Acceptance criteria are binary pass/fail",
+    "summary": "Quality Rules (INVEST)",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-acceptance-criteria-rules",
+    "key": "acceptance-criteria-rules",
+    "content": "- 3-8 per ticket (fewer = under-specified, more = ticket too big)\n- Hybrid format: Given/When/Then for core flow + checklist for edge cases\n- Each criterion must be independently verifiable",
+    "summary": "Acceptance Criteria Rules",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-sizing-guide",
+    "key": "sizing-guide",
+    "content": "| Size | Points | Time | Use For |\n|------|--------|------|---------|\n| XS | 1 | <2 hrs | Config, copy updates |\n| S | 2-3 | 0.5-1 day | Single component |\n| M | 5 | 2-3 days | Multiple components |\n| L | 8 | 3-5 days | Cross-cutting work |\n| XL | 13+ | >1 week | MUST SPLIT before sprint |",
+    "summary": "Sizing Guide",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-clickup-ticket-format-anti-patterns-to-avoid",
+    "key": "anti-patterns-to-avoid",
+    "content": "- Missing \"so that\" / no business value\n- Prescribing implementation (dropdown with React Select)\n- Multiple actions in one ticket\n- Vague language (\"make it faster\")\n- No acceptance criteria\n- Epic masquerading as a story (>8 AC = too big)",
+    "summary": "Anti-Patterns to Avoid",
+    "namespace": "clickup-ticket-format",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/clickup-ticket-format.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-feedback_email_writing----",
+    "key": "-",
+    "content": "name: Email Writing Rules\ndescription: Specific formatting, link, and language rules for all Varritech outreach emails\ntype: feedback\n---\n\n1. Booking link is varritech.com/booking, NOT varritech.com/consult\n2. NEVER use em dashes in any writing for Cristiano. Use hyphens or commas instead.\n3. Sign off as \"Cristiano\", NOT \"Christian\"\n4. Use salesy language taken directly from varritech.com/openclaw and varritech.com/tech-expert-support\n5. Position Varritech as \"one of the world's first OpenClaw-f",
+    "summary": "---",
+    "namespace": "feedback_email_writing",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/feedback_email_writing.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702846
+  },
+  {
+    "id": "mem-feedback_motion_tasks----",
+    "key": "-",
+    "content": "name: Motion Task Defaults\ndescription: When creating tasks in Motion, always set priority to ASAP and autoScheduled with Work Hours and soft deadline\ntype: feedback\n---\n\nAlways set priority to ASAP and auto-schedule when creating tasks in Motion.\n\n**Why:** Cristiano wants all Motion tasks at highest priority so Motion's auto-scheduler treats them urgently and places them on the calendar immediately.\n\n**How to apply:** Every `MOTION_CREATE_TASK` call must use `priority: \"ASAP\"`. Also include `au",
+    "summary": "---",
+    "namespace": "feedback_motion_tasks",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/feedback_motion_tasks.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702847
+  },
+  {
+    "id": "mem-project_convergeflow----",
+    "key": "-",
+    "content": "name: ConvergeFlow Prototype Project\ndescription: ConvergeFlow clickable prototype - 17 HTML pages with Cuberto design system, deployed to Vercel, ready for Figma port. Cold email platform for blue-collar SMBs.\ntype: project\n---\n\n**Product**: ConvergeFlow - simplified outbound cold email platform for blue-collar SMBs (roofers, solar, HVAC, contractors)\n**Client**: Kareem M Maize (Kareem663@gmail.com)\n**Positioning**: \"5 clicks to a booked call\" - eat your email complexity\n\n**Why:** Kareem identi",
+    "summary": "---",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-current-state--as-of-2026-04-0",
+    "key": "current-state-as-of-2026-04-08-",
+    "content": "### Prototype: COMPLETE (17 pages)\n- **GitHub**: `Varritech/convergeflow` (private repo, main branch)\n- **Vercel**: `convergeflow` project on Varritech team (SSO-protected, needs custom domain to be public)\n- **Local**: `frontend-design/convergeflow/designs/` in awesome-claude-skills\n- All pages use inline SVGs (zero CDN dependencies), DM Sans from Google Fonts only\n- AI-generated persona images (Nano Banana) in `designs/assets/`\n\n### Pages Built\n| File | Page |\n|------|------|\n| `02-onboarding-",
+    "summary": "Current State (as of 2026-04-08)",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-next-session--figma-port",
+    "key": "next-session-figma-port",
+    "content": "- **Figma MCP installed**: `claude mcp add --transport http figma https://mcp.figma.com/mcp` (in local config)\n- Will need browser auth on first tool call\n- Tools available: `use_figma`, `generate_figma_design`, `create_new_file`\n- Plan: Create design system page first (colors, typography, components), then port all 17 screens as Figma frames",
+    "summary": "NEXT SESSION: Figma Port",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-next-session--pricing-update-n",
+    "key": "next-session-pricing-update-needed",
+    "content": "Discovery calls (Mar-Apr 2026) suggest higher pricing than prototype currently shows:\n- Current prototype: $50 / $150 / $500\n- Discovery calls: ~$250 / ~$500 / ~$3,500 (+ Enterprise tier)\n- Need to update payments page and settings page to reflect discovery call pricing\n- Also add \"For tech nerds\" advanced stats toggle on dashboard (from Call 4)\n- Also add Enterprise DWY tier (~$3,500/mo)\n- Also add trial period flow",
+    "summary": "NEXT SESSION: Pricing Update Needed",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-discovery-calls--5-total--mar-",
+    "key": "discovery-calls-5-total-mar-apr-2026-",
+    "content": "Fetched via Fathom API - recording IDs for re-fetching transcripts:\n- **Kickoff** (Mar 23): ID 131923767 - scope, process, vision alignment\n- **Call 1** (Mar 26): ID 133049983 - competitive landscape, market position, GLM personas\n- **Call 2** (Mar 27): ID 133408455 - user stories, onboarding journey, OpenClaw agents ($3k add-on)\n- **Call 3** (Mar 30): ID 133811936 - Mailforge, Ollama, lead APIs, Firebase/Vercel stack, OpenClaw DWY\n- **Call 4** (Apr 1): ID 134612489 - brand voice, UX language, \"",
+    "summary": "Discovery Calls (5 total, Mar-Apr 2026)",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-extra-features-kareem-wants--b",
+    "key": "extra-features-kareem-wants-beyond-sow-",
+    "content": "1. **Custom GLMs** based on real marketers (Hormozi-style personas)\n2. **OpenClaw automation** for lead scraping (LinkedIn Navigator)\n3. **Lead gating / credits system** (monetize proprietary scraped data)\n4. **AI Support Chatbot** ($1k add-on, voice-enabled RAG)\n5. **\"For tech nerds\" toggle** on dashboard (hide advanced stats)\n6. **Enterprise DWY tier** at ~$3,500/mo\n7. **Trial period** optimization\n8. **Proprietary lead database** (future, not MVP)",
+    "summary": "Extra Features Kareem Wants (beyond SOW)",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-key-artifacts",
+    "key": "key-artifacts",
+    "content": "- **Clickable prototype**: `frontend-design/convergeflow/designs/` (17 HTML files)\n- **Design system reference**: `frontend-design/convergeflow/designs/00-design-system.html`\n- **Design system master**: `frontend-design/convergeflow/design-system/MASTER.md`\n- **PRD (11 epics)**: `convergeflow-docs/prd-v1.pdf`\n- **Brand voice doc**: `convergeflow-docs/brand-voice-doc.pdf`\n- **SOW**: Notion page `24e84cf7-4b7a-8068-ae59-e3e0cea3a585`\n- **Vercel reference dashboard**: https://convergeflow-design-sy",
+    "summary": "Key Artifacts",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-brand-assets--from-matheus-via",
+    "key": "brand-assets-from-matheus-via-slack-",
+    "content": "- **Logomark**: Double converging chevrons (>>) - \"Arrows = Flow\"\n- **Font for logotype**: Barend Slanted (approximated with italic DM Sans in prototype)\n- **Colors**: Black + Orange (#F97316) + White + Mint (#D4E4DD)\n- **Domain**: convergeflow.io\n- **Slack brand files**: `frontend-design/convergeflow/slack-assets/`",
+    "summary": "Brand Assets (from Matheus via Slack)",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-design-system--cuberto-inspire",
+    "key": "design-system-cuberto-inspired-",
+    "content": "- Font: DM Sans (NOT Plus Jakarta Sans)\n- Bg: #111113 (page), #1B1B1F (card), #222228 (elevated), #161618 (card-in-card)\n- Accent: #F97316 (orange), #D4E4DD (mint), #22C55E (green), #EF4444 (red), #F59E0B (amber), #6366F1 (indigo)\n- Text: #fff > rgba 0.5 > 0.35 > 0.25 > 0.2 > 0.15 > 0.1\n- Card radius: 24px, Button: 14px, Inner elements: 16px, Badge: 6px\n- Sidebar: 64px icon-only with orange left-bar active indicator (3px, border-radius 0 2px 2px 0)\n- NO card borders - bg stepping only\n- NO emoji",
+    "summary": "Design System (Cuberto-Inspired)",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-project_convergeflow-business-context",
+    "key": "business-context",
+    "content": "- Budget: $8K core build, $1K deposit paid, $7K balance\n- White label: deferred (separate $2-3K add-on)\n- Kareem's GTM: YouTube channel, \"shitposting\" style marketing (AirLearn-inspired)\n- Tech stack (from discovery): Next.js, Node.js, Firebase, Vercel, Cloudflare, Mailforge, Ollama (LLM), Sentry\n- Team: Cristiano (PM), Patrick (Tech Lead), Matheus (Designer), Jake (CSM)",
+    "summary": "Business Context",
+    "namespace": "project_convergeflow",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/project_convergeflow.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702848
+  },
+  {
+    "id": "mem-remotion-video-production-remotion-video-production-stan",
+    "key": "remotion-video-production-standards",
+    "content": "Complete production rules for creating professional Remotion videos. Apply ALL of these to every video project.",
+    "summary": "Remotion Video Production Standards",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-dual-project-architecture",
+    "key": "dual-project-architecture",
+    "content": "- **Always produce TWO projects**: desktop (1920x1080, 16:9) and mobile (1080x1920, 9:16)\n- Share assets (voiceover, music) between projects via symlink or copy\n- Generate separate Kling backgrounds and testimonials for each aspect ratio via `generate-videos.mjs`\n- Both use the same voiceover/music, so durations match\n- Mobile layouts: vertical stacks, full-width cards, larger text for readability",
+    "summary": "Dual-Project Architecture",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-scene-backgrounds",
+    "key": "scene-backgrounds",
+    "content": "- **Every scene background** must be **contextual stock footage** related to the on-screen text — never abstract visuals, never plain solid colors\n- Backgrounds must directly relate to what the scene's text says (e.g., \"fees adding up\" → footage of bills on a desk; \"get started\" → footage of someone getting apartment keys)\n- Use a reusable `VideoBackground` component: muted video + dark overlay for text contrast\n- Layer branded dynamic elements (gradient orbs, geometric shapes, particles) ON TOP",
+    "summary": "Scene Backgrounds",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-text-over-video-readability--c",
+    "key": "text-over-video-readability-critical-",
+    "content": "- **VideoBackground triple-layer**: slight blur on video (2px default) + dark tint (0.5-0.6) + radial vignette (darkens edges)\n- **Content backdrop panels**: wrap ALL text/cards in frosted dark panel (`rgba(0,0,0,0.35)` + `backdropFilter: blur(20px)` + `boxShadow: 0 16px 64px rgba(0,0,0,0.4)`)\n- **Triple text shadows on headlines**: `0 2px 4px rgba(0,0,0,0.8), 0 4px 24px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.3)`\n- **Brand-colored text**: add color glow as first shadow layer (`0 0 50px rgba(BRAN",
+    "summary": "Text-Over-Video Readability (CRITICAL)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-design-inspiration--required-b",
+    "key": "design-inspiration-required-before-building-",
+    "content": "- **Always research visual inspiration** before implementing scenes\n- **21st.dev**: Use `mcp__magic__21st_magic_component_inspiration` for UI component patterns (cards, buttons, hero layouts, stats)\n- **Shutterstock/stock**: WebSearch for \"[industry] promo video motion graphics\" to study professional reference material\n- **Figma Community**: WebSearch for layout systems, presentation templates, marketing storyboards\n- **Dribbble/Behance**: WebSearch for animation/motion design references and tra",
+    "summary": "Design Inspiration (Required Before Building)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-branding---extract-from-the-ta",
+    "key": "branding-extract-from-the-target-website",
+    "content": "- **Always extract exact brand colors** from the target website's CSS (inspect Webflow stylesheets, Tailwind config, or inline styles)\n- Define all colors as named constants (e.g., `ORANGE`, `BLUE`, `GREEN`, `RED`, `DARK_TEXT`, `DARK_BG`)\n- Define card/button styling constants: `CARD_RADIUS`, `BTN_RADIUS`, `CARD_SHADOW`, `BTN_SHADOW`, `CARD_BG`, brand gradient\n- **Cards** must match website card styling: exact background, border-radius, box-shadow\n- **Buttons** must use the website's exact gradi",
+    "summary": "Branding — Extract from the Target Website",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-icons",
+    "key": "icons",
+    "content": "- **Never use stock emojis** — always use branded inline SVG icons with `<path>` elements\n- Icon colors must use brand constants only\n- Icons should be simple, recognizable, and styled to match the brand (subtle fills, colored strokes)",
+    "summary": "Icons",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-transitions---multi-layered-ci",
+    "key": "transitions-multi-layered-cinematic-system",
+    "content": "Three layers work together for cinematic transitions:\n- **Layer 1 — Structural**: 5 types (`slide`, `fade`, `wipe`, `clockWipe`, `flip`) with varied `springTiming` configs (damping 80-150, stiffness 60-90). Never repeat consecutively. Desktop: 25 frames, Mobile: 20 frames.\n- **Layer 2 — Brand Overlays**: `BrandFlash` (glow sweep, `mixBlendMode: screen`, 5 directions) and `LightBar` (scanning line with glow halo) placed at scene exits (last ~20 frames). Use brand colors, match direction to transi",
+    "summary": "Transitions — Multi-Layered Cinematic System",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-pacing---timing",
+    "key": "pacing-timing",
+    "content": "- **No visual element should linger more than 2–3 seconds** — stagger reveals, keep motion constant\n- Stagger delays: 4–6 frames between items (not 8–10)\n- Entrance animations: complete within 0.3–0.5s (10–15 frames)\n- Scene durations: voiceover length + 0.5s max padding, no extra lingering\n- Mobile particles: 15 (not 30), meteor streaks: 3–4 (not 5–7)",
+    "summary": "Pacing & Timing",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-animation-patterns",
+    "key": "animation-patterns",
+    "content": "- **All animations must use Remotion's `interpolate()` / `spring()`** — never CSS animations or framer-motion\n- Proven patterns: meteor streaks, animated counting numbers, blur-deblur reveals, conic-gradient border glow, scanning line, shimmer sweep, neon pulsing rings, floating particles, 3D perspective transforms, strikethrough animations, checkmark scale-in",
+    "summary": "Animation Patterns",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-voiceover--elevenlabs----dynam",
+    "key": "voiceover-elevenlabs-dynamic-expressive",
+    "content": "- **Model: `eleven_v3`** — most expressive, emotionally rich model. Supports audio tags (`[excited]`, `[pauses]`, `[whispers]`, `[laughs]`, `[calm]`, etc.)\n- **Always pick the most dynamic, natural-sounding voice** — look for \"expressive\", \"narrator\", \"conversational\" labels. Never use flat/monotone voices.\n- **Speed: 1.1** — faster, punchier delivery\n- Output format: `mp3_44100_128`, save to `shared-assets/voiceover/`\n- After generating, **measure exact audio duration** — this drives scene `dur",
+    "summary": "Voiceover (ElevenLabs) — Dynamic & Expressive",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-scene-timing---audio-first--cr",
+    "key": "scene-timing-audio-first-critical-",
+    "content": "- Scene duration = audio duration + 9 frames buffer (0.3s). **Never cut off audio mid-sentence.**\n- Testimonial scenes must let the speaker finish their entire statement\n- Voiceover scenes must not clip the last word\n- `durationInFrames = Math.ceil(audioDurationSec * fps) + 9`\n- When adjusting total video length, trim visual-only padding — never trim audio scenes",
+    "summary": "Scene Timing — Audio-First (CRITICAL)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-background-music--elevenlabs-m",
+    "key": "background-music-elevenlabs-music-api-",
+    "content": "- **Every video must have background music** playing underneath the voiceover\n- **Generate via ElevenLabs Music API**: `POST https://api.elevenlabs.io/v1/music` with `xi-api-key` header\n- Parameters: `prompt` (describe style/mood), `model_id: \"music_v1\"`, `music_length_ms` (60000 = 60s), `force_instrumental: true`, `output_format: mp3_44100_128`\n- Returns raw MP3 binary (stream response to file)\n- Music should be on-brand: upbeat but not distracting\n- Volume: ~15% (0.15) when voiceover is playin",
+    "summary": "Background Music (ElevenLabs Music API)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-video-generation---kling-ai-di",
+    "key": "video-generation-kling-ai-direct-api-preferred-",
+    "content": "- **API**: `https://api.klingai.com` — official Kling endpoint\n- **Auth**: JWT (HS256) from Access Key + Secret Key. Env vars: `KLING_ACCESS_KEY`, `KLING_SECRET_KEY`\n- **Endpoint**: `POST /v1/videos/text2video` → async, returns `task_id`. Poll `GET /v1/videos/text2video/{task_id}` every 15s.\n- **Model**: `kling-v2-master` (or latest). Mode: `std`. Duration: `\"5\"` or `\"10\"`.\n- **Aspect ratios**: Generate `\"16:9\"` (desktop) and `\"9:16\"` (mobile) in same script.\n- **Status flow**: submitted → proce",
+    "summary": "Video Generation — Kling AI Direct API (Preferred)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-testimonials--ai-generated-wit",
+    "key": "testimonials-ai-generated-with-audio-hyper-realist",
+    "content": "- **Testimonial videos must include spoken audio** — never silent with text overlay only\n- Use **Kling AI** (`kling-v2-master`) via direct API — high quality, supports lip sync\n- Generate both 16:9 (desktop) and 9:16 (mobile) versions\n- `<Video>` component: `volume={0.9}` — NOT muted\n- Each testimonial needs a distinct speaker (vary age, gender, setting)\n- **Hyper-realistic prompting**: include detailed physical description (age, hair, clothing, features), specific environment (location, lightin",
+    "summary": "Testimonials (AI-Generated with Audio — Hyper-Realistic)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-website-screenshots---logo--pl",
+    "key": "website-screenshots-logo-playwright-mandatory-",
+    "content": "- **Playwright captures 3+ pages** from target website at desktop (1920x1080) + mobile (390x844) viewports\n- Save to `shared-assets/screenshots/` (homepage, features, pricing + mobile variants + logo.png)\n- **Screenshots must appear in at least 2 scenes** (Solution and/or Proof) inside animated browser/phone mockups\n- **Brand logo must appear in at least 1 scene** (Hook and/or CTA) with entrance animation (spring scale-in, glow pulse)\n- Mockup animations: scroll reveal, 3D tilt entrance, scale-u",
+    "summary": "Website Screenshots & Logo (Playwright — MANDATORY)",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-hero-scene-scroll",
+    "key": "hero-scene-scroll",
+    "content": "- Scroll **slowly** — only 2 viewport heights max\n- Use `Easing.inOut(Easing.cubic)` for smooth feel\n- Desktop: 3D browser mockup. Mobile: phone frame mockup\n- Never scroll the entire page — just enough to show hero + first section",
+    "summary": "Hero Scene Scroll",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-remotion-video-production-file-organization",
+    "key": "file-organization",
+    "content": "```\nshared-assets/\n├── voiceover/{scene-name}.mp3\n├── music/bg-music.mp3\n├── backgrounds/bg-{scene}.mp4 (16:9) + bg-{scene}-mobile.mp4 (9:16)\n├── testimonials/testimonial-{n}.mp4 (16:9) + testimonial-{n}-mobile.mp4 (9:16)\n└── screenshots/homepage.png + homepage-mobile.png + features.png + pricing.png + logo.png\n```",
+    "summary": "File Organization",
+    "namespace": "remotion-video-production",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/remotion-video-production.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-ruflo--claude-flow--developmen",
+    "key": "ruflo-claude-flow-development-patterns",
+    "content": "Reference: https://github.com/ruvnet/ruflo",
+    "summary": "Ruflo (Claude Flow) Development Patterns",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-core-principles-to-follow",
+    "key": "core-principles-to-follow",
+    "content": "1. **Domain-Driven Design (DDD)** — Organize code into bounded contexts with `domain/`, `application/`, `infrastructure/`, `api/` layers\n2. **Security First** — Zod validation, injection detection, PII scanning, permission allow/deny lists\n3. **Performance-Conscious** — Lazy-loading, explicit perf targets in comments, 3-tier routing (WASM -> Haiku -> Opus)\n4. **Event-Driven** — Hook lifecycle events drive automation (PreToolUse, PostToolUse, SessionStart, etc.)\n5. **Convention over Configuration",
+    "summary": "Core Principles to Follow",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-file-naming-conventions",
+    "key": "file-naming-conventions",
+    "content": "- **TypeScript source**: kebab-case (`threat-detection-service.ts`)\n- **Agent definitions**: kebab-case YAML (`.yaml`) or Markdown (`.md`) with YAML frontmatter\n- **Skill definitions**: `SKILL.md` (uppercase) in named directory\n- **Tests**: `.test.ts` suffix, Vitest framework\n- **Config**: TOML for CLI config, JSON for settings, TypeScript for typed config\n- **Barrel exports**: `index.ts` in each directory",
+    "summary": "File/Naming Conventions",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-typescript-standards",
+    "key": "typescript-standards",
+    "content": "- `strict: true`, `noImplicitReturns: true`, `noFallthroughCasesInSwitch: true`\n- ES2022 target, ESNext modules, `\"type\": \"module\"`\n- Zod for runtime type validation\n- Branded types for IDs: `type ClaimId = \\`claim-${string}\\``\n- Immutable domain entities with `readonly` properties\n- Factory functions for entity creation",
+    "summary": "TypeScript Standards",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-agent-definition-format--markd",
+    "key": "agent-definition-format-markdown-",
+    "content": "```markdown\n---\nname: agent-name\ntype: category\ncolor: \"#HEX\"\ndescription: One-line description\ncapabilities:\n  - capability_1\n  - capability_2\npriority: high|medium|low\nhooks:\n  pre: |\n    echo \"Pre-hook command\"\n  post: |\n    echo \"Post-hook command\"\n---",
+    "summary": "Agent Definition Format (Markdown)",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-agent-title",
+    "key": "agent-title",
+    "content": "System prompt and instructions...\n```",
+    "summary": "Agent Title",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-skill-definition-format",
+    "key": "skill-definition-format",
+    "content": "```\nskill-name/\n  SKILL.md          # YAML frontmatter + Markdown instructions\n  scripts/          # Optional companion shell scripts\n    script-name.sh\n```",
+    "summary": "Skill Definition Format",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-testing-patterns--vitest-",
+    "key": "testing-patterns-vitest-",
+    "content": "```typescript\nimport { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';\n\ndescribe('ComponentName', () => {\n  let dependency: MockType;\n\n  beforeEach(async () => {\n    dependency = { method: vi.fn() } as any;\n  });\n\n  afterEach(async () => { /* cleanup */ });\n\n  it('should do expected behavior', async () => {\n    const result = await component.action(input);\n    expect(result.success).toBe(true);\n    expect(dependency.method).toHaveBeenCalledWith(expected);\n  });\n});\n```",
+    "summary": "Testing Patterns (Vitest)",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-security-checklist",
+    "key": "security-checklist",
+    "content": "- [ ] Input validation with Zod schemas\n- [ ] Path traversal prevention\n- [ ] Secret scanning (block `.env`, credentials, `.pem`, `.key`)\n- [ ] Shell env exclusion (`*_KEY`, `*_SECRET`, `*_TOKEN`, `*_PASSWORD`)\n- [ ] Permission allow/deny lists\n- [ ] Prompt injection pattern detection",
+    "summary": "Security Checklist",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-project-structure-template",
+    "key": "project-structure-template",
+    "content": "```\nproject/\n  src/\n    domain/          # Entities, types, business rules\n    application/     # Services, use cases\n    infrastructure/  # Adapters, repositories, external integrations\n    api/             # CLI commands, MCP tools, HTTP endpoints\n  tests/\n    unit/\n    integration/\n  .claude/\n    agents/          # Agent definitions by category\n    skills/          # Skill definitions\n    settings.json    # Hooks, permissions, MCP servers\n  CLAUDE.md          # Project instructions\n```",
+    "summary": "Project Structure Template",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-hook-system",
+    "key": "hook-system",
+    "content": "Events: `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SessionStart`, `SessionEnd`, `Stop`, `PreCompact`, `SubagentStart`, `TeammateIdle`, `TaskCompleted`\n\nCentral handler pattern: single Node.js script routes all hook events.",
+    "summary": "Hook System",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-mcp-integration",
+    "key": "mcp-integration",
+    "content": "- Tools organized by category (`agent-tools.ts`, `memory-tools.ts`, etc.)\n- Each tool module exports a class with `execute(toolName, args)` method\n- Server supports stdio, HTTP, WebSocket transports\n- PID file management for daemon detection\n- Health check endpoints",
+    "summary": "MCP Integration",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-ruflo-dev-patterns-cli-patterns",
+    "key": "cli-patterns",
+    "content": "- Lazy-loaded command modules via dynamic `import()`\n- `CommandParser` class with registration, flag parsing, type coercion\n- Global options: `--help`, `--version`, `--verbose`, `--quiet`, `--config`, `--format`\n- Output formats: text, json, table",
+    "summary": "CLI Patterns",
+    "namespace": "ruflo-dev-patterns",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/ruflo-dev-patterns.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702849
+  },
+  {
+    "id": "mem-sow-banner-generation-overview",
+    "key": "overview",
+    "content": "Reusable pipeline for generating professional SOW cover banners using HTML/CSS + Playwright in the Composio remote sandbox. Produces 1920x600 PNG images suitable for Notion page covers.",
+    "summary": "Overview",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-pipeline-steps",
+    "key": "pipeline-steps",
+    "content": "### 1. Write HTML banner to sandbox\n```bash",
+    "summary": "Pipeline Steps",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+    "key": "via-composio-remote-bash-tool",
+    "content": "cat > /home/user/banner.html << 'HTMLEOF'\n<!-- HTML content here -->\nHTMLEOF\n```\n\n### 2. Install Playwright + Chromium\n```bash",
+    "summary": "Via COMPOSIO_REMOTE_BASH_TOOL",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+    "key": "via-composio-remote-bash-tool",
+    "content": "pip install playwright -q && playwright install chromium\n```\n\n### 3. Render with Playwright (must use bash, not workbench — path mismatch)\n```bash",
+    "summary": "Via COMPOSIO_REMOTE_BASH_TOOL",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+    "key": "via-composio-remote-bash-tool-not-workbench-root-v",
+    "content": "PLAYWRIGHT_BROWSERS_PATH=/home/user/.cache/ms-playwright python3 -c \"\nimport asyncio\nfrom playwright.async_api import async_playwright\nimport os\n\nasync def render():\n    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = '/home/user/.cache/ms-playwright'\n    async with async_playwright() as p:\n        browser = await p.chromium.launch()\n        page = await browser.new_page(viewport={'width': 1920, 'height': 600})\n        await page.goto('file:///home/user/banner.html')\n        await page.wait_for_load_st",
+    "summary": "Via COMPOSIO_REMOTE_BASH_TOOL (NOT workbench — /root vs /home/user cache path issue)",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+    "key": "via-composio-remote-bash-tool-catbox-moe-gives-per",
+    "content": "curl -s -F \"reqtype=fileupload\" -F \"fileToUpload=@/home/user/banner.png\" https://catbox.moe/user/api.php\n```\n\n### 5. Set as Notion page cover\n```json\n// Via COMPOSIO_MULTI_EXECUTE_TOOL\n{\"tool_slug\": \"NOTION_UPDATE_PAGE\", \"arguments\": {\"page_id\": \"PAGE_ID\", \"cover\": {\"type\": \"external\", \"external\": {\"url\": \"PERMANENT_URL\"}}}}\n```",
+    "summary": "Via COMPOSIO_REMOTE_BASH_TOOL — catbox.moe gives permanent URLs, no API key needed",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-known-gotchas",
+    "key": "known-gotchas",
+    "content": "- **Composio S3 URLs expire** (~1hr presigned). Always use catbox.moe or similar for Notion covers.\n- **Playwright sync API fails in workbench** — workbench runs in asyncio loop. Use async API or run via COMPOSIO_REMOTE_BASH_TOOL instead.\n- **Playwright cache path mismatch** — `pip install` installs to `/home/user/.cache` but workbench runs as root expecting `/root/.cache`. Fix with `PLAYWRIGHT_BROWSERS_PATH=/home/user/.cache/ms-playwright` env var.\n- **Sandbox can be recycled** between calls — ",
+    "summary": "Known Gotchas",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-sow-banner-generation-html-template--varritech---cli",
+    "key": "html-template-varritech-client-sow-",
+    "content": "Customize by replacing:\n- Client name (`.pt` class text + gradient colors)\n- Client brand colors (circle motifs, accent dots)\n- Meta row values (Duration, Tier, Stack, Version)\n- Subtitle text\n\n```html\n<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\n@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');\n\n* { margin: 0; padding: 0; box-sizing: border-box; }\n\nbody {\n  width: 192",
+    "summary": "HTML Template (Varritech × Client SOW)",
+    "namespace": "sow-banner-generation",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/sow-banner-generation.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-how-to-provide-advice",
+    "key": "how-to-provide-advice",
+    "content": "When Cristiano asks for stock/trading advice, follow this process:\n1. **Research current prices** for all watchlist stocks using web search\n2. **Check sector ETF YTD performance** to confirm rotation trends\n3. **Check market indicators** (S&P 500 level vs MAs, RSI, VIX, A/D line)\n4. **Cross-reference with his proven strategy** (deep ITM calls on trending stocks)\n5. **Rank opportunities** by: conviction level, technical trend, valuation vs FV, IV environment\n6. **Flag earnings dates** that affect",
+    "summary": "How to Provide Advice",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-trading-profile",
+    "key": "trading-profile",
+    "content": "- **Account**: Questrade - Individual Margin, TFSA, RRSP\n- **Period analyzed**: Feb 2021 - Feb 2026\n- **1,414 total trades** (1,199 options, 215 equity)\n- **Overall P&L**: -$5,853 (break-even after 5 years)\n- Equities: +$64,828 | Options: -$70,681",
+    "summary": "Trading Profile",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-yearly-p-l",
+    "key": "yearly-p-l",
+    "content": "- 2021: -$26,778 | 2022: -$95,325 | 2023: -$36,619 | 2024: +$159,782 | 2025: -$25,486 | 2026 YTD: +$18,573\n\n---",
+    "summary": "Yearly P&L",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-winning-strategy--deep-itm-cal",
+    "key": "winning-strategy-deep-itm-call-buying-leveraged-lo",
+    "content": "- Buy deep ITM calls (delta 0.70+) on strong trending stocks\n- 45-90 DTE, hold days to weeks, sell for profit\n- 2026 winners: NET C210 (+$20,280 / 483%), AMD C210 (+$5,280), JNJ C220 (+$4,820), JPM C290 (+$3,750), WMT C110 (+$3,650), GDX C100 (+$2,680), AVGO C300 (+$880)\n- **Common traits**: High delta (0.70+), trending sectors, quick exits",
+    "summary": "Winning Strategy: Deep ITM Call Buying (Leveraged Longs)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-losing-patterns-to-avoid--crit",
+    "key": "losing-patterns-to-avoid-critical-",
+    "content": "1. **Rolling diagonal spreads**: Buy ITM call then sell OTM call against it, constantly rolling. MSFT lost -$31K this way despite stock going UP. -$150K+ lifetime from spreads.\n2. **Averaging into losers**: ADBE lost -$22.7K buying calls all the way down from $470 to $259.\n3. **Overtrading**: COST had 102 trades for a net loss.\n- **RULE**: Buy ITM call -> stock goes up -> sell. No short legs. No rolling. No averaging down.",
+    "summary": "Losing Patterns to AVOID (CRITICAL)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-top-winners--all-time-by-under",
+    "key": "top-winners-all-time-by-underlying-",
+    "content": "QQQ +$20.7K | NET +$18.5K | TSLA +$14.7K | GOOG +$12.5K | NCLH +$10.1K | SMH +$9.5K | WMT +$9K | DOL.TO +$8.1K | JPM +$6.6K | SPY +$5.8K",
+    "summary": "Top Winners (All-Time by Underlying)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-top-losers--all-time-by-underl",
+    "key": "top-losers-all-time-by-underlying-",
+    "content": "MSFT -$30.1K | ADBE -$22.7K | COST -$15.8K | CRM -$15.3K | NKE -$9.3K | BBAI -$7.4K | DG -$6.6K | ZS -$5.8K\n\n---",
+    "summary": "Top Losers (All-Time by Underlying)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-key-rules--non-negotiable-",
+    "key": "key-rules-non-negotiable-",
+    "content": "- One position per sector, max two\n- Deep ITM calls only (delta 0.70+), 45-90 DTE\n- Hold days to weeks, not months\n- No spreads, no rolling, no averaging down\n- Wait for pullbacks on new entries; don't chase\n- Check earnings dates before selecting expiry (avoid holding through earnings unless intentional)\n- Prefer April/May expiry options currently (45-90 DTE from Feb 2026)\n\n---",
+    "summary": "Key Rules (Non-Negotiable)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-diversified-8-sector-portfolio",
+    "key": "diversified-8-sector-portfolio-plan",
+    "content": "| # | Sector | Primary Pick | Alternate | Key Criteria |\n|---|--------|-------------|-----------|--------------|\n| 1 | Comm Services | **GOOG** | -- | Proven winner (+$12.5K lifetime), only Mag7 at highs |\n| 2 | Gold/Materials | **GDX** | AEM | Gold bull market, no earnings risk (ETF) |\n| 3 | Energy | **CVX** | XLE | Sector leader, AI power demand tailwind |\n| 4 | Financials | **JPM** | -- | Proven winner (+$6.6K lifetime) |\n| 5 | Consumer Staples | **WMT** | COST | Proven winner (+$9K lifetime)",
+    "summary": "Diversified 8-Sector Portfolio Plan",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-market-snapshot--updated-feb-2",
+    "key": "market-snapshot-updated-feb-24-2026-",
+    "content": "### S&P 500 Technicals\n- S&P 500: ~6,839 (broke below 50-day AND 200-day MAs on Feb 23)\n- 50-day MA: ~6,873 | 200-day MA: ~6,914\n- RSI: 48.2 (neutral) | MACD: -0.810 (bearish)\n- VIX: 19.6 (moderate, elevated)\n- A/D line declining since Nov 2024\n\n### Sector YTD Performance (Feb 24, 2026)\n1. Energy (XLE): +22.75%\n2. Comm Services (XLC): +21.45%\n3. Materials (XLB): +16.78%\n4. Consumer Staples (XLP): +13.5%\n5. Industrials (XLI): +12.1%\n6. Real Estate (XLRE): +2.5%\n7. Utilities (XLU): +1.4%\n8. Health",
+    "summary": "Market Snapshot (Updated Feb 24, 2026)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-current-recommendations--feb-2",
+    "key": "current-recommendations-feb-24-2026-",
+    "content": "### Tier 1: BUY NOW (Highest Conviction)\n\n**GOOG -- $315 | April 17 $290 Call (~$30-35)**\n- 7% below Morningstar $340 FV\n- Wells Fargo upgraded to Overweight Feb 23, PT $387 (+22%)\n- Google Cloud +48% growth, Gemini ARR tripling\n- Support confirmed at $297, broke short-term downtrend\n- April 17 expiry avoids April 28 earnings\n- Proven winner in Cristiano's portfolio\n\n**GDX -- $110 | April 17 $100 Call (~$12-14)**\n- Gold at $5,200+ all-time highs\n- RSI only 45.8 (not overbought despite 39% 3-mont",
+    "summary": "Current Recommendations (Feb 24, 2026)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-morningstar-fair-value-referen",
+    "key": "morningstar-fair-value-reference",
+    "content": "| Ticker | Price (Feb 24) | Morningstar FV | Discount/Premium | Stars |\n|--------|---------------|----------------|-------------------|-------|\n| NOW | $104 | $200 | -47% | 5 |\n| INTU | $381 | $720 | -47% | 5 |\n| MSFT | $390 | $600 | -35% | 4 |\n| ADBE | $246 | $429 | -43% | -- |\n| UNH | $289 | $427 | -32% | -- |\n| GOOG | $315 | $340 | -7% | 3 |\n| CVX | $184 | $184 | 0% | 3 |\n| JPM | $305 | $289 | +6% | 2 |\n| CAT | $760 | $620 | +23% | 2 |\n| WMT | $122 | $60 | +103% | 1 |\n\n---",
+    "summary": "Morningstar Fair Value Reference",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-earnings-calendar--key-dates-",
+    "key": "earnings-calendar-key-dates-",
+    "content": "| Date | Event | Impact on Portfolio |\n|------|-------|-------------------|\n| Feb 25 | NVDA earnings | Moves entire tech sector |\n| Feb 25 | CRM earnings | Cristiano has open CRM calls |\n| Apr 14 | JPM Q1 earnings | Use May expiry, not April |\n| Apr 17 | April options expiry | -- |\n| Apr 22 | UNH Q1 earnings | -- |\n| Apr 23 | CAT Q1 earnings | -- |\n| Apr 24 | CVX Q1 earnings | -- |\n| Apr 28 | MSFT + GOOG earnings | April expiry avoids both |\n| Apr 29 | NOW Q1 earnings | April expiry avoids |\n| M",
+    "summary": "Earnings Calendar (Key Dates)",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-iv-environment-notes",
+    "key": "iv-environment-notes",
+    "content": "- VIX 19.6 = moderate overall\n- **Cyclical/value names (CVX, GDX, JPM, WMT, CAT)**: IV relatively LOW, premiums reasonable for buyers\n- **Beaten-down tech (MSFT, NOW, ADBE)**: IV ELEVATED, premiums expensive\n- **UNH**: IV elevated due to -18% drawdown\n- **Best bang for buck**: GDX and GOOG (moderate IV + strong trends)\n\n---",
+    "summary": "IV Environment Notes",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-stock-analysis-advisory-process-checklist",
+    "key": "advisory-process-checklist",
+    "content": "When Cristiano asks \"what should I buy?\" or \"give me an update\":\n1. Web search current prices for all watchlist stocks\n2. Check S&P 500 level vs 50/200 MAs, RSI, VIX\n3. Check sector ETF YTD to confirm rotation still intact\n4. Update the recommendation tiers based on new prices/levels\n5. Flag any stocks that hit buy levels (e.g., CVX at $177, JPM at $295)\n6. Flag any that deteriorated (broke support, earnings miss)\n7. Check for new analyst upgrades/downgrades\n8. Check gold price for GDX thesis\n9.",
+    "summary": "Advisory Process Checklist",
+    "namespace": "stock-analysis",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-awesome-claude-skills/memory/stock-analysis.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702850
+  },
+  {
+    "id": "mem-MEMORY-feedback",
+    "key": "feedback",
+    "content": "- [outreach_and_application_style](feedback_outreach_style.md) - User wants autonomous execution for outreach/applications. Don't ask permission each time. Target small startups and solo founders broadly.",
+    "summary": "Feedback",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-career-ops/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702851
+  },
+  {
+    "id": "mem-feedback_outreach_style----",
+    "key": "-",
+    "content": "name: outreach_and_application_style\ndescription: User wants autonomous execution -- apply, message, scan without asking for permission each time. Focus on small startups and solo founders, not just big companies.\ntype: feedback\n---\n\nUser prefers autonomous execution when doing job search tasks. Don't ask for confirmation on each LinkedIn message or application -- just do it.\n\n**Why:** The user said \"keep going and stop asking me\" when I was pausing for confirmation on each LinkedIn Send button.",
+    "summary": "---",
+    "namespace": "feedback_outreach_style",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/Users/christianvarriale/.claude/projects/-Users-christianvarriale-career-ops/memory/feedback_outreach_style.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1776172702851
+  },
+  {
+    "id": "insight-1776174712718-5922",
+    "key": "frequent-edit-unknown",
+    "content": "File unknown was edited 77 times this session — likely a hot path worth monitoring.",
+    "summary": "Frequently edited: unknown (77x)",
+    "namespace": "insights",
+    "type": "procedural",
+    "metadata": {
+      "sourceFile": "unknown",
+      "editCount": 77,
+      "autoGenerated": true
+    },
+    "createdAt": 1776174712718
+  }
+]

@@ -1,0 +1,1919 @@
+{
+  "version": 1,
+  "updatedAt": 1776259069036,
+  "nodeCount": 138,
+  "nodes": {
+    "mem-MEMORY-api-keys---credentials": {
+      "id": "mem-MEMORY-api-keys---credentials",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702842
+    },
+    "mem-MEMORY-video-production": {
+      "id": "mem-MEMORY-video-production",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702842
+    },
+    "mem-api-keys-kling-ai--video-generation---t": {
+      "id": "mem-api-keys-kling-ai--video-generation---t",
+      "category": "api-keys",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702843
+    },
+    "mem-api-keys-elevenlabs--voiceover---music-": {
+      "id": "mem-api-keys-elevenlabs--voiceover---music-",
+      "category": "api-keys",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702843
+    },
+    "mem-MEMORY-email-writing-rules": {
+      "id": "mem-MEMORY-email-writing-rules",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-cristiano-s-slack-voice--manda": {
+      "id": "mem-MEMORY-cristiano-s-slack-voice--manda",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-clickup-ticket-standard": {
+      "id": "mem-MEMORY-clickup-ticket-standard",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-git-workflow": {
+      "id": "mem-MEMORY-git-workflow",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-varritech-branding": {
+      "id": "mem-MEMORY-varritech-branding",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-varritech-approved-guide-forma": {
+      "id": "mem-MEMORY-varritech-approved-guide-forma",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-ad-copywriting-system--hormozi": {
+      "id": "mem-MEMORY-ad-copywriting-system--hormozi",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-meta-ads-account": {
+      "id": "mem-MEMORY-meta-ads-account",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-thunder-unity-avatar-server": {
+      "id": "mem-MEMORY-thunder-unity-avatar-server",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-convergeflow-project": {
+      "id": "mem-MEMORY-convergeflow-project",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-reusable-pipelines": {
+      "id": "mem-MEMORY-reusable-pipelines",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-motion-task-defaults": {
+      "id": "mem-MEMORY-motion-task-defaults",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-composio---default-integration": {
+      "id": "mem-MEMORY-composio---default-integration",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-step-1--search-for-tools--gets": {
+      "id": "mem-MEMORY-step-1--search-for-tools--gets",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-step-2--create-connection-link": {
+      "id": "mem-MEMORY-step-2--create-connection-link",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-step-3--share-link-with-user": {
+      "id": "mem-MEMORY-step-3--share-link-with-user",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-step-4--after-user-completes--": {
+      "id": "mem-MEMORY-step-4--after-user-completes--",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-composio---notion-gotchas": {
+      "id": "mem-MEMORY-composio---notion-gotchas",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-writing-style": {
+      "id": "mem-MEMORY-writing-style",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-zendesk-rules": {
+      "id": "mem-MEMORY-zendesk-rules",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-git-commit-authorship": {
+      "id": "mem-MEMORY-git-commit-authorship",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-github-push-workflow--mandator": {
+      "id": "mem-MEMORY-github-push-workflow--mandator",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-cristiano-stock-analysis": {
+      "id": "mem-MEMORY-cristiano-stock-analysis",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-ruflo--claude-flow--dev-standa": {
+      "id": "mem-MEMORY-ruflo--claude-flow--dev-standa",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-remotion-video-production-rule": {
+      "id": "mem-MEMORY-remotion-video-production-rule",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-video-generation---dual-engine": {
+      "id": "mem-MEMORY-video-generation---dual-engine",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-MEMORY-api-keys---connected-accounts": {
+      "id": "mem-MEMORY-api-keys---connected-accounts",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702844
+    },
+    "mem-ad-copywriting-system-core-philosophy": {
+      "id": "mem-ad-copywriting-system-core-philosophy",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-hormozi-value-equation--for-cr": {
+      "id": "mem-ad-copywriting-system-hormozi-value-equation--for-cr",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-hook--retain--reward-framework": {
+      "id": "mem-ad-copywriting-system-hook--retain--reward-framework",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-16-hook-categories--for-meta-a": {
+      "id": "mem-ad-copywriting-system-16-hook-categories--for-meta-a",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-primary-text-structure--facebo": {
+      "id": "mem-ad-copywriting-system-primary-text-structure--facebo",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-headline-formula--below-image-": {
+      "id": "mem-ad-copywriting-system-headline-formula--below-image-",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-testing-protocol": {
+      "id": "mem-ad-copywriting-system-testing-protocol",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r": {
+      "id": "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-ad-copywriting-system-sources": {
+      "id": "mem-ad-copywriting-system-sources",
+      "category": "ad-copywriting-system",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates----": {
+      "id": "mem-branded-visual-templates----",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates-audio-walkthrough-card": {
+      "id": "mem-branded-visual-templates-audio-walkthrough-card",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates-pipeline-flow-diagram": {
+      "id": "mem-branded-visual-templates-pipeline-flow-diagram",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates-sow-cover-banner": {
+      "id": "mem-branded-visual-templates-sow-cover-banner",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates-rendering-pipeline": {
+      "id": "mem-branded-visual-templates-rendering-pipeline",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-branded-visual-templates-design-system-constants--all-t": {
+      "id": "mem-branded-visual-templates-design-system-constants--all-t",
+      "category": "branded-visual-templates",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702845
+    },
+    "mem-clickup-ticket-format-title-rules": {
+      "id": "mem-clickup-ticket-format-title-rules",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-template-by-type": {
+      "id": "mem-clickup-ticket-format-template-by-type",
+      "category": "clickup-ticket-format",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-summary": {
+      "id": "mem-clickup-ticket-format-summary",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-context": {
+      "id": "mem-clickup-ticket-format-context",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-design": {
+      "id": "mem-clickup-ticket-format-design",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-acceptance-criteria": {
+      "id": "mem-clickup-ticket-format-acceptance-criteria",
+      "category": "clickup-ticket-format",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-out-of-scope": {
+      "id": "mem-clickup-ticket-format-out-of-scope",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-technical-notes--optional-": {
+      "id": "mem-clickup-ticket-format-technical-notes--optional-",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-severity": {
+      "id": "mem-clickup-ticket-format-severity",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-steps-to-reproduce": {
+      "id": "mem-clickup-ticket-format-steps-to-reproduce",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-expected-vs-actual": {
+      "id": "mem-clickup-ticket-format-expected-vs-actual",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-environment": {
+      "id": "mem-clickup-ticket-format-environment",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-evidence": {
+      "id": "mem-clickup-ticket-format-evidence",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-business-justification": {
+      "id": "mem-clickup-ticket-format-business-justification",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-current-state---desired-state": {
+      "id": "mem-clickup-ticket-format-current-state---desired-state",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-risks": {
+      "id": "mem-clickup-ticket-format-risks",
+      "category": "clickup-ticket-format",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-goal": {
+      "id": "mem-clickup-ticket-format-goal",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-time-box": {
+      "id": "mem-clickup-ticket-format-time-box",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-method": {
+      "id": "mem-clickup-ticket-format-method",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-deliverable": {
+      "id": "mem-clickup-ticket-format-deliverable",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-field-mapping-for-clickup-crea": {
+      "id": "mem-clickup-ticket-format-field-mapping-for-clickup-crea",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-quality-rules--invest-": {
+      "id": "mem-clickup-ticket-format-quality-rules--invest-",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-acceptance-criteria-rules": {
+      "id": "mem-clickup-ticket-format-acceptance-criteria-rules",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-sizing-guide": {
+      "id": "mem-clickup-ticket-format-sizing-guide",
+      "category": "clickup-ticket-format",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702846
+    },
+    "mem-clickup-ticket-format-anti-patterns-to-avoid": {
+      "id": "mem-clickup-ticket-format-anti-patterns-to-avoid",
+      "category": "clickup-ticket-format",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-feedback_email_writing----": {
+      "id": "mem-feedback_email_writing----",
+      "category": "feedback_email_writing",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702846
+    },
+    "mem-feedback_motion_tasks----": {
+      "id": "mem-feedback_motion_tasks----",
+      "category": "feedback_motion_tasks",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702847
+    },
+    "mem-project_convergeflow----": {
+      "id": "mem-project_convergeflow----",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-current-state--as-of-2026-04-0": {
+      "id": "mem-project_convergeflow-current-state--as-of-2026-04-0",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-next-session--figma-port": {
+      "id": "mem-project_convergeflow-next-session--figma-port",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-next-session--pricing-update-n": {
+      "id": "mem-project_convergeflow-next-session--pricing-update-n",
+      "category": "project_convergeflow",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-discovery-calls--5-total--mar-": {
+      "id": "mem-project_convergeflow-discovery-calls--5-total--mar-",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-extra-features-kareem-wants--b": {
+      "id": "mem-project_convergeflow-extra-features-kareem-wants--b",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-key-artifacts": {
+      "id": "mem-project_convergeflow-key-artifacts",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-brand-assets--from-matheus-via": {
+      "id": "mem-project_convergeflow-brand-assets--from-matheus-via",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-design-system--cuberto-inspire": {
+      "id": "mem-project_convergeflow-design-system--cuberto-inspire",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-project_convergeflow-business-context": {
+      "id": "mem-project_convergeflow-business-context",
+      "category": "project_convergeflow",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702848
+    },
+    "mem-remotion-video-production-remotion-video-production-stan": {
+      "id": "mem-remotion-video-production-remotion-video-production-stan",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-dual-project-architecture": {
+      "id": "mem-remotion-video-production-dual-project-architecture",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-scene-backgrounds": {
+      "id": "mem-remotion-video-production-scene-backgrounds",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-text-over-video-readability--c": {
+      "id": "mem-remotion-video-production-text-over-video-readability--c",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-design-inspiration--required-b": {
+      "id": "mem-remotion-video-production-design-inspiration--required-b",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-branding---extract-from-the-ta": {
+      "id": "mem-remotion-video-production-branding---extract-from-the-ta",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-icons": {
+      "id": "mem-remotion-video-production-icons",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-transitions---multi-layered-ci": {
+      "id": "mem-remotion-video-production-transitions---multi-layered-ci",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-pacing---timing": {
+      "id": "mem-remotion-video-production-pacing---timing",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-animation-patterns": {
+      "id": "mem-remotion-video-production-animation-patterns",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-voiceover--elevenlabs----dynam": {
+      "id": "mem-remotion-video-production-voiceover--elevenlabs----dynam",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-scene-timing---audio-first--cr": {
+      "id": "mem-remotion-video-production-scene-timing---audio-first--cr",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-background-music--elevenlabs-m": {
+      "id": "mem-remotion-video-production-background-music--elevenlabs-m",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-video-generation---kling-ai-di": {
+      "id": "mem-remotion-video-production-video-generation---kling-ai-di",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-testimonials--ai-generated-wit": {
+      "id": "mem-remotion-video-production-testimonials--ai-generated-wit",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-website-screenshots---logo--pl": {
+      "id": "mem-remotion-video-production-website-screenshots---logo--pl",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-hero-scene-scroll": {
+      "id": "mem-remotion-video-production-hero-scene-scroll",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-remotion-video-production-file-organization": {
+      "id": "mem-remotion-video-production-file-organization",
+      "category": "remotion-video-production",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-ruflo--claude-flow--developmen": {
+      "id": "mem-ruflo-dev-patterns-ruflo--claude-flow--developmen",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-core-principles-to-follow": {
+      "id": "mem-ruflo-dev-patterns-core-principles-to-follow",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-file-naming-conventions": {
+      "id": "mem-ruflo-dev-patterns-file-naming-conventions",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-typescript-standards": {
+      "id": "mem-ruflo-dev-patterns-typescript-standards",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.53,
+      "accessCount": 1,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-agent-definition-format--markd": {
+      "id": "mem-ruflo-dev-patterns-agent-definition-format--markd",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-agent-title": {
+      "id": "mem-ruflo-dev-patterns-agent-title",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-skill-definition-format": {
+      "id": "mem-ruflo-dev-patterns-skill-definition-format",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-testing-patterns--vitest-": {
+      "id": "mem-ruflo-dev-patterns-testing-patterns--vitest-",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-security-checklist": {
+      "id": "mem-ruflo-dev-patterns-security-checklist",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-project-structure-template": {
+      "id": "mem-ruflo-dev-patterns-project-structure-template",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-hook-system": {
+      "id": "mem-ruflo-dev-patterns-hook-system",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-mcp-integration": {
+      "id": "mem-ruflo-dev-patterns-mcp-integration",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-ruflo-dev-patterns-cli-patterns": {
+      "id": "mem-ruflo-dev-patterns-cli-patterns",
+      "category": "ruflo-dev-patterns",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702849
+    },
+    "mem-sow-banner-generation-overview": {
+      "id": "mem-sow-banner-generation-overview",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-sow-banner-generation-pipeline-steps": {
+      "id": "mem-sow-banner-generation-pipeline-steps",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-sow-banner-generation-via-composio-remote-bash-tool": {
+      "id": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-sow-banner-generation-via-composio-remote-bash-tool-": {
+      "id": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-sow-banner-generation-known-gotchas": {
+      "id": "mem-sow-banner-generation-known-gotchas",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-sow-banner-generation-html-template--varritech---cli": {
+      "id": "mem-sow-banner-generation-html-template--varritech---cli",
+      "category": "sow-banner-generation",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-how-to-provide-advice": {
+      "id": "mem-stock-analysis-how-to-provide-advice",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-trading-profile": {
+      "id": "mem-stock-analysis-trading-profile",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-yearly-p-l": {
+      "id": "mem-stock-analysis-yearly-p-l",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-winning-strategy--deep-itm-cal": {
+      "id": "mem-stock-analysis-winning-strategy--deep-itm-cal",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-losing-patterns-to-avoid--crit": {
+      "id": "mem-stock-analysis-losing-patterns-to-avoid--crit",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-top-winners--all-time-by-under": {
+      "id": "mem-stock-analysis-top-winners--all-time-by-under",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-top-losers--all-time-by-underl": {
+      "id": "mem-stock-analysis-top-losers--all-time-by-underl",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-key-rules--non-negotiable-": {
+      "id": "mem-stock-analysis-key-rules--non-negotiable-",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-diversified-8-sector-portfolio": {
+      "id": "mem-stock-analysis-diversified-8-sector-portfolio",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-market-snapshot--updated-feb-2": {
+      "id": "mem-stock-analysis-market-snapshot--updated-feb-2",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-current-recommendations--feb-2": {
+      "id": "mem-stock-analysis-current-recommendations--feb-2",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-morningstar-fair-value-referen": {
+      "id": "mem-stock-analysis-morningstar-fair-value-referen",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-earnings-calendar--key-dates-": {
+      "id": "mem-stock-analysis-earnings-calendar--key-dates-",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-iv-environment-notes": {
+      "id": "mem-stock-analysis-iv-environment-notes",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-stock-analysis-advisory-process-checklist": {
+      "id": "mem-stock-analysis-advisory-process-checklist",
+      "category": "stock-analysis",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702850
+    },
+    "mem-MEMORY-feedback": {
+      "id": "mem-MEMORY-feedback",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702851
+    },
+    "mem-feedback_outreach_style----": {
+      "id": "mem-feedback_outreach_style----",
+      "category": "feedback_outreach_style",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776172702851
+    },
+    "insight-1776174712718-5922": {
+      "id": "insight-1776174712718-5922",
+      "category": "insights",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1776174712718
+    }
+  },
+  "edges": [
+    {
+      "sourceId": "mem-MEMORY-api-keys---credentials",
+      "targetId": "mem-MEMORY-video-production",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-api-keys-kling-ai--video-generation---t",
+      "targetId": "mem-api-keys-elevenlabs--voiceover---music-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-email-writing-rules",
+      "targetId": "mem-MEMORY-cristiano-s-slack-voice--manda",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-cristiano-s-slack-voice--manda",
+      "targetId": "mem-MEMORY-clickup-ticket-standard",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-clickup-ticket-standard",
+      "targetId": "mem-MEMORY-git-workflow",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-git-workflow",
+      "targetId": "mem-MEMORY-varritech-branding",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-varritech-branding",
+      "targetId": "mem-MEMORY-varritech-approved-guide-forma",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-varritech-approved-guide-forma",
+      "targetId": "mem-MEMORY-ad-copywriting-system--hormozi",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-ad-copywriting-system--hormozi",
+      "targetId": "mem-MEMORY-meta-ads-account",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-meta-ads-account",
+      "targetId": "mem-MEMORY-thunder-unity-avatar-server",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-thunder-unity-avatar-server",
+      "targetId": "mem-MEMORY-convergeflow-project",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-convergeflow-project",
+      "targetId": "mem-MEMORY-reusable-pipelines",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-reusable-pipelines",
+      "targetId": "mem-MEMORY-motion-task-defaults",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-motion-task-defaults",
+      "targetId": "mem-MEMORY-composio---default-integration",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-composio---default-integration",
+      "targetId": "mem-MEMORY-step-1--search-for-tools--gets",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-step-1--search-for-tools--gets",
+      "targetId": "mem-MEMORY-step-2--create-connection-link",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-step-2--create-connection-link",
+      "targetId": "mem-MEMORY-step-3--share-link-with-user",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-step-3--share-link-with-user",
+      "targetId": "mem-MEMORY-step-4--after-user-completes--",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-step-4--after-user-completes--",
+      "targetId": "mem-MEMORY-composio---notion-gotchas",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-composio---notion-gotchas",
+      "targetId": "mem-MEMORY-writing-style",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-writing-style",
+      "targetId": "mem-MEMORY-zendesk-rules",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-zendesk-rules",
+      "targetId": "mem-MEMORY-git-commit-authorship",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-git-commit-authorship",
+      "targetId": "mem-MEMORY-github-push-workflow--mandator",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-github-push-workflow--mandator",
+      "targetId": "mem-MEMORY-cristiano-stock-analysis",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-cristiano-stock-analysis",
+      "targetId": "mem-MEMORY-ruflo--claude-flow--dev-standa",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-ruflo--claude-flow--dev-standa",
+      "targetId": "mem-MEMORY-remotion-video-production-rule",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-remotion-video-production-rule",
+      "targetId": "mem-MEMORY-video-generation---dual-engine",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-video-generation---dual-engine",
+      "targetId": "mem-MEMORY-api-keys---connected-accounts",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-core-philosophy",
+      "targetId": "mem-ad-copywriting-system-hormozi-value-equation--for-cr",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-hormozi-value-equation--for-cr",
+      "targetId": "mem-ad-copywriting-system-hook--retain--reward-framework",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-hook--retain--reward-framework",
+      "targetId": "mem-ad-copywriting-system-16-hook-categories--for-meta-a",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-16-hook-categories--for-meta-a",
+      "targetId": "mem-ad-copywriting-system-primary-text-structure--facebo",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-primary-text-structure--facebo",
+      "targetId": "mem-ad-copywriting-system-headline-formula--below-image-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-headline-formula--below-image-",
+      "targetId": "mem-ad-copywriting-system-testing-protocol",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-testing-protocol",
+      "targetId": "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r",
+      "targetId": "mem-ad-copywriting-system-sources",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-branded-visual-templates----",
+      "targetId": "mem-branded-visual-templates-audio-walkthrough-card",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-audio-walkthrough-card",
+      "targetId": "mem-branded-visual-templates-pipeline-flow-diagram",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-pipeline-flow-diagram",
+      "targetId": "mem-branded-visual-templates-sow-cover-banner",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-sow-cover-banner",
+      "targetId": "mem-branded-visual-templates-rendering-pipeline",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-rendering-pipeline",
+      "targetId": "mem-branded-visual-templates-design-system-constants--all-t",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-title-rules",
+      "targetId": "mem-clickup-ticket-format-template-by-type",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-template-by-type",
+      "targetId": "mem-clickup-ticket-format-summary",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-summary",
+      "targetId": "mem-clickup-ticket-format-context",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-context",
+      "targetId": "mem-clickup-ticket-format-design",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-design",
+      "targetId": "mem-clickup-ticket-format-acceptance-criteria",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-acceptance-criteria",
+      "targetId": "mem-clickup-ticket-format-out-of-scope",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-out-of-scope",
+      "targetId": "mem-clickup-ticket-format-technical-notes--optional-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-technical-notes--optional-",
+      "targetId": "mem-clickup-ticket-format-summary",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-summary",
+      "targetId": "mem-clickup-ticket-format-severity",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-severity",
+      "targetId": "mem-clickup-ticket-format-steps-to-reproduce",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-steps-to-reproduce",
+      "targetId": "mem-clickup-ticket-format-expected-vs-actual",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-expected-vs-actual",
+      "targetId": "mem-clickup-ticket-format-environment",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-environment",
+      "targetId": "mem-clickup-ticket-format-evidence",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-evidence",
+      "targetId": "mem-clickup-ticket-format-acceptance-criteria",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-acceptance-criteria",
+      "targetId": "mem-clickup-ticket-format-summary",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-summary",
+      "targetId": "mem-clickup-ticket-format-business-justification",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-business-justification",
+      "targetId": "mem-clickup-ticket-format-current-state---desired-state",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-current-state---desired-state",
+      "targetId": "mem-clickup-ticket-format-acceptance-criteria",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-acceptance-criteria",
+      "targetId": "mem-clickup-ticket-format-risks",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-risks",
+      "targetId": "mem-clickup-ticket-format-goal",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-goal",
+      "targetId": "mem-clickup-ticket-format-time-box",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-time-box",
+      "targetId": "mem-clickup-ticket-format-method",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-method",
+      "targetId": "mem-clickup-ticket-format-deliverable",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-deliverable",
+      "targetId": "mem-clickup-ticket-format-acceptance-criteria",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-acceptance-criteria",
+      "targetId": "mem-clickup-ticket-format-field-mapping-for-clickup-crea",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-field-mapping-for-clickup-crea",
+      "targetId": "mem-clickup-ticket-format-quality-rules--invest-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-quality-rules--invest-",
+      "targetId": "mem-clickup-ticket-format-acceptance-criteria-rules",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-acceptance-criteria-rules",
+      "targetId": "mem-clickup-ticket-format-sizing-guide",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-clickup-ticket-format-sizing-guide",
+      "targetId": "mem-clickup-ticket-format-anti-patterns-to-avoid",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow----",
+      "targetId": "mem-project_convergeflow-current-state--as-of-2026-04-0",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-current-state--as-of-2026-04-0",
+      "targetId": "mem-project_convergeflow-next-session--figma-port",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-next-session--figma-port",
+      "targetId": "mem-project_convergeflow-next-session--pricing-update-n",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-next-session--pricing-update-n",
+      "targetId": "mem-project_convergeflow-discovery-calls--5-total--mar-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-discovery-calls--5-total--mar-",
+      "targetId": "mem-project_convergeflow-extra-features-kareem-wants--b",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-extra-features-kareem-wants--b",
+      "targetId": "mem-project_convergeflow-key-artifacts",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-key-artifacts",
+      "targetId": "mem-project_convergeflow-brand-assets--from-matheus-via",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-brand-assets--from-matheus-via",
+      "targetId": "mem-project_convergeflow-design-system--cuberto-inspire",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_convergeflow-design-system--cuberto-inspire",
+      "targetId": "mem-project_convergeflow-business-context",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-remotion-video-production-stan",
+      "targetId": "mem-remotion-video-production-dual-project-architecture",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-dual-project-architecture",
+      "targetId": "mem-remotion-video-production-scene-backgrounds",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-scene-backgrounds",
+      "targetId": "mem-remotion-video-production-text-over-video-readability--c",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-text-over-video-readability--c",
+      "targetId": "mem-remotion-video-production-design-inspiration--required-b",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-design-inspiration--required-b",
+      "targetId": "mem-remotion-video-production-branding---extract-from-the-ta",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-branding---extract-from-the-ta",
+      "targetId": "mem-remotion-video-production-icons",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-icons",
+      "targetId": "mem-remotion-video-production-transitions---multi-layered-ci",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-transitions---multi-layered-ci",
+      "targetId": "mem-remotion-video-production-pacing---timing",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-pacing---timing",
+      "targetId": "mem-remotion-video-production-animation-patterns",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-animation-patterns",
+      "targetId": "mem-remotion-video-production-voiceover--elevenlabs----dynam",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-voiceover--elevenlabs----dynam",
+      "targetId": "mem-remotion-video-production-scene-timing---audio-first--cr",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-scene-timing---audio-first--cr",
+      "targetId": "mem-remotion-video-production-background-music--elevenlabs-m",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-background-music--elevenlabs-m",
+      "targetId": "mem-remotion-video-production-video-generation---kling-ai-di",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-video-generation---kling-ai-di",
+      "targetId": "mem-remotion-video-production-testimonials--ai-generated-wit",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-testimonials--ai-generated-wit",
+      "targetId": "mem-remotion-video-production-website-screenshots---logo--pl",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-website-screenshots---logo--pl",
+      "targetId": "mem-remotion-video-production-hero-scene-scroll",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-remotion-video-production-hero-scene-scroll",
+      "targetId": "mem-remotion-video-production-file-organization",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-ruflo--claude-flow--developmen",
+      "targetId": "mem-ruflo-dev-patterns-core-principles-to-follow",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-core-principles-to-follow",
+      "targetId": "mem-ruflo-dev-patterns-file-naming-conventions",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-file-naming-conventions",
+      "targetId": "mem-ruflo-dev-patterns-typescript-standards",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-typescript-standards",
+      "targetId": "mem-ruflo-dev-patterns-agent-definition-format--markd",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-agent-definition-format--markd",
+      "targetId": "mem-ruflo-dev-patterns-agent-title",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-agent-title",
+      "targetId": "mem-ruflo-dev-patterns-skill-definition-format",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-skill-definition-format",
+      "targetId": "mem-ruflo-dev-patterns-testing-patterns--vitest-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-testing-patterns--vitest-",
+      "targetId": "mem-ruflo-dev-patterns-security-checklist",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-security-checklist",
+      "targetId": "mem-ruflo-dev-patterns-project-structure-template",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-project-structure-template",
+      "targetId": "mem-ruflo-dev-patterns-hook-system",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-hook-system",
+      "targetId": "mem-ruflo-dev-patterns-mcp-integration",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-ruflo-dev-patterns-mcp-integration",
+      "targetId": "mem-ruflo-dev-patterns-cli-patterns",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-overview",
+      "targetId": "mem-sow-banner-generation-pipeline-steps",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-pipeline-steps",
+      "targetId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "targetId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "targetId": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+      "targetId": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-via-composio-remote-bash-tool-",
+      "targetId": "mem-sow-banner-generation-known-gotchas",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-known-gotchas",
+      "targetId": "mem-sow-banner-generation-html-template--varritech---cli",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-how-to-provide-advice",
+      "targetId": "mem-stock-analysis-trading-profile",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-trading-profile",
+      "targetId": "mem-stock-analysis-yearly-p-l",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-yearly-p-l",
+      "targetId": "mem-stock-analysis-winning-strategy--deep-itm-cal",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-winning-strategy--deep-itm-cal",
+      "targetId": "mem-stock-analysis-losing-patterns-to-avoid--crit",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-losing-patterns-to-avoid--crit",
+      "targetId": "mem-stock-analysis-top-winners--all-time-by-under",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-top-winners--all-time-by-under",
+      "targetId": "mem-stock-analysis-top-losers--all-time-by-underl",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-top-losers--all-time-by-underl",
+      "targetId": "mem-stock-analysis-key-rules--non-negotiable-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-key-rules--non-negotiable-",
+      "targetId": "mem-stock-analysis-diversified-8-sector-portfolio",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-diversified-8-sector-portfolio",
+      "targetId": "mem-stock-analysis-market-snapshot--updated-feb-2",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-market-snapshot--updated-feb-2",
+      "targetId": "mem-stock-analysis-current-recommendations--feb-2",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-current-recommendations--feb-2",
+      "targetId": "mem-stock-analysis-morningstar-fair-value-referen",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-morningstar-fair-value-referen",
+      "targetId": "mem-stock-analysis-earnings-calendar--key-dates-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-earnings-calendar--key-dates-",
+      "targetId": "mem-stock-analysis-iv-environment-notes",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-stock-analysis-iv-environment-notes",
+      "targetId": "mem-stock-analysis-advisory-process-checklist",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-MEMORY-step-2--create-connection-link",
+      "targetId": "mem-MEMORY-step-3--share-link-with-user",
+      "type": "similar",
+      "weight": 0.37777777777777777
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-audio-walkthrough-card",
+      "targetId": "mem-branded-visual-templates-pipeline-flow-diagram",
+      "type": "similar",
+      "weight": 0.31313131313131315
+    },
+    {
+      "sourceId": "mem-branded-visual-templates-audio-walkthrough-card",
+      "targetId": "mem-branded-visual-templates-sow-cover-banner",
+      "type": "similar",
+      "weight": 0.3368421052631579
+    },
+    {
+      "sourceId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "targetId": "mem-sow-banner-generation-via-composio-remote-bash-tool",
+      "type": "similar",
+      "weight": 0.34375
+    },
+    {
+      "sourceId": "mem-stock-analysis-how-to-provide-advice",
+      "targetId": "mem-stock-analysis-advisory-process-checklist",
+      "type": "similar",
+      "weight": 0.3168724279835391
+    }
+  ],
+  "pageRanks": {
+    "mem-MEMORY-api-keys---credentials": 0.0016882039992386093,
+    "mem-MEMORY-video-production": 0.003123192189591373,
+    "mem-api-keys-kling-ai--video-generation---t": 0.0016882039992386093,
+    "mem-api-keys-elevenlabs--voiceover---music-": 0.003123192189591373,
+    "mem-MEMORY-email-writing-rules": 0.0016882039992386093,
+    "mem-MEMORY-cristiano-s-slack-voice--manda": 0.003123192189591373,
+    "mem-MEMORY-clickup-ticket-standard": 0.004342941157345536,
+    "mem-MEMORY-git-workflow": 0.005380023749663834,
+    "mem-MEMORY-varritech-branding": 0.0062615037081756985,
+    "mem-MEMORY-varritech-approved-guide-forma": 0.007010692109891352,
+    "mem-MEMORY-ad-copywriting-system--hormozi": 0.007647457137754703,
+    "mem-MEMORY-meta-ads-account": 0.008188691083196684,
+    "mem-MEMORY-thunder-unity-avatar-server": 0.008648669369687027,
+    "mem-MEMORY-convergeflow-project": 0.009039612302419231,
+    "mem-MEMORY-reusable-pipelines": 0.009371910858962898,
+    "mem-MEMORY-motion-task-defaults": 0.009654312111664788,
+    "mem-MEMORY-composio---default-integration": 0.009894579629234547,
+    "mem-MEMORY-step-1--search-for-tools--gets": 0.010098791543988067,
+    "mem-MEMORY-step-2--create-connection-link": 0.010272247516369843,
+    "mem-MEMORY-step-3--share-link-with-user": 0.010419759048457489,
+    "mem-MEMORY-step-4--after-user-completes--": 0.010545268761414468,
+    "mem-MEMORY-composio---notion-gotchas": 0.01065206713789434,
+    "mem-MEMORY-writing-style": 0.01074258647667866,
+    "mem-MEMORY-zendesk-rules": 0.010819593370040504,
+    "mem-MEMORY-git-commit-authorship": 0.010885155935657196,
+    "mem-MEMORY-github-push-workflow--mandator": 0.01094092402785333,
+    "mem-MEMORY-cristiano-stock-analysis": 0.01098820047724583,
+    "mem-MEMORY-ruflo--claude-flow--dev-standa": 0.011028165621793328,
+    "mem-MEMORY-remotion-video-production-rule": 0.011061905434267948,
+    "mem-MEMORY-video-generation---dual-engine": 0.011090636971090374,
+    "mem-MEMORY-api-keys---connected-accounts": 0.011114883574568616,
+    "mem-ad-copywriting-system-core-philosophy": 0.0016882039992386093,
+    "mem-ad-copywriting-system-hormozi-value-equation--for-cr": 0.003123192189591373,
+    "mem-ad-copywriting-system-hook--retain--reward-framework": 0.004342941157345536,
+    "mem-ad-copywriting-system-16-hook-categories--for-meta-a": 0.005380023749663834,
+    "mem-ad-copywriting-system-primary-text-structure--facebo": 0.0062615037081756985,
+    "mem-ad-copywriting-system-headline-formula--below-image-": 0.007010692109891352,
+    "mem-ad-copywriting-system-testing-protocol": 0.007647457137754703,
+    "mem-ad-copywriting-system-hormozi-attitudes---tones-to-r": 0.008188691083196684,
+    "mem-ad-copywriting-system-sources": 0.008648669369687027,
+    "mem-branded-visual-templates----": 0.0016882039992386093,
+    "mem-branded-visual-templates-audio-walkthrough-card": 0.003123192189591373,
+    "mem-branded-visual-templates-pipeline-flow-diagram": 0.0034580287713098937,
+    "mem-branded-visual-templates-sow-cover-banner": 0.0055126589490086565,
+    "mem-branded-visual-templates-rendering-pipeline": 0.0063742600445897985,
+    "mem-branded-visual-templates-design-system-constants--all-t": 0.007106656840092233,
+    "mem-clickup-ticket-format-title-rules": 0.0016882039992386093,
+    "mem-clickup-ticket-format-template-by-type": 0.003123192189591373,
+    "mem-clickup-ticket-format-summary": 0.018020546485952155,
+    "mem-clickup-ticket-format-context": 0.0067936410524168205,
+    "mem-clickup-ticket-format-design": 0.00746225686321025,
+    "mem-clickup-ticket-format-acceptance-criteria": 0.030118886992353436,
+    "mem-clickup-ticket-format-out-of-scope": 0.008088250279667246,
+    "mem-clickup-ticket-format-technical-notes--optional-": 0.008561864450376992,
+    "mem-clickup-ticket-format-severity": 0.0067936410524168205,
+    "mem-clickup-ticket-format-steps-to-reproduce": 0.00746225686321025,
+    "mem-clickup-ticket-format-expected-vs-actual": 0.008030957178455402,
+    "mem-clickup-ticket-format-environment": 0.008514146439607002,
+    "mem-clickup-ticket-format-evidence": 0.008924419208358313,
+    "mem-clickup-ticket-format-business-justification": 0.0067936410524168205,
+    "mem-clickup-ticket-format-current-state---desired-state": 0.00746225686321025,
+    "mem-clickup-ticket-format-risks": 0.008088250279667246,
+    "mem-clickup-ticket-format-goal": 0.008561864450376992,
+    "mem-clickup-ticket-format-time-box": 0.008965763047416593,
+    "mem-clickup-ticket-format-method": 0.009309011337915164,
+    "mem-clickup-ticket-format-deliverable": 0.00959900176954679,
+    "mem-clickup-ticket-format-field-mapping-for-clickup-crea": 0.008088250279667246,
+    "mem-clickup-ticket-format-quality-rules--invest-": 0.008561864450376992,
+    "mem-clickup-ticket-format-acceptance-criteria-rules": 0.008965763047416593,
+    "mem-clickup-ticket-format-sizing-guide": 0.009309011337915164,
+    "mem-clickup-ticket-format-anti-patterns-to-avoid": 0.00959900176954679,
+    "mem-feedback_email_writing----": 0.0016882039992386093,
+    "mem-feedback_motion_tasks----": 0.0016882039992386093,
+    "mem-project_convergeflow----": 0.0016882039992386093,
+    "mem-project_convergeflow-current-state--as-of-2026-04-0": 0.003123192189591373,
+    "mem-project_convergeflow-next-session--figma-port": 0.004342941157345536,
+    "mem-project_convergeflow-next-session--pricing-update-n": 0.005380023749663834,
+    "mem-project_convergeflow-discovery-calls--5-total--mar-": 0.0062615037081756985,
+    "mem-project_convergeflow-extra-features-kareem-wants--b": 0.007010692109891352,
+    "mem-project_convergeflow-key-artifacts": 0.007647457137754703,
+    "mem-project_convergeflow-brand-assets--from-matheus-via": 0.008188691083196684,
+    "mem-project_convergeflow-design-system--cuberto-inspire": 0.008648669369687027,
+    "mem-project_convergeflow-business-context": 0.009039612302419231,
+    "mem-remotion-video-production-remotion-video-production-stan": 0.0016882039992386093,
+    "mem-remotion-video-production-dual-project-architecture": 0.003123192189591373,
+    "mem-remotion-video-production-scene-backgrounds": 0.004342941157345536,
+    "mem-remotion-video-production-text-over-video-readability--c": 0.005380023749663834,
+    "mem-remotion-video-production-design-inspiration--required-b": 0.0062615037081756985,
+    "mem-remotion-video-production-branding---extract-from-the-ta": 0.007010692109891352,
+    "mem-remotion-video-production-icons": 0.007647457137754703,
+    "mem-remotion-video-production-transitions---multi-layered-ci": 0.008188691083196684,
+    "mem-remotion-video-production-pacing---timing": 0.008648669369687027,
+    "mem-remotion-video-production-animation-patterns": 0.009039612302419231,
+    "mem-remotion-video-production-voiceover--elevenlabs----dynam": 0.009371910858962898,
+    "mem-remotion-video-production-scene-timing---audio-first--cr": 0.009654312111664788,
+    "mem-remotion-video-production-background-music--elevenlabs-m": 0.009894579629234547,
+    "mem-remotion-video-production-video-generation---kling-ai-di": 0.010098791543988067,
+    "mem-remotion-video-production-testimonials--ai-generated-wit": 0.010272247516369843,
+    "mem-remotion-video-production-website-screenshots---logo--pl": 0.010419759048457489,
+    "mem-remotion-video-production-hero-scene-scroll": 0.010545268761414468,
+    "mem-remotion-video-production-file-organization": 0.01065206713789434,
+    "mem-ruflo-dev-patterns-ruflo--claude-flow--developmen": 0.0016882039992386093,
+    "mem-ruflo-dev-patterns-core-principles-to-follow": 0.003123192189591373,
+    "mem-ruflo-dev-patterns-file-naming-conventions": 0.004342941157345536,
+    "mem-ruflo-dev-patterns-typescript-standards": 0.005380023749663834,
+    "mem-ruflo-dev-patterns-agent-definition-format--markd": 0.0062615037081756985,
+    "mem-ruflo-dev-patterns-agent-title": 0.007010692109891352,
+    "mem-ruflo-dev-patterns-skill-definition-format": 0.007647457137754703,
+    "mem-ruflo-dev-patterns-testing-patterns--vitest-": 0.008188691083196684,
+    "mem-ruflo-dev-patterns-security-checklist": 0.008648669369687027,
+    "mem-ruflo-dev-patterns-project-structure-template": 0.009039612302419231,
+    "mem-ruflo-dev-patterns-hook-system": 0.009371910858962898,
+    "mem-ruflo-dev-patterns-mcp-integration": 0.009654312111664788,
+    "mem-ruflo-dev-patterns-cli-patterns": 0.009894579629234547,
+    "mem-sow-banner-generation-overview": 0.0016882039992386093,
+    "mem-sow-banner-generation-pipeline-steps": 0.003123192189591373,
+    "mem-sow-banner-generation-via-composio-remote-bash-tool": 0.010022906943033073,
+    "mem-sow-banner-generation-via-composio-remote-bash-tool-": 0.007875201965180595,
+    "mem-sow-banner-generation-known-gotchas": 0.005035219072336828,
+    "mem-sow-banner-generation-html-template--varritech---cli": 0.005968169681382005,
+    "mem-stock-analysis-how-to-provide-advice": 0.0016882039992386093,
+    "mem-stock-analysis-trading-profile": 0.002405698094414991,
+    "mem-stock-analysis-yearly-p-l": 0.0037330666734684543,
+    "mem-stock-analysis-winning-strategy--deep-itm-cal": 0.0048614824535046855,
+    "mem-stock-analysis-losing-patterns-to-avoid--crit": 0.005820763728919766,
+    "mem-stock-analysis-top-winners--all-time-by-under": 0.006636097909033524,
+    "mem-stock-analysis-top-losers--all-time-by-underl": 0.007329074623823028,
+    "mem-stock-analysis-key-rules--non-negotiable-": 0.007918074110475693,
+    "mem-stock-analysis-diversified-8-sector-portfolio": 0.008418680226441856,
+    "mem-stock-analysis-market-snapshot--updated-feb-2": 0.008844140836053128,
+    "mem-stock-analysis-current-recommendations--feb-2": 0.009205761580691063,
+    "mem-stock-analysis-morningstar-fair-value-referen": 0.009513111485313842,
+    "mem-stock-analysis-earnings-calendar--key-dates-": 0.009774445870449667,
+    "mem-stock-analysis-iv-environment-notes": 0.009996685586611306,
+    "mem-stock-analysis-advisory-process-checklist": 0.010903013625355338,
+    "mem-MEMORY-feedback": 0.0016882039992386093,
+    "mem-feedback_outreach_style----": 0.0016882039992386093,
+    "insight-1776174712718-5922": 0.0016882039992386093
+  }
+}
