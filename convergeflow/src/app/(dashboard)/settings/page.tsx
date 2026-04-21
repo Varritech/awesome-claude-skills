@@ -48,22 +48,26 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     company: "",
     phone: "",
   });
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    apiGet<UserProfile>("/api/user/profile")
-      .then((data) => {
+    apiGet<{ data: UserProfile }>("/api/user/profile")
+      .then((res) => {
         if (cancelled) return;
+        const data = (res as unknown as { data?: UserProfile })?.data ?? (res as unknown as UserProfile);
         setProfile(data ?? null);
         setForm({
-          fullName: data?.fullName ?? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim(),
+          firstName: data?.firstName ?? "",
+          lastName: data?.lastName ?? "",
           email: data?.email ?? "",
           company: data?.company ?? "",
           phone: data?.phone ?? "",
@@ -82,9 +86,16 @@ export default function SettingsPage() {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = await apiPatch<UserProfile>("/api/user/profile", form);
+      const updated = await apiPatch<UserProfile>("/api/user/profile", {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        company: form.company,
+        phone: form.phone,
+      });
       setProfile(updated ?? profile);
       setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -118,14 +129,17 @@ export default function SettingsPage() {
   const domains = profile?.domains ?? [];
   const preferences = profile?.preferences ?? {};
   const plan = profile?.plan;
+  const displayName = `${form.firstName} ${form.lastName}`.trim() || profile?.fullName || "";
   const initials =
     profile?.avatarInitials ??
-    (profile?.fullName ?? form.fullName)
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    (form.firstName || form.lastName
+      ? `${form.firstName[0] ?? ""}${form.lastName[0] ?? ""}`.toUpperCase()
+      : (profile?.fullName ?? "")
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase());
 
   return (
     <>
@@ -138,17 +152,20 @@ export default function SettingsPage() {
             {initials || "??"}
           </div>
           <div>
-            <h3 className="text-[15px] font-bold font-heading">{profile?.fullName ?? (form.fullName || "Your Profile")}</h3>
-            <p className="text-[12px] text-white/25">{profile?.email ?? form.email}</p>
+            <h3 className="text-[15px] font-bold font-heading">{displayName || "Your Profile"}</h3>
+            <p className="text-[12px] text-white/25">{form.email || profile?.email}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            {saved && (
+              <span className="text-[13px] text-cf-green font-medium">Saved!</span>
+            )}
             {editing ? (
               <button
                 onClick={handleSave}
                 disabled={saving}
                 className="px-4 py-2 rounded-[var(--radius-button)] bg-cf-orange text-[13px] text-white hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Saving..." : "Save changes"}
               </button>
             ) : (
               <button
@@ -162,12 +179,21 @@ export default function SettingsPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-[11px] text-white/20 mb-1.5 block">Full Name</label>
+            <label className="text-[11px] text-white/20 mb-1.5 block">First Name</label>
             <Input
-              value={form.fullName}
-              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              value={form.firstName}
+              onChange={(e) => setForm({ ...form, firstName: e.target.value })}
               disabled={!editing}
-              placeholder="Your full name"
+              placeholder="First name"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-white/20 mb-1.5 block">Last Name</label>
+            <Input
+              value={form.lastName}
+              onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+              disabled={!editing}
+              placeholder="Last name"
             />
           </div>
           <div>

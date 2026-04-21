@@ -7,6 +7,7 @@ import { PlusIcon, MoreHorizontalIcon } from "@/components/icons";
 import { apiGet, apiPost } from "@/lib/api-client";
 
 type CampaignStatus = "active" | "warming" | "paused" | "done" | "draft";
+type Persona = "closer" | "neighbor" | "expert" | "helper";
 
 interface EmailSet {
   id: string | number;
@@ -17,6 +18,123 @@ interface EmailSet {
   total: number;
   replies: number;
   interested: number;
+}
+
+const PERSONAS: { id: Persona; label: string; description: string; icon: string }[] = [
+  { id: "closer", label: "Closer", description: "Direct, results-driven, closing-focused", icon: "🎯" },
+  { id: "neighbor", label: "Neighbor", description: "Warm, casual, friendly and relatable", icon: "👋" },
+  { id: "expert", label: "Expert", description: "Authoritative, data-backed, credible", icon: "🧠" },
+  { id: "helper", label: "Helper", description: "Empathetic, supportive, problem-solving", icon: "🤝" },
+];
+
+function NewCampaignModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (campaign: EmailSet) => void;
+}) {
+  const [name, setName] = useState("");
+  const [persona, setPersona] = useState<Persona>("closer");
+  const [targetLeadCount, setTargetLeadCount] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await apiPost<EmailSet>("/api/campaigns", {
+        name: name.trim(),
+        persona,
+        targetLeadCount: targetLeadCount ? Number(targetLeadCount) : undefined,
+      });
+      if (res) {
+        onCreated(res);
+      }
+    } catch (err) {
+      console.error("Failed to create campaign", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-[#1B1B1F] rounded-t-[24px] md:rounded-[24px] w-full max-w-lg p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-[18px] font-bold font-heading">New Email Set</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:bg-white/[0.10] hover:text-white/70 transition-colors text-lg leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Campaign name */}
+        <div className="mb-5">
+          <label className="text-[11px] text-white/20 mb-1.5 block">Campaign name *</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Q2 Outreach — SaaS Founders"
+            className="w-full bg-[#222228] rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-cf-orange placeholder:text-white/20"
+          />
+        </div>
+
+        {/* Persona picker */}
+        <div className="mb-5">
+          <label className="text-[11px] text-white/20 mb-2 block">Pick a style</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {PERSONAS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPersona(p.id)}
+                className={`flex flex-col items-start gap-1 p-3.5 rounded-[14px] text-left transition-colors ${
+                  persona === p.id
+                    ? "bg-cf-orange/10 ring-1 ring-cf-orange"
+                    : "bg-[#222228] hover:bg-white/[0.06]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[18px] leading-none">{p.icon}</span>
+                  <span className="text-[13px] font-bold font-heading">{p.label}</span>
+                </div>
+                <p className="text-[11px] text-white/30 leading-snug">{p.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Target count */}
+        <div className="mb-7">
+          <label className="text-[11px] text-white/20 mb-1.5 block">Target lead count</label>
+          <input
+            type="number"
+            value={targetLeadCount}
+            onChange={(e) => setTargetLeadCount(e.target.value)}
+            placeholder="How many leads to target?"
+            min="1"
+            className="w-full bg-[#222228] rounded-[14px] px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-cf-orange placeholder:text-white/20"
+          />
+        </div>
+
+        {/* Create button */}
+        <button
+          onClick={handleCreate}
+          disabled={!name.trim() || submitting}
+          className="w-full py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 font-heading uppercase tracking-wide"
+        >
+          {submitting ? "Creating..." : "Create Email Set"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 
@@ -35,7 +153,7 @@ export default function EmailsPage() {
   const [emailSets, setEmailSets] = useState<EmailSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
-  const [creating, setCreating] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,19 +173,9 @@ export default function EmailsPage() {
     };
   }, []);
 
-  const handleNewCampaign = async () => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const res = await apiPost<{ id: string }>("/api/emails", {});
-      if (res?.id) {
-        router.push(`/emails/${res.id}`);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreating(false);
-    }
+  const handleCampaignCreated = (campaign: EmailSet) => {
+    setEmailSets((prev) => [campaign, ...prev]);
+    setShowModal(false);
   };
 
   const filtered =
@@ -77,6 +185,13 @@ export default function EmailsPage() {
 
   return (
     <>
+      {showModal && (
+        <NewCampaignModal
+          onClose={() => setShowModal(false)}
+          onCreated={handleCampaignCreated}
+        />
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight font-heading">Your Emails</h1>
@@ -85,12 +200,11 @@ export default function EmailsPage() {
           </p>
         </div>
         <button
-          onClick={handleNewCampaign}
-          disabled={creating}
-          className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2 font-heading uppercase tracking-wide disabled:opacity-60"
+          onClick={() => setShowModal(true)}
+          className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity flex items-center gap-2 font-heading uppercase tracking-wide"
         >
           <PlusIcon size={16} />
-          {creating ? "Creating..." : "New Email"}
+          New Email Set
         </button>
       </div>
 
@@ -130,9 +244,8 @@ export default function EmailsPage() {
           </p>
           {emailSets.length === 0 && (
             <button
-              onClick={handleNewCampaign}
-              disabled={creating}
-              className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity inline-flex items-center gap-2 font-heading uppercase tracking-wide disabled:opacity-60"
+              onClick={() => setShowModal(true)}
+              className="px-5 py-2.5 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold hover:opacity-90 transition-opacity inline-flex items-center gap-2 font-heading uppercase tracking-wide"
             >
               <PlusIcon size={16} />
               Start your first campaign

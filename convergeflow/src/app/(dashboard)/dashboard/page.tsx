@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { MetricCard, ActionCard, Card, Skeleton } from "@/components/ui";
 import { MiniRing, Sparkline, BarChart, Gauge, RingProgress } from "@/components/charts";
@@ -29,6 +30,9 @@ interface Reply {
   badgeColor: "mint" | "default";
   preview: string;
   time: string;
+  emailId?: string;
+  email?: string;
+  subject?: string;
 }
 
 interface AnalyticsData {
@@ -92,6 +96,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const router = useRouter();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -223,16 +228,19 @@ export default function DashboardPage() {
             icon={<MailIcon size={18} className="text-white/50" />}
             title="Send New Emails"
             description="Start a new batch"
+            onClick={() => router.push("/emails")}
           />
           <ActionCard
             icon={<UsersIcon size={18} className="text-white/50" />}
             title="Find Customers"
             description="Browse leads in your area"
+            onClick={() => router.push("/customers")}
           />
           <ActionCard
             icon={<PenIcon size={18} className="text-white/50" />}
             title="Email Styles"
             description="Pick your writing persona"
+            onClick={() => router.push("/emails")}
           />
         </div>
 
@@ -290,9 +298,10 @@ export default function DashboardPage() {
           {recentReplies.map((reply, i) => (
             <div
               key={`${reply.name}-${i}`}
-              className={`flex items-center gap-3 py-3 cursor-pointer ${
+              className={`flex items-center gap-3 py-3 cursor-pointer hover:bg-white/[0.02] rounded transition-colors ${
                 i < recentReplies.length - 1 ? "border-b border-white/[0.04]" : ""
               }`}
+              onClick={() => router.push(`/emails/${reply.emailId ?? "demo"}`)}
             >
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -318,7 +327,16 @@ export default function DashboardPage() {
                 </div>
                 <p className="text-[12px] text-white/25 mt-1 truncate">{reply.preview}</p>
               </div>
-              <span className="text-[11px] text-white/15 shrink-0">{reply.time}</span>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <span className="text-[11px] text-white/15">{reply.time}</span>
+                <a
+                  href={`mailto:${reply.email ?? ""}?subject=Re: ${encodeURIComponent(reply.subject ?? reply.preview ?? "")}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[11px] text-cf-orange font-medium hover:opacity-80 transition-opacity"
+                >
+                  Reply
+                </a>
+              </div>
             </div>
           ))}
         </Card>

@@ -47,12 +47,17 @@ const dateFilters = [
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refetching, setRefetching] = useState(false);
   const [timeRange, setTimeRange] = useState("7D");
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    apiGet<AnalyticsData>(`/api/analytics?timeRange=${timeRange}`)
+    if (data !== null) {
+      setRefetching(true);
+    } else {
+      setLoading(true);
+    }
+    apiGet<AnalyticsData>(`/api/analytics?range=${timeRange}`)
       .then((res) => {
         if (cancelled) return;
         setData(res ?? null);
@@ -61,11 +66,15 @@ export default function AnalyticsPage() {
         console.error("Failed to load analytics", err);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefetching(false);
+        }
       });
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
   if (loading) {
@@ -132,7 +141,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 transition-opacity duration-200 ${refetching ? "opacity-60" : "opacity-100"}`}>
         <MetricCard
           label="Total Sent"
           value={String(totalSent)}

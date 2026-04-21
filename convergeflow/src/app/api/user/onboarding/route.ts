@@ -76,22 +76,25 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = await parseAndValidate(req, updateOnboardingSchema);
   if (parsed.response) return parsed.response;
-  const { step, completed } = parsed.data;
 
-  logRequest('user.onboarding.PATCH', userId, { step, completed });
+  const { step, completed, ...rest } = parsed.data;
 
-  const nextStep = completed
-    ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
-    : step;
+  const nextStep =
+    step && completed
+      ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
+      : step;
   const isFinished = nextStep === 'complete';
 
-  const patch = {
+  const patch: Record<string, unknown> = {
     userId,
-    step: nextStep,
-    completed: isFinished,
-    [`stepsCompleted.${step}`]: completed,
+    ...rest,
+    ...(nextStep !== undefined && { step: nextStep }),
+    ...(completed !== undefined && { completed: isFinished }),
+    ...(step && completed !== undefined && { [`stepsCompleted.${step}`]: completed }),
     updatedAt: new Date().toISOString(),
   };
+
+  logRequest('user.onboarding.PATCH', userId, patch);
 
   try {
     await adminDb.collection('onboarding').doc(userId).set(patch, { merge: true });

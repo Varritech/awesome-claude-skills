@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, Skeleton } from "@/components/ui";
 import { ChevronLeftIcon } from "@/components/icons";
-import { apiGet, apiStream } from "@/lib/api-client";
+import { apiGet, apiPatch, apiStream } from "@/lib/api-client";
 
 type EmailStatus = "replied" | "opened" | "sent" | "bounced";
 
@@ -58,6 +58,11 @@ export default function EmailDetailPage() {
   const [filter, setFilter] = useState("All");
   const [regenerating, setRegenerating] = useState(false);
   const [regenerated, setRegenerated] = useState("");
+  const [selectedEmail, setSelectedEmail] = useState<EmailItem | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [markingInterested, setMarkingInterested] = useState(false);
+  const [markedInterested, setMarkedInterested] = useState<Set<string | number>>(new Set());
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -77,6 +82,29 @@ export default function EmailDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  const openPanel = (email: EmailItem) => {
+    setSelectedEmail(email);
+    setPanelOpen(true);
+  };
+
+  const closePanel = () => {
+    setPanelOpen(false);
+    setTimeout(() => setSelectedEmail(null), 300);
+  };
+
+  const handleMarkInterested = async () => {
+    if (!selectedEmail || markingInterested) return;
+    setMarkingInterested(true);
+    try {
+      await apiPatch(`/api/emails/${selectedEmail.id}`, { status: "replied", interested: true });
+      setMarkedInterested((prev) => new Set(prev).add(selectedEmail.id));
+    } catch (err) {
+      console.error("Failed to mark as interested", err);
+    } finally {
+      setMarkingInterested(false);
+    }
+  };
 
   const handleRegenerate = async () => {
     if (!id || regenerating) return;
@@ -234,7 +262,7 @@ export default function EmailDetailPage() {
         {filtered.map((email) => {
           const config = statusConfig[email.status] ?? statusConfig.sent;
           return (
-            <Card key={email.id} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
+            <Card key={email.id} className="cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => openPanel(email)}>
               <div className="flex items-center gap-3">
                 <div
                   className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -273,6 +301,119 @@ export default function EmailDetailPage() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Backdrop */}
+      {panelOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30"
+          onClick={closePanel}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Thread side panel */}
+      <div
+        ref={panelRef}
+        className={`fixed right-0 top-0 h-full w-full max-w-md bg-[#1B1B1F] shadow-2xl z-40 flex flex-col transition-transform duration-300 ease-out ${
+          panelOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {selectedEmail && (() => {
+          const config = statusConfig[selectedEmail.status] ?? statusConfig.sent;
+          const isReplied = selectedEmail.status === "replied";
+          const alreadyInterested = markedInterested.has(selectedEmail.id);
+          return (
+            <>
+              {/* Panel header */}
+              <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      isReplied
+                        ? "bg-gradient-to-br from-cf-orange to-[#FB923C]"
+                        : "bg-cf-elevated text-white/30"
+                    }`}
+                  >
+                    {selectedEmail.recipient
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold truncate">{selectedEmail.recipient}</p>
+                    {selectedEmail.company && (
+                      <p className="text-[12px] text-white/30 truncate">{selectedEmail.company}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span
+                    className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-pill)] font-medium ${config.bg} ${config.text}`}
+                  >
+                    {config.label}
+                  </span>
+                  <button
+                    onClick={closePanel}
+                    aria-label="Close panel"
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors text-white/50 hover:text-white"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Thread body */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                {/* Last activity */}
+                <p className="text-[11px] text-white/20">{selectedEmail.lastActivity}</p>
+
+                {/* Sent email bubble */}
+                <div className="bg-cf-elevated rounded-xl rounded-tl-sm px-4 py-3">
+                  <p className="text-[11px] text-white/25 mb-1.5 font-medium">You sent</p>
+                  <p className="text-[13px] text-white/70 leading-relaxed">
+                    {selectedEmail.preview ?? "Email content loading..."}
+                  </p>
+                </div>
+
+                {/* Reply bubble (if replied) */}
+                {isReplied && (
+                  <div className="bg-cf-mint/10 border border-cf-mint/20 rounded-xl rounded-tr-sm px-4 py-3 self-end w-full">
+                    <p className="text-[11px] text-cf-green/70 mb-1.5 font-medium">
+                      {selectedEmail.recipient} replied
+                    </p>
+                    <p className="text-[13px] text-white/60 leading-relaxed">
+                      Reply received. Full content available in your inbox.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Panel footer */}
+              {isReplied && (
+                <div className="px-5 py-4 border-t border-white/[0.06]">
+                  <button
+                    onClick={handleMarkInterested}
+                    disabled={markingInterested || alreadyInterested}
+                    className={`w-full py-2.5 rounded-[var(--radius-pill)] text-[13px] font-medium transition-colors ${
+                      alreadyInterested
+                        ? "bg-cf-mint/20 text-cf-green cursor-default"
+                        : "bg-cf-mint/15 text-cf-green hover:bg-cf-mint/25 disabled:opacity-60"
+                    }`}
+                  >
+                    {alreadyInterested
+                      ? "Marked as Interested"
+                      : markingInterested
+                      ? "Saving..."
+                      : "Mark as Interested"}
+                  </button>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </>
   );

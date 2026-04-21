@@ -15,6 +15,7 @@ interface Lead {
   location: string;
   freshness: Freshness;
   score: number;
+  email?: string;
 }
 
 interface LeadsResponse {
@@ -32,20 +33,23 @@ const defaultIndustries = [
   "Plumbing",
 ];
 
-const freshnessConfig: Record<Freshness, { label: string; color: string }> = {
-  new: { label: "New", color: "text-cf-green" },
-  warm: { label: "Warm", color: "text-cf-amber" },
-  cold: { label: "Cold", color: "text-white/25" },
-};
+function getScoreBadge(score: number): { label: string; className: string } {
+  if (score >= 80) return { label: "Hot", className: "text-cf-orange" };
+  if (score >= 60) return { label: "Warm", className: "text-cf-amber" };
+  return { label: "Cold", className: "text-white/25" };
+}
 
 export default function CustomersPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLeads, setSelectedLeads] = useState<(string | number)[]>([]);
+  const [expandedLead, setExpandedLead] = useState<string | number | null>(null);
+  const [toastLeadId, setToastLeadId] = useState<string | number | null>(null);
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("All");
   const [industries, setIndustries] = useState<string[]>(defaultIndustries);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadLeads = (params: { q?: string; industry?: string }) => {
     setLoading(true);
@@ -82,17 +86,35 @@ export default function CustomersPage() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       loadLeads({ q: query, industry });
-    }, 250);
+    }, 400);
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, industry]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
   const toggleLead = (id: string | number) => {
     setSelectedLeads((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
+  };
+
+  const toggleExpand = (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedLead((prev) => (prev === id ? null : id));
+  };
+
+  const handleAddToQueue = (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastLeadId(id);
+    toastTimer.current = setTimeout(() => setToastLeadId(null), 2000);
   };
 
   return (
@@ -147,6 +169,13 @@ export default function CustomersPage() {
         </div>
       )}
 
+      {/* Row count */}
+      {!loading && leads.length > 0 && (
+        <p className="text-[12px] text-white/30 mb-3">
+          Showing {leads.length} lead{leads.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
       {/* Empty state */}
       {!loading && leads.length === 0 && (
         <Card className="text-center py-12">
@@ -160,16 +189,19 @@ export default function CustomersPage() {
       {!loading && leads.length > 0 && (
         <div className="flex flex-col gap-2 mb-5">
           {leads.map((lead) => {
-            const config = freshnessConfig[lead.freshness];
+            const badge = getScoreBadge(lead.score);
             const isSelected = selectedLeads.includes(lead.id);
+            const isExpanded = expandedLead === lead.id;
+            const showToast = toastLeadId === lead.id;
             return (
               <Card
                 key={lead.id}
                 className={`cursor-pointer transition-colors ${
                   isSelected ? "ring-1 ring-cf-orange" : ""
                 }`}
-                onClick={() => toggleLead(lead.id)}
+                onClick={(e) => toggleExpand(lead.id, e)}
               >
+                {/* Main row */}
                 <div className="flex items-center gap-3">
                   {/* Checkbox */}
                   <div
@@ -178,6 +210,7 @@ export default function CustomersPage() {
                         ? "bg-cf-orange border-cf-orange"
                         : "border-white/20"
                     }`}
+                    onClick={(e) => { e.stopPropagation(); toggleLead(lead.id); }}
                   >
                     {isSelected && (
                       <svg
@@ -198,8 +231,8 @@ export default function CustomersPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-bold">{lead.name}</span>
-                      <span className={`text-[11px] font-medium ${config.color}`}>
-                        {config.label}
+                      <span className={`text-[11px] font-medium ${badge.className}`}>
+                        {badge.label}
                       </span>
                     </div>
                     <p className="text-[12px] text-white/25">
@@ -210,6 +243,55 @@ export default function CustomersPage() {
                   <div className="text-right shrink-0">
                     <p className="text-[14px] font-bold font-mono">{lead.score}</p>
                     <p className="text-[10px] text-white/20">Score</p>
+                  </div>
+                </div>
+
+                {/* Expanded section */}
+                <div
+                  className="overflow-hidden transition-all duration-300 ease-in-out"
+                  style={{ maxHeight: isExpanded ? "200px" : "0px" }}
+                >
+                  <div className="pt-4 mt-4 border-t border-white/[0.06] flex flex-col gap-3">
+                    {/* Email + Location */}
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[12px] text-white/40">
+                        <span className="text-white/20 mr-1">Email</span>
+                        {lead.email ?? "Email hidden"}
+                      </p>
+                      <p className="text-[12px] text-white/40">
+                        <span className="text-white/20 mr-1">Location</span>
+                        {lead.location}
+                      </p>
+                    </div>
+
+                    {/* Score bar */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-white/20">Lead score</span>
+                        <span className="text-[11px] font-mono text-white/40">{lead.score}/100</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-cf-orange transition-all duration-500"
+                          style={{ width: `${lead.score}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Add to campaign button + toast */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={(e) => handleAddToQueue(lead.id, e)}
+                        className="px-4 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[12px] font-bold hover:opacity-90 transition-opacity"
+                      >
+                        Add to campaign
+                      </button>
+                      {showToast && (
+                        <span className="text-[12px] text-cf-green font-medium animate-pulse">
+                          Lead added to queue
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Card>
