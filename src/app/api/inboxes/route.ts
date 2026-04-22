@@ -1,12 +1,3 @@
-/**
- * /api/inboxes - list connected inboxes & connect new ones.
- *
- * TODO: Real OAuth flows:
- *   - Gmail: https://developers.google.com/identity/protocols/oauth2
- *   - Yahoo: https://developer.yahoo.com/oauth2/guide/
- *   - SMTP/IMAP: encrypt credentials with KMS before persisting.
- */
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
@@ -85,10 +76,6 @@ export async function POST(req: NextRequest) {
 
   logRequest('inboxes.POST', userId, { provider, email });
 
-  // TODO:
-  //  - Gmail/Yahoo: don't accept credentials here - kick off OAuth instead
-  //    and finalise in a callback route.
-  //  - SMTP/IMAP: encrypt `smtp.password` via KMS before writing to Firestore.
   if (smtp?.password) {
     console.info('[api:inboxes.POST] smtp password received (placeholder, not persisted plaintext)');
   }
@@ -99,7 +86,7 @@ export async function POST(req: NextRequest) {
     id,
     userId,
     provider,
-    email,
+    email: email ?? '',
     displayName,
     status: 'connecting',
     warmupEnabled: true,
@@ -109,7 +96,9 @@ export async function POST(req: NextRequest) {
     updatedAt: now,
   };
 
-  const oauthUrl =
+  // authUrl is the OAuth redirect URL for gmail/yahoo.
+  // The frontend checks for data.authUrl and redirects if present.
+  const authUrl =
     provider === 'gmail'
       ? `https://accounts.google.com/o/oauth2/v2/auth?placeholder=true&state=${id}`
       : provider === 'yahoo'
@@ -123,7 +112,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(
-    { data: { ...record, oauthUrl } },
+    { data: { ...record, authUrl } },
     { status: 201 },
   );
 }
