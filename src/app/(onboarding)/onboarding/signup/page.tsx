@@ -7,7 +7,7 @@ const progressSteps = ["Sign Up", "Website", "Inbox", "Industry", "Style"];
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen bg-cf-page flex items-center justify-center px-6">
+    <div className="min-h-screen bg-cf-page flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-[480px]">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3.5 mb-12">
@@ -66,7 +66,7 @@ export default function SignupPage() {
                 fontFamily: "var(--font-chivo), sans-serif",
               },
               elements: {
-                rootBox: "w-full mx-auto",
+                rootBox: "w-full",
                 card: "bg-cf-card rounded-[24px] p-10 shadow-none border-none w-full",
                 headerTitle: "text-[24px] font-bold tracking-tight font-heading text-white",
                 headerSubtitle: "text-sm text-white/50",
