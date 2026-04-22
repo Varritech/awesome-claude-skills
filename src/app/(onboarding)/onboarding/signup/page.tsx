@@ -47,7 +47,7 @@ export default function SignupPage() {
         </div>
 
         {/* Clerk SignUp card */}
-        <div className="animate-[fadeUp_0.5s_ease-out] flex justify-center">
+        <div className="animate-[fadeUp_0.5s_ease-out]">
           <SignUp
             path="/onboarding/signup"
             routing="path"
@@ -66,8 +66,8 @@ export default function SignupPage() {
                 fontFamily: "var(--font-chivo), sans-serif",
               },
               elements: {
-                rootBox: "w-full",
-                card: "bg-cf-card rounded-[24px] p-10 shadow-none border-none",
+                rootBox: "w-full mx-auto",
+                card: "bg-cf-card rounded-[24px] p-10 shadow-none border-none w-full",
                 headerTitle: "text-[24px] font-bold tracking-tight font-heading text-white",
                 headerSubtitle: "text-sm text-white/50",
                 socialButtonsBlockButton:
