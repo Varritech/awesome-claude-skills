@@ -27,6 +27,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ConvergeFlow",
   description: "5 clicks to a booked call - cold email made simple",
+  icons: {
+    icon: "/icon",
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({
