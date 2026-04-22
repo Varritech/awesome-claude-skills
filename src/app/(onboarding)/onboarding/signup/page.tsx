@@ -8,7 +8,7 @@ const progressSteps = ["Sign Up", "Website", "Inbox", "Industry", "Style"];
 export default function SignupPage() {
   return (
     <div className="min-h-screen bg-cf-page flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-[480px]">
+      <div className="w-full max-w-[480px] mx-auto">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3.5 mb-12">
           <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-cf-orange to-cf-orange-dark flex items-center justify-center">
@@ -46,44 +46,58 @@ export default function SignupPage() {
           ))}
         </div>
 
-        {/* Clerk SignUp card */}
-        <div className="animate-[fadeUp_0.5s_ease-out]">
-          <SignUp
-            path="/onboarding/signup"
-            routing="path"
-            signInUrl="/login"
-            afterSignUpUrl="/onboarding"
-            appearance={{
-              variables: {
-                colorPrimary: "#F97316",
-                colorBackground: "#1B1B1F",
-                colorInputBackground: "#222228",
-                colorInputText: "#FFFFFF",
-                colorText: "#FFFFFF",
-                colorTextSecondary: "rgba(255,255,255,0.5)",
-                colorDanger: "#EF4444",
-                borderRadius: "14px",
-                fontFamily: "var(--font-chivo), sans-serif",
-              },
-              elements: {
-                rootBox: "w-full",
-                card: "bg-cf-card rounded-[24px] p-10 shadow-none border-none w-full",
-                headerTitle: "text-[24px] font-bold tracking-tight font-heading text-white",
-                headerSubtitle: "text-sm text-white/50",
-                socialButtonsBlockButton:
-                  "bg-white text-[#1B1B1F] hover:bg-white/90 border-0 rounded-[14px] font-bold",
-                socialButtonsBlockButtonText: "text-[#1B1B1F] font-bold",
-                dividerLine: "bg-white/[0.06]",
-                dividerText: "text-white/20 text-xs",
-                formFieldInput:
-                  "bg-[#222228] border-none rounded-[14px] text-sm text-white placeholder:text-white/35 focus:ring-2 focus:ring-cf-orange",
-                formFieldLabel: "text-white/70 text-[11px] font-medium",
-                formButtonPrimary:
-                  "bg-cf-orange hover:bg-cf-orange-dark rounded-[14px] font-bold uppercase tracking-wide font-heading text-white",
-                footerActionLink: "text-cf-orange hover:opacity-80",
-              },
-            }}
-          />
+        {/* Clerk SignUp — force full width centering via wrapper */}
+        <div className="animate-[fadeUp_0.5s_ease-out] flex justify-center">
+          <div className="w-full">
+            <SignUp
+              path="/onboarding/signup"
+              routing="path"
+              signInUrl="/login"
+              afterSignUpUrl="/onboarding"
+              appearance={{
+                variables: {
+                  colorPrimary: "#F97316",
+                  colorBackground: "#1B1B1F",
+                  colorInputBackground: "#222228",
+                  colorInputText: "#FFFFFF",
+                  colorText: "#FFFFFF",
+                  colorTextSecondary: "rgba(255,255,255,0.5)",
+                  colorDanger: "#EF4444",
+                  borderRadius: "14px",
+                  fontFamily: "var(--font-chivo), sans-serif",
+                },
+                elements: {
+                  rootBox: {
+                    width: "100%",
+                    display: "flex",
+                    justifyContent: "center",
+                  },
+                  card: {
+                    width: "100%",
+                    maxWidth: "480px",
+                    background: "#1B1B1F",
+                    borderRadius: "24px",
+                    padding: "40px",
+                    boxShadow: "none",
+                    border: "none",
+                  },
+                  headerTitle: "text-[24px] font-bold tracking-tight font-heading text-white",
+                  headerSubtitle: "text-sm text-white/50",
+                  socialButtonsBlockButton:
+                    "bg-white text-[#1B1B1F] hover:bg-white/90 border-0 rounded-[14px] font-bold",
+                  socialButtonsBlockButtonText: "text-[#1B1B1F] font-bold",
+                  dividerLine: "bg-white/[0.06]",
+                  dividerText: "text-white/20 text-xs",
+                  formFieldInput:
+                    "bg-[#222228] border-none rounded-[14px] text-sm text-white placeholder:text-white/35 focus:ring-2 focus:ring-cf-orange",
+                  formFieldLabel: "text-white/70 text-[11px] font-medium",
+                  formButtonPrimary:
+                    "bg-cf-orange hover:bg-cf-orange-dark rounded-[14px] font-bold uppercase tracking-wide font-heading text-white",
+                  footerActionLink: "text-cf-orange hover:opacity-80",
+                },
+              }}
+            />
+          </div>
         </div>
 
         {/* Footer */}
