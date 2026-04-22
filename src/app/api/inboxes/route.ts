@@ -42,6 +42,24 @@ function mockSeed(userId: string): InboxRecord[] {
   ];
 }
 
+function buildGmailAuthUrl(inboxId: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://convergeflow-push.vercel.app';
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID!,
+    redirect_uri: `${appUrl}/api/inboxes/callback/google`,
+    response_type: 'code',
+    scope: [
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/userinfo.email',
+    ].join(' '),
+    access_type: 'offline',
+    prompt: 'consent',
+    state: inboxId,
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
 export async function GET() {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -76,10 +94,6 @@ export async function POST(req: NextRequest) {
 
   logRequest('inboxes.POST', userId, { provider, email });
 
-  if (smtp?.password) {
-    console.info('[api:inboxes.POST] smtp password received (placeholder, not persisted plaintext)');
-  }
-
   const now = new Date().toISOString();
   const id = `ib_${Math.random().toString(36).slice(2, 12)}`;
   const record: InboxRecord = {
@@ -96,19 +110,19 @@ export async function POST(req: NextRequest) {
     updatedAt: now,
   };
 
-  // authUrl is the OAuth redirect URL for gmail/yahoo.
-  // The frontend checks for data.authUrl and redirects if present.
-  const authUrl =
-    provider === 'gmail'
-      ? `https://accounts.google.com/o/oauth2/v2/auth?placeholder=true&state=${id}`
-      : provider === 'yahoo'
-        ? `https://api.login.yahoo.com/oauth2/request_auth?placeholder=true&state=${id}`
-        : null;
-
   try {
     await adminDb.collection('inboxes').doc(id).set(record);
   } catch (err) {
-    console.warn('[api:inboxes.POST] placeholder mode', err);
+    console.warn('[api:inboxes.POST] firestore write failed (placeholder mode)', err);
+  }
+
+  // Build real OAuth URL for Gmail if credentials are configured
+  let authUrl: string | null = null;
+  if (provider === 'gmail' && process.env.GOOGLE_CLIENT_ID) {
+    authUrl = buildGmailAuthUrl(id);
+  } else if (provider === 'yahoo') {
+    // Yahoo uses app-password SMTP — no OAuth URL
+    authUrl = null;
   }
 
   return NextResponse.json(
