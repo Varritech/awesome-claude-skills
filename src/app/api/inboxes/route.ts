@@ -1,3 +1,12 @@
+/**
+ * /api/inboxes - list connected inboxes & connect new ones.
+ *
+ * TODO: Real OAuth flows:
+ *   - Gmail: https://developers.google.com/identity/protocols/oauth2
+ *   - Yahoo: https://developer.yahoo.com/oauth2/guide/
+ *   - SMTP/IMAP: encrypt credentials with KMS before persisting.
+ */
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
@@ -42,24 +51,6 @@ function mockSeed(userId: string): InboxRecord[] {
   ];
 }
 
-function buildGmailAuthUrl(inboxId: string): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://convergeflow-push.vercel.app';
-  const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri: `${appUrl}/api/inboxes/callback/google`,
-    response_type: 'code',
-    scope: [
-      'https://www.googleapis.com/auth/gmail.send',
-      'https://www.googleapis.com/auth/gmail.readonly',
-      'https://www.googleapis.com/auth/userinfo.email',
-    ].join(' '),
-    access_type: 'offline',
-    prompt: 'consent',
-    state: inboxId,
-  });
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-}
-
 export async function GET() {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -94,6 +85,14 @@ export async function POST(req: NextRequest) {
 
   logRequest('inboxes.POST', userId, { provider, email });
 
+  // TODO:
+  //  - Gmail/Yahoo: don't accept credentials here - kick off OAuth instead
+  //    and finalise in a callback route.
+  //  - SMTP/IMAP: encrypt `smtp.password` via KMS before writing to Firestore.
+  if (smtp?.password) {
+    console.info('[api:inboxes.POST] smtp password received (placeholder, not persisted plaintext)');
+  }
+
   const now = new Date().toISOString();
   const id = `ib_${Math.random().toString(36).slice(2, 12)}`;
   const record: InboxRecord = {
@@ -110,23 +109,21 @@ export async function POST(req: NextRequest) {
     updatedAt: now,
   };
 
+  const oauthUrl =
+    provider === 'gmail'
+      ? `https://accounts.google.com/o/oauth2/v2/auth?placeholder=true&state=${id}`
+      : provider === 'yahoo'
+        ? `https://api.login.yahoo.com/oauth2/request_auth?placeholder=true&state=${id}`
+        : null;
+
   try {
     await adminDb.collection('inboxes').doc(id).set(record);
   } catch (err) {
-    console.warn('[api:inboxes.POST] firestore write failed (placeholder mode)', err);
-  }
-
-  // Build real OAuth URL for Gmail if credentials are configured
-  let authUrl: string | null = null;
-  if (provider === 'gmail' && process.env.GOOGLE_CLIENT_ID) {
-    authUrl = buildGmailAuthUrl(id);
-  } else if (provider === 'yahoo') {
-    // Yahoo uses app-password SMTP — no OAuth URL
-    authUrl = null;
+    console.warn('[api:inboxes.POST] placeholder mode', err);
   }
 
   return NextResponse.json(
-    { data: { ...record, authUrl } },
+    { data: { ...record, oauthUrl } },
     { status: 201 },
   );
 }
