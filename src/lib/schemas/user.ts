@@ -69,7 +69,11 @@ export const updateOnboardingSchema = z.object({
     'persona',
     'first_campaign',
     'complete',
-  ]),
-  completed: z.boolean(),
+  ]).optional(),
+  completed: z.boolean().optional(),
+  industry: z.string().max(80).optional(),
+  industryOther: z.string().max(120).optional(),
+  persona: z.string().max(80).optional(),
+  onboardingComplete: z.boolean().optional(),
 });
 export type UpdateOnboardingInput = z.infer<typeof updateOnboardingSchema>;
