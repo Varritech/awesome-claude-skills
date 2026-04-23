@@ -76,22 +76,36 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = await parseAndValidate(req, updateOnboardingSchema);
   if (parsed.response) return parsed.response;
-  const { step, completed } = parsed.data;
+  const { step, completed, industry, industryOther, persona, onboardingComplete } = parsed.data;
 
-  logRequest('user.onboarding.PATCH', userId, { step, completed });
+  logRequest('user.onboarding.PATCH', userId, { step, completed, industry });
 
-  const nextStep = completed
-    ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
-    : step;
-  const isFinished = nextStep === 'complete';
+  let patch: Record<string, unknown> = { userId, updatedAt: new Date().toISOString() };
 
-  const patch = {
-    userId,
-    step: nextStep,
-    completed: isFinished,
-    [`stepsCompleted.${step}`]: completed,
-    updatedAt: new Date().toISOString(),
-  };
+  // Industry-only update (from /onboarding/industry page)
+  if (industry !== undefined) {
+    const resolvedIndustry = industry === 'other' && industryOther ? industryOther : industry;
+    patch = {
+      ...patch,
+      industry: resolvedIndustry,
+      step: 'persona',
+      'stepsCompleted.inbox': true,
+    };
+  } else if (persona !== undefined) {
+    patch = { ...patch, persona, step: 'leads', 'stepsCompleted.persona': true };
+  } else if (onboardingComplete) {
+    patch = { ...patch, step: 'complete', completed: true };
+  } else if (step !== undefined && completed !== undefined) {
+    const nextStep = completed
+      ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
+      : step;
+    patch = {
+      ...patch,
+      step: nextStep,
+      completed: nextStep === 'complete',
+      [`stepsCompleted.${step}`]: completed,
+    };
+  }
 
   try {
     await adminDb.collection('onboarding').doc(userId).set(patch, { merge: true });
