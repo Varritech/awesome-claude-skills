@@ -66,6 +66,7 @@ export const inboxConnectionSchema = z.object({
       host: z.string(),
       port: z.number().int().positive(),
       user: z.string(),
+      // Never persisted to Firestore in plaintext; stored encrypted at rest.
       password: z.string().optional(),
     })
     .optional(),
@@ -74,8 +75,6 @@ export const inboxConnectionSchema = z.object({
 });
 export type InboxConnection = z.infer<typeof inboxConnectionSchema>;
 
-// email is optional for OAuth providers (gmail/yahoo) — the OAuth callback
-// provides the email after consent. Required only for smtp_imap.
 export const connectInboxSchema = z.object({
   provider: inboxProviderSchema,
   email: z.string().email().optional(),
