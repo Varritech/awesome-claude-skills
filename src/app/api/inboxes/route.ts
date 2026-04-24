@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     userId,
     provider,
     email: email ?? '',
-    displayName,
+    ...(displayName ? { displayName } : {}),
     status: 'connecting',
     warmupEnabled: true,
     dailySendLimit: 50,
