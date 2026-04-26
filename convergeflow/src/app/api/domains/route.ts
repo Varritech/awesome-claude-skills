@@ -110,11 +110,23 @@ export async function POST(req: NextRequest) {
 
   if (mailforge.isConfigured()) {
     try {
-      const mfDomain = await mailforge.createDomain(domain);
+      const mfDomain = await mailforge.purchaseDomain(domain);
       mailforgeDomainId = mfDomain.id;
-      apiDnsRecords = mfDomain.dnsRecords;
+      // Fetch DNS records separately if not returned in purchase response
+      if (!mfDomain.dnsRecords && mailforgeDomainId) {
+        const dnsRecs = await mailforge.getDomainDns(mailforgeDomainId);
+        const find = (type: string) => dnsRecs.find((r) => r.type.toUpperCase() === type || r.host?.startsWith(type.toLowerCase()));
+        apiDnsRecords = {
+          spf: find('TXT'),
+          dkim: dnsRecs.find((r) => r.host?.includes('domainkey')),
+          dmarc: dnsRecs.find((r) => r.host?.startsWith('_dmarc')),
+          mx: find('MX'),
+        };
+      } else {
+        apiDnsRecords = mfDomain.dnsRecords;
+      }
     } catch (err) {
-      console.warn('[api:domains.POST] mailforge.createDomain failed', err);
+      console.warn('[api:domains.POST] mailforge.purchaseDomain failed', err);
     }
   }
 

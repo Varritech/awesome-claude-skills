@@ -93,14 +93,14 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
   const domain = domainDoc?.domain ?? id;
   const instructions = domainDoc?.dnsInstructions;
 
-  // If Mailforge API is configured and we have a mailforgeDomainId, trigger
-  // their verify endpoint to sync their internal state too.
+  // If Mailforge API is configured and we have a mailforgeDomainId, fetch
+  // the actual DNS records from Mailforge to use as the expected values.
   const mfId = (domainDoc as Record<string, unknown> | null)?.mailforgeDomainId as string | undefined;
   if (mailforge.isConfigured() && mfId) {
     try {
-      await mailforge.verifyDomain(mfId);
+      await mailforge.getDomainDns(mfId);
     } catch (err) {
-      console.warn('[api:domains.[id].verify] mailforge.verifyDomain failed', err);
+      console.warn('[api:domains.[id].verify] mailforge.getDomainDns failed', err);
     }
   }
 
