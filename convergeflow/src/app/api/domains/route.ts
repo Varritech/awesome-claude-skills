@@ -10,6 +10,8 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { connectDomainSchema } from '@/lib/schemas';
+import * as mailforge from '@/lib/mailforge/client';
+import type { MailforgeDomain } from '@/lib/mailforge/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,31 +100,43 @@ export async function POST(req: NextRequest) {
 
   logRequest('domains.POST', userId, { domain, purpose });
 
-  // Mailforge API is gated behind a paid slots subscription.
-  // Domain provisioning (SPF/DKIM/DMARC/MX) is done manually in their
-  // dashboard. We store the expected DNS values so our verify endpoint
-  // can perform real DNS lookups against them without needing an API key.
   const now = new Date().toISOString();
   const id = `dom_${Math.random().toString(36).slice(2, 12)}`;
 
+  // Attempt to register domain with Mailforge API.
+  // Falls back gracefully when MAILFORGE_API_KEY is not set.
+  let mailforgeDomainId: string | undefined;
+  let apiDnsRecords: MailforgeDomain['dnsRecords'] | undefined;
+
+  if (mailforge.isConfigured()) {
+    try {
+      const mfDomain = await mailforge.createDomain(domain);
+      mailforgeDomainId = mfDomain.id;
+      apiDnsRecords = mfDomain.dnsRecords;
+    } catch (err) {
+      console.warn('[api:domains.POST] mailforge.createDomain failed', err);
+    }
+  }
+
+  // DNS instructions: prefer values from Mailforge API if available,
+  // otherwise use known Mailforge standard values as defaults.
   const instructions = {
-    spf: {
+    spf: apiDnsRecords?.spf ?? {
       host: domain,
       type: 'TXT',
       value: 'v=spf1 include:_spf.mailforge.com ~all',
     },
-    dkim: {
-      // Mailforge uses the selector "cf" by convention for ConvergeFlow
+    dkim: apiDnsRecords?.dkim ?? {
       host: `cf._domainkey.${domain}`,
       type: 'TXT',
       value: 'v=DKIM1; k=rsa; p=',
     },
-    dmarc: {
+    dmarc: apiDnsRecords?.dmarc ?? {
       host: `_dmarc.${domain}`,
       type: 'TXT',
       value: 'v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io',
     },
-    mx: {
+    mx: apiDnsRecords?.mx ?? {
       host: domain,
       type: 'MX',
       value: '10 mx.mailforge.com',
@@ -134,8 +148,7 @@ export async function POST(req: NextRequest) {
     userId,
     domain,
     purpose,
-    // mailforgeDomainId is populated once the domain is manually added
-    // in the Mailforge dashboard and the API key is available.
+    ...(mailforgeDomainId ? { mailforgeDomainId } : {}),
     spfStatus: 'pending',
     dkimStatus: 'pending',
     dmarcStatus: 'pending',

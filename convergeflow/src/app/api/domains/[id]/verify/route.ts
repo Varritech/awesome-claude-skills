@@ -9,6 +9,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { promises as dns } from 'dns';
 import { adminDb } from '@/lib/firebase/admin';
 import { logRequest, requireUser } from '@/lib/api/helpers';
+import * as mailforge from '@/lib/mailforge/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,17 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
 
   const domain = domainDoc?.domain ?? id;
   const instructions = domainDoc?.dnsInstructions;
+
+  // If Mailforge API is configured and we have a mailforgeDomainId, trigger
+  // their verify endpoint to sync their internal state too.
+  const mfId = (domainDoc as Record<string, unknown> | null)?.mailforgeDomainId as string | undefined;
+  if (mailforge.isConfigured() && mfId) {
+    try {
+      await mailforge.verifyDomain(mfId);
+    } catch (err) {
+      console.warn('[api:domains.[id].verify] mailforge.verifyDomain failed', err);
+    }
+  }
 
   // Default expected values (Mailforge standard) if not stored on the doc
   const spfHost = instructions?.spf?.host ?? domain;
