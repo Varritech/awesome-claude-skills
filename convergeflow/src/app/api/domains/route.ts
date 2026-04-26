@@ -15,17 +15,29 @@ export const dynamic = 'force-dynamic';
 
 type DnsStatus = 'pending' | 'red' | 'yellow' | 'green';
 
+interface DnsInstruction {
+  host: string;
+  type: string;
+  value: string;
+}
+
 interface DomainRecord {
   id: string;
   userId: string;
   domain: string;
   purpose: 'primary' | 'sending';
-  mailforgeProjectId?: string;
+  mailforgeDomainId?: string;
   spfStatus: DnsStatus;
   dkimStatus: DnsStatus;
   dmarcStatus: DnsStatus;
   mxStatus: DnsStatus;
   overallStatus: DnsStatus;
+  dnsInstructions?: {
+    spf: DnsInstruction;
+    dkim: DnsInstruction;
+    dmarc: DnsInstruction;
+    mx: DnsInstruction;
+  };
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string | null;
@@ -39,7 +51,7 @@ function mockSeed(userId: string): DomainRecord[] {
       userId,
       domain: 'reach.convergeflow.io',
       purpose: 'sending',
-      mailforgeProjectId: 'mf_abc123',
+      mailforgeDomainId: 'mf_abc123',
       spfStatus: 'green',
       dkimStatus: 'green',
       dmarcStatus: 'yellow',
@@ -86,30 +98,12 @@ export async function POST(req: NextRequest) {
 
   logRequest('domains.POST', userId, { domain, purpose });
 
-  // TODO: Call Mailforge API to provision DNS records:
-  //   POST https://api.mailforge.com/v1/domains
-  //   body: { domain, redirectTo: 'convergeflow.io' }
-  //   Response gives us the SPF/DKIM/DMARC records the user must add.
+  // Mailforge API is gated behind a paid slots subscription.
+  // Domain provisioning (SPF/DKIM/DMARC/MX) is done manually in their
+  // dashboard. We store the expected DNS values so our verify endpoint
+  // can perform real DNS lookups against them without needing an API key.
   const now = new Date().toISOString();
   const id = `dom_${Math.random().toString(36).slice(2, 12)}`;
-
-  const record: DomainRecord = {
-    id,
-    userId,
-    domain,
-    purpose,
-    mailforgeProjectId: `mf_placeholder_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`,
-    spfStatus: 'pending',
-    dkimStatus: 'pending',
-    dmarcStatus: 'pending',
-    mxStatus: 'pending',
-    overallStatus: 'pending',
-    createdAt: now,
-    updatedAt: now,
-    verifiedAt: null,
-  };
 
   const instructions = {
     spf: {
@@ -118,9 +112,10 @@ export async function POST(req: NextRequest) {
       value: 'v=spf1 include:_spf.mailforge.com ~all',
     },
     dkim: {
+      // Mailforge uses the selector "cf" by convention for ConvergeFlow
       host: `cf._domainkey.${domain}`,
       type: 'TXT',
-      value: 'v=DKIM1; k=rsa; p=PLACEHOLDER_PUBLIC_KEY_HERE',
+      value: 'v=DKIM1; k=rsa; p=',
     },
     dmarc: {
       host: `_dmarc.${domain}`,
@@ -132,6 +127,24 @@ export async function POST(req: NextRequest) {
       type: 'MX',
       value: '10 mx.mailforge.com',
     },
+  };
+
+  const record: DomainRecord = {
+    id,
+    userId,
+    domain,
+    purpose,
+    // mailforgeDomainId is populated once the domain is manually added
+    // in the Mailforge dashboard and the API key is available.
+    spfStatus: 'pending',
+    dkimStatus: 'pending',
+    dmarcStatus: 'pending',
+    mxStatus: 'pending',
+    overallStatus: 'pending',
+    dnsInstructions: instructions,
+    createdAt: now,
+    updatedAt: now,
+    verifiedAt: null,
   };
 
   try {
