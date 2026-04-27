@@ -25,7 +25,7 @@ interface LeadRecord {
   industry?: string;
   location?: string;
   status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
-  source: 'csv' | 'apollo' | 'aleads' | 'outscraper' | 'manual';
+  source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
