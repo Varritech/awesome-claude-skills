@@ -7,6 +7,7 @@ import {
 } from '@/lib/api/helpers';
 import { connectInboxSchema } from '@/lib/schemas';
 import * as mailforge from '@/lib/mailforge/client';
+import { encryptPassword } from '@/lib/smtp/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ interface InboxRecord {
   smtpHost?: string;
   smtpPort?: number;
   smtpUser?: string;
+  smtpPasswordEncrypted?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   // If a Mailforge domain is linked and API is configured, provision a mailbox.
   let mailforgeMailboxId: string | undefined;
-  let resolvedSmtp: { host?: string; port?: number; user?: string } = {};
+  let resolvedSmtp: { host?: string; port?: number; user?: string; encryptedPassword?: string } = {};
   let resolvedEmail = email ?? '';
 
   const { domainId } = parsed.data;
@@ -129,7 +131,13 @@ export async function POST(req: NextRequest) {
             port: mailbox.smtpPort,
             user: mailbox.smtpUser,
           };
-          // smtpPassword intentionally NOT stored (should be encrypted at rest separately)
+          if (mailbox.smtpPassword && process.env.SMTP_ENCRYPTION_KEY) {
+            try {
+              resolvedSmtp.encryptedPassword = encryptPassword(mailbox.smtpPassword);
+            } catch (encErr) {
+              console.warn('[api:inboxes.POST] password encryption failed', encErr);
+            }
+          }
           console.info('[api:inboxes.POST] mailforge mailbox provisioned', mailbox.id);
         }
       }
@@ -153,6 +161,7 @@ export async function POST(req: NextRequest) {
     ...(resolvedSmtp.host ? { smtpHost: resolvedSmtp.host } : {}),
     ...(resolvedSmtp.port ? { smtpPort: resolvedSmtp.port } : {}),
     ...(resolvedSmtp.user ? { smtpUser: resolvedSmtp.user } : {}),
+    ...(resolvedSmtp.encryptedPassword ? { smtpPasswordEncrypted: resolvedSmtp.encryptedPassword } : {}),
     createdAt: now,
     updatedAt: now,
   };
