@@ -10,22 +10,36 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { connectDomainSchema } from '@/lib/schemas';
+import * as mailforge from '@/lib/mailforge/client';
+import type { MailforgeDomain } from '@/lib/mailforge/client';
 
 export const dynamic = 'force-dynamic';
 
 type DnsStatus = 'pending' | 'red' | 'yellow' | 'green';
+
+interface DnsInstruction {
+  host: string;
+  type: string;
+  value: string;
+}
 
 interface DomainRecord {
   id: string;
   userId: string;
   domain: string;
   purpose: 'primary' | 'sending';
-  mailforgeProjectId?: string;
+  mailforgeDomainId?: string;
   spfStatus: DnsStatus;
   dkimStatus: DnsStatus;
   dmarcStatus: DnsStatus;
   mxStatus: DnsStatus;
   overallStatus: DnsStatus;
+  dnsInstructions?: {
+    spf: DnsInstruction;
+    dkim: DnsInstruction;
+    dmarc: DnsInstruction;
+    mx: DnsInstruction;
+  };
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string | null;
@@ -39,7 +53,7 @@ function mockSeed(userId: string): DomainRecord[] {
       userId,
       domain: 'reach.convergeflow.io',
       purpose: 'sending',
-      mailforgeProjectId: 'mf_abc123',
+      mailforgeDomainId: 'mf_abc123',
       spfStatus: 'green',
       dkimStatus: 'green',
       dmarcStatus: 'yellow',
@@ -86,52 +100,76 @@ export async function POST(req: NextRequest) {
 
   logRequest('domains.POST', userId, { domain, purpose });
 
-  // TODO: Call Mailforge API to provision DNS records:
-  //   POST https://api.mailforge.com/v1/domains
-  //   body: { domain, redirectTo: 'convergeflow.io' }
-  //   Response gives us the SPF/DKIM/DMARC records the user must add.
   const now = new Date().toISOString();
   const id = `dom_${Math.random().toString(36).slice(2, 12)}`;
+
+  // Attempt to register domain with Mailforge API.
+  // Falls back gracefully when MAILFORGE_API_KEY is not set.
+  let mailforgeDomainId: string | undefined;
+  let apiDnsRecords: MailforgeDomain['dnsRecords'] | undefined;
+
+  if (mailforge.isConfigured()) {
+    try {
+      const mfDomain = await mailforge.purchaseDomain(domain);
+      mailforgeDomainId = mfDomain.id;
+      // Fetch DNS records separately if not returned in purchase response
+      if (!mfDomain.dnsRecords && mailforgeDomainId) {
+        const dnsRecs = await mailforge.getDomainDns(mailforgeDomainId);
+        const find = (type: string) => dnsRecs.find((r) => r.type.toUpperCase() === type || r.host?.startsWith(type.toLowerCase()));
+        apiDnsRecords = {
+          spf: find('TXT'),
+          dkim: dnsRecs.find((r) => r.host?.includes('domainkey')),
+          dmarc: dnsRecs.find((r) => r.host?.startsWith('_dmarc')),
+          mx: find('MX'),
+        };
+      } else {
+        apiDnsRecords = mfDomain.dnsRecords;
+      }
+    } catch (err) {
+      console.warn('[api:domains.POST] mailforge.purchaseDomain failed', err);
+    }
+  }
+
+  // DNS instructions: prefer values from Mailforge API if available,
+  // otherwise use known Mailforge standard values as defaults.
+  const instructions = {
+    spf: apiDnsRecords?.spf ?? {
+      host: domain,
+      type: 'TXT',
+      value: 'v=spf1 include:_spf.mailforge.com ~all',
+    },
+    dkim: apiDnsRecords?.dkim ?? {
+      host: `cf._domainkey.${domain}`,
+      type: 'TXT',
+      value: 'v=DKIM1; k=rsa; p=',
+    },
+    dmarc: apiDnsRecords?.dmarc ?? {
+      host: `_dmarc.${domain}`,
+      type: 'TXT',
+      value: 'v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io',
+    },
+    mx: apiDnsRecords?.mx ?? {
+      host: domain,
+      type: 'MX',
+      value: '10 mx.mailforge.com',
+    },
+  };
 
   const record: DomainRecord = {
     id,
     userId,
     domain,
     purpose,
-    mailforgeProjectId: `mf_placeholder_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`,
+    ...(mailforgeDomainId ? { mailforgeDomainId } : {}),
     spfStatus: 'pending',
     dkimStatus: 'pending',
     dmarcStatus: 'pending',
     mxStatus: 'pending',
     overallStatus: 'pending',
+    dnsInstructions: instructions,
     createdAt: now,
     updatedAt: now,
     verifiedAt: null,
-  };
-
-  const instructions = {
-    spf: {
-      host: domain,
-      type: 'TXT',
-      value: 'v=spf1 include:_spf.mailforge.com ~all',
-    },
-    dkim: {
-      host: `cf._domainkey.${domain}`,
-      type: 'TXT',
-      value: 'v=DKIM1; k=rsa; p=PLACEHOLDER_PUBLIC_KEY_HERE',
-    },
-    dmarc: {
-      host: `_dmarc.${domain}`,
-      type: 'TXT',
-      value: 'v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io',
-    },
-    mx: {
-      host: domain,
-      type: 'MX',
-      value: '10 mx.mailforge.com',
-    },
   };
 
   try {

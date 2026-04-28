@@ -77,7 +77,7 @@ export type InboxConnection = z.infer<typeof inboxConnectionSchema>;
 
 export const connectInboxSchema = z.object({
   provider: inboxProviderSchema,
-  email: z.string().email().optional(),
+  email: z.string().email(),
   displayName: z.string().optional(),
   domainId: z.string().optional(),
   smtp: z

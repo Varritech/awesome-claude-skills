@@ -6,6 +6,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { connectInboxSchema } from '@/lib/schemas';
+import * as mailforge from '@/lib/mailforge/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,11 @@ interface InboxRecord {
   warmupEnabled: boolean;
   dailySendLimit: number;
   warmupStartDate?: string | null;
+  domainId?: string;
+  mailforgeMailboxId?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,16 +106,53 @@ export async function POST(req: NextRequest) {
 
   const now = new Date().toISOString();
   const id = `ib_${Math.random().toString(36).slice(2, 12)}`;
+
+  // If a Mailforge domain is linked and API is configured, provision a mailbox.
+  let mailforgeMailboxId: string | undefined;
+  let resolvedSmtp: { host?: string; port?: number; user?: string } = {};
+  let resolvedEmail = email ?? '';
+
+  const { domainId } = parsed.data;
+  if (domainId && mailforge.isConfigured()) {
+    try {
+      const domainSnap = await adminDb.collection('domains').doc(domainId).get();
+      const domainDoc = domainSnap.exists ? (domainSnap.data() as { mailforgeDomainId?: string; domain?: string }) : null;
+      const mfDomainId = domainDoc?.mailforgeDomainId;
+
+      if (mfDomainId) {
+        const [mailbox] = await mailforge.purchaseMailboxes([mfDomainId], 1);
+        if (mailbox) {
+          mailforgeMailboxId = mailbox.id;
+          resolvedEmail = mailbox.email || resolvedEmail;
+          resolvedSmtp = {
+            host: mailbox.smtpHost,
+            port: mailbox.smtpPort,
+            user: mailbox.smtpUser,
+          };
+          // smtpPassword intentionally NOT stored (should be encrypted at rest separately)
+          console.info('[api:inboxes.POST] mailforge mailbox provisioned', mailbox.id);
+        }
+      }
+    } catch (err) {
+      console.warn('[api:inboxes.POST] mailforge.purchaseMailboxes failed', err);
+    }
+  }
+
   const record: InboxRecord = {
     id,
     userId,
     provider,
-    email: email ?? '',
+    email: resolvedEmail,
     ...(displayName ? { displayName } : {}),
     status: 'connecting',
     warmupEnabled: true,
     dailySendLimit: 50,
     warmupStartDate: null,
+    ...(domainId ? { domainId } : {}),
+    ...(mailforgeMailboxId ? { mailforgeMailboxId } : {}),
+    ...(resolvedSmtp.host ? { smtpHost: resolvedSmtp.host } : {}),
+    ...(resolvedSmtp.port ? { smtpPort: resolvedSmtp.port } : {}),
+    ...(resolvedSmtp.user ? { smtpUser: resolvedSmtp.user } : {}),
     createdAt: now,
     updatedAt: now,
   };

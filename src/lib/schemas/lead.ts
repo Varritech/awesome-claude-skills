@@ -14,6 +14,7 @@ export const leadSourceSchema = z.enum([
   'csv',
   'apollo',
   'aleads',
+  'snov',
   'outscraper',
   'manual',
 ]);
@@ -83,6 +84,7 @@ export const importLeadsSchema = z.object({
 export type ImportLeadsInput = z.infer<typeof importLeadsSchema>;
 
 export const leadSearchSchema = z.object({
+  provider: z.enum(['aleads', 'snov', 'mock']).default('mock'),
   industry: z.string().min(1),
   location: z.string().min(1),
   count: z.number().int().positive().max(1000).default(50),
