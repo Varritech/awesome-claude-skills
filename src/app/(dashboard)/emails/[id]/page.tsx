@@ -6,66 +6,60 @@ import { Card, Skeleton } from "@/components/ui";
 import { ChevronLeftIcon } from "@/components/icons";
 import { apiGet, apiStream } from "@/lib/api-client";
 
-type EmailStatus = "replied" | "opened" | "sent" | "bounced";
+type EmailStatus = "draft" | "queued" | "sent" | "opened" | "replied" | "bounced";
+type Persona = "closer" | "neighbor" | "expert" | "helper";
 
-interface EmailItem {
-  id: string | number;
-  recipient: string;
-  company?: string;
-  subject: string;
-  status: EmailStatus;
-  lastActivity: string;
-  preview?: string;
-}
-
-interface EmailCampaignDetail {
+interface EmailRecord {
   id: string;
-  name: string;
-  style: string;
-  status: "active" | "warming" | "paused" | "done" | "draft";
-  startedAt?: string;
-  sent: number;
-  total: number;
-  replied: number;
-  interested: number;
-  openRate: string;
-  emails: EmailItem[];
+  subject: string;
+  body: string;
+  persona: Persona;
+  status: EmailStatus;
+  scheduledFor?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  leadId?: string | null;
 }
 
-const statusConfig: Record<EmailStatus, { label: string; bg: string; text: string; dot: string }> = {
-  replied: { label: "Replied", bg: "bg-cf-mint/15", text: "text-cf-green", dot: "bg-cf-green" },
-  opened: { label: "Opened", bg: "bg-cf-amber/15", text: "text-cf-amber", dot: "bg-cf-amber" },
-  sent: { label: "Sent", bg: "bg-white/[0.04]", text: "text-white/35", dot: "bg-white/20" },
-  bounced: { label: "Bounced", bg: "bg-red-500/15", text: "text-red-400", dot: "bg-red-400" },
+const statusConfig: Record<EmailStatus, { label: string; bg: string; text: string }> = {
+  draft:   { label: "Draft",   bg: "bg-white/[0.04]",   text: "text-white/35" },
+  queued:  { label: "Scheduled · 8:00 AM", bg: "bg-cf-indigo/15", text: "text-cf-indigo" },
+  sent:    { label: "Sent",    bg: "bg-white/[0.06]",   text: "text-white/40" },
+  opened:  { label: "Opened",  bg: "bg-cf-amber/15",    text: "text-cf-amber" },
+  replied: { label: "Replied", bg: "bg-cf-green/15",    text: "text-cf-green" },
+  bounced: { label: "Bounced", bg: "bg-red-500/15",     text: "text-red-400" },
 };
 
-const campaignStatusBadge: Record<EmailCampaignDetail["status"], { bg: string; text: string; label: string }> = {
-  active: { bg: "bg-cf-green/15", text: "text-cf-green", label: "Active" },
-  warming: { bg: "bg-cf-amber/15", text: "text-cf-amber", label: "Warming" },
-  paused: { bg: "bg-cf-indigo/15", text: "text-cf-indigo", label: "Paused" },
-  done: { bg: "bg-white/6", text: "text-white/35", label: "Done" },
-  draft: { bg: "bg-white/[0.04]", text: "text-white/35", label: "Draft" },
+const personaLabel: Record<Persona, string> = {
+  closer:   "The Closer",
+  neighbor: "The Neighbor",
+  expert:   "The Expert",
+  helper:   "The Helper",
 };
 
-const filters = ["All", "Replied", "Opened", "Sent", "Bounced"];
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
 
 export default function EmailDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
-  const [campaign, setCampaign] = useState<EmailCampaignDetail | null>(null);
+  const [email, setEmail] = useState<EmailRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All");
   const [regenerating, setRegenerating] = useState(false);
   const [regenerated, setRegenerated] = useState("");
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    apiGet<EmailCampaignDetail>(`/api/emails/${id}`)
-      .then((data) => {
+    apiGet<{ data: EmailRecord } | EmailRecord>(`/api/emails/${id}`)
+      .then((res) => {
         if (cancelled) return;
-        setCampaign(data ?? null);
+        const record = (res as { data: EmailRecord })?.data ?? (res as EmailRecord);
+        setEmail(record ?? null);
       })
       .catch((err) => {
         console.error("Failed to load email", err);
@@ -73,27 +67,27 @@ export default function EmailDetailPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id]);
 
   const handleRegenerate = async () => {
-    if (!id || regenerating) return;
+    if (!id || !email || regenerating) return;
     setRegenerating(true);
     setRegenerated("");
     try {
       const stream = apiStream<{ response?: string; done?: boolean; error?: string }>(
         `/api/emails/${id}/generate`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            persona: email.persona,
+            leadData: {},
+          }),
+        },
       );
       for await (const chunk of stream) {
-        if (chunk.error) {
-          console.error("Stream error", chunk.error);
-          break;
-        }
-        if (chunk.response) {
-          setRegenerated((prev) => prev + chunk.response);
-        }
+        if (chunk.error) { console.error("Stream error", chunk.error); break; }
+        if (chunk.response) setRegenerated((prev) => prev + chunk.response);
         if (chunk.done) break;
       }
     } catch (err) {
@@ -107,17 +101,12 @@ export default function EmailDetailPage() {
     return (
       <>
         <Skeleton className="h-4 w-32 mb-5" />
-        <Skeleton className="h-40 mb-5" rounded="lg" />
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20" rounded="lg" />
-          ))}
-        </div>
+        <Skeleton className="h-64 mb-5" rounded="lg" />
       </>
     );
   }
 
-  if (!campaign) {
+  if (!email) {
     return (
       <>
         <a
@@ -128,18 +117,13 @@ export default function EmailDetailPage() {
           Back to Emails
         </a>
         <Card>
-          <p className="text-[14px] text-white/50">Email campaign not found.</p>
+          <p className="text-[14px] text-white/50">Email not found.</p>
         </Card>
       </>
     );
   }
 
-  const filtered =
-    filter === "All"
-      ? campaign.emails
-      : campaign.emails.filter((e) => e.status === filter.toLowerCase());
-
-  const badge = campaignStatusBadge[campaign.status] ?? campaignStatusBadge.draft;
+  const config = statusConfig[email.status] ?? statusConfig.draft;
 
   return (
     <>
@@ -155,45 +139,43 @@ export default function EmailDetailPage() {
       {/* Header card */}
       <Card className="mb-5">
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-[22px] font-bold tracking-tight font-heading">
-              {campaign.name}
+          <div className="flex-1 min-w-0 pr-4">
+            <h1 className="text-[20px] font-bold tracking-tight font-heading leading-snug">
+              {email.subject}
             </h1>
-            <p className="text-[13px] text-white/25 mt-1">
-              {campaign.style} style
-              {campaign.startedAt && ` \u00B7 Started ${campaign.startedAt}`}
-            </p>
+            <div className="flex items-center gap-2.5 mt-2">
+              <span className={`px-2.5 py-0.5 rounded-[var(--radius-pill)] text-[11px] font-medium ${config.bg} ${config.text}`}>
+                {config.label}
+                {email.status === "queued" && email.scheduledFor
+                  ? ` · ${formatDate(email.scheduledFor)}`
+                  : ""}
+              </span>
+              <span className="text-[12px] text-white/25">
+                {personaLabel[email.persona] ?? email.persona}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              className="px-3 py-1.5 rounded-[var(--radius-pill)] text-[11px] font-medium bg-cf-orange/15 text-cf-orange hover:bg-cf-orange/25 transition-colors disabled:opacity-60"
-            >
-              {regenerating ? "Regenerating..." : "Regenerate"}
-            </button>
-            <span className={`px-3 py-1 rounded-[var(--radius-pill)] text-[11px] font-medium ${badge.bg} ${badge.text}`}>
-              {badge.label}
-            </span>
-          </div>
+          <button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="shrink-0 px-3 py-1.5 rounded-[var(--radius-pill)] text-[11px] font-medium bg-cf-orange/15 text-cf-orange hover:bg-cf-orange/25 transition-colors disabled:opacity-60"
+          >
+            {regenerating ? "Regenerating..." : "Regenerate"}
+          </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-[11px] text-white/20">Sent</p>
-            <p className="text-[20px] font-bold font-mono">{campaign.sent}/{campaign.total}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-white/20">Replied</p>
-            <p className="text-[20px] font-bold font-mono">{campaign.replied}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-white/20">Interested</p>
-            <p className="text-[20px] font-bold text-cf-green font-mono">{campaign.interested}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-white/20">Open Rate</p>
-            <p className="text-[20px] font-bold font-mono">{campaign.openRate}</p>
-          </div>
+
+        {email.scheduledFor && email.status === "queued" && (
+          <p className="text-[12px] text-white/25 mb-4">
+            Scheduled to send at 8:00 AM on {formatDate(email.scheduledFor)}
+          </p>
+        )}
+
+        {/* Body */}
+        <div className="border-t border-white/[0.06] pt-4">
+          <p className="text-[12px] text-white/25 mb-2 uppercase tracking-wider font-medium">Body</p>
+          <pre className="text-[13px] text-white/70 whitespace-pre-wrap font-sans leading-relaxed">
+            {email.body.replace(/\{\{firstName\}\}/g, "there")}
+          </pre>
         </div>
       </Card>
 
@@ -206,74 +188,6 @@ export default function EmailDetailPage() {
           </pre>
         </Card>
       )}
-
-      {/* Filters */}
-      <div className="flex gap-2 mb-5">
-        {filters.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-[var(--radius-pill)] text-[13px] font-medium transition-colors ${
-              f === filter
-                ? "bg-cf-orange text-white"
-                : "bg-white/[0.04] text-white/35 hover:bg-white/[0.08]"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Email list */}
-      <div className="flex flex-col gap-2">
-        {filtered.length === 0 && (
-          <Card>
-            <p className="text-[13px] text-white/40">No emails match this filter.</p>
-          </Card>
-        )}
-        {filtered.map((email) => {
-          const config = statusConfig[email.status] ?? statusConfig.sent;
-          return (
-            <Card key={email.id} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    email.status === "replied"
-                      ? "bg-gradient-to-br from-cf-orange to-[#FB923C]"
-                      : "bg-cf-elevated text-white/30"
-                  }`}
-                >
-                  {email.recipient
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-bold">{email.recipient}</span>
-                    <span
-                      className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-pill)] font-medium ${config.bg} ${config.text}`}
-                    >
-                      {config.label}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-white/20 mt-0.5">
-                    {email.subject}
-                  </p>
-                  {email.preview && (
-                    <p className="text-[12px] text-white/25 mt-1 truncate">
-                      {email.preview}
-                    </p>
-                  )}
-                </div>
-                <span className="text-[11px] text-white/15 shrink-0">
-                  {email.lastActivity}
-                </span>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
     </>
   );
 }
