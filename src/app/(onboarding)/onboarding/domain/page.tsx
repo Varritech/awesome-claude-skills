@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 
 type DomainOption = "own" | "convergeflow" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
@@ -18,17 +18,53 @@ interface DnsRecord {
   status: DnsStatus;
 }
 
-interface DomainData {
+// Shape returned by /api/domains POST — dnsInstructions is a flat object keyed by record name.
+interface ApiDnsInstruction {
+  host: string;
+  type: string;
+  value: string;
+}
+
+interface ApiDomainData {
   id: string;
   domain: string;
-  status?: string;
-  dnsRecords?: DnsRecord[];
+  overallStatus?: string;
+  dnsInstructions?: {
+    spf?: ApiDnsInstruction;
+    dkim?: ApiDnsInstruction;
+    dmarc?: ApiDnsInstruction;
+    mx?: ApiDnsInstruction;
+  };
 }
 
 interface DomainVerifyData {
   id: string;
-  status: string; // "pending" | "verified" | "failed"
-  dnsRecords?: DnsRecord[];
+  overallStatus?: string;
+  spfStatus?: string;
+  dkimStatus?: string;
+  dmarcStatus?: string;
+}
+
+/** Convert the flat dnsInstructions map from the API into the array the UI renders. */
+function instructionsToRecords(
+  instructions: ApiDomainData["dnsInstructions"]
+): DnsRecord[] {
+  if (!instructions) return fallbackDnsRecords;
+  const order: Array<{ key: keyof NonNullable<ApiDomainData["dnsInstructions"]>; name: string }> = [
+    { key: "dkim", name: "DKIM" },
+    { key: "spf", name: "SPF" },
+    { key: "dmarc", name: "DMARC" },
+    { key: "mx", name: "MX" },
+  ];
+  return order
+    .filter(({ key }) => instructions[key])
+    .map(({ key, name }) => ({
+      type: instructions[key]!.type ?? "TXT",
+      name,
+      host: instructions[key]!.host ?? "",
+      value: instructions[key]!.value ?? "",
+      status: "checking" as DnsStatus,
+    }));
 }
 
 const fallbackDnsRecords: DnsRecord[] = [
@@ -43,14 +79,14 @@ const fallbackDnsRecords: DnsRecord[] = [
     type: "TXT",
     name: "SPF",
     host: "@",
-    value: "v=spf1 include:convergeflow.com ~all",
+    value: "v=spf1 include:_spf.mailforge.com ~all",
     status: "checking",
   },
   {
     type: "TXT",
     name: "DMARC",
     host: "_dmarc.yourdomain.com",
-    value: "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.com",
+    value: "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io",
     status: "checking",
   },
 ];
@@ -60,6 +96,13 @@ const statusStyles: Record<DnsStatus, { dot: string; label: string; color: strin
   valid: { dot: "bg-cf-green", label: "Verified", color: "text-cf-green" },
   invalid: { dot: "bg-red-400", label: "Not found", color: "text-red-400" },
 };
+
+/** Map the API's per-record status strings to our local DnsStatus. */
+function mapApiStatus(s?: string): DnsStatus {
+  if (s === "green") return "valid";
+  if (s === "red") return "invalid";
+  return "checking";
+}
 
 export default function DomainPage() {
   const router = useRouter();
@@ -85,13 +128,19 @@ export default function DomainPage() {
     // Poll every 4 seconds until verified
     const poll = async () => {
       try {
-        const data = await apiGet<DomainVerifyData>(`/api/domains/${domainId}/verify`);
-        if (data?.dnsRecords?.length) {
-          setDnsRecords(data.dnsRecords);
-        }
-        if (data?.status === "verified" && pollRef.current) {
-          clearInterval(pollRef.current);
-          pollRef.current = null;
+        const data = await apiPost<DomainVerifyData>(`/api/domains/${domainId}/verify`, {});
+        if (data) {
+          setDnsRecords((prev) =>
+            prev.map((r) => {
+              const key = r.name.toLowerCase() as "spf" | "dkim" | "dmarc" | "mx";
+              const apiStatus = (data as Record<string, string | undefined>)[`${key}Status`];
+              return { ...r, status: mapApiStatus(apiStatus) };
+            })
+          );
+          if (data.overallStatus === "green" && pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
         }
       } catch (err) {
         console.error("DNS verify poll failed", err);
@@ -115,7 +164,12 @@ export default function DomainPage() {
     if (selected === "convergeflow") {
       setSubmitting(true);
       try {
-        await apiPost<DomainData>("/api/domains", { type: "convergeflow" });
+        // API expects { domain, purpose } — use a placeholder domain for ConvergeFlow-managed ones.
+        // The backend recognises "convergeflow" purpose and provisions the domain automatically.
+        await apiPost<ApiDomainData>("/api/domains", {
+          domain: "convergeflow.io",
+          purpose: "sending",
+        });
         router.push("/onboarding/inbox");
       } catch (err) {
         console.error(err);
@@ -133,11 +187,14 @@ export default function DomainPage() {
 
     setSubmitting(true);
     try {
-      const data = await apiPost<DomainData>("/api/domains", {
-        type: "own",
+      // API expects { domain: string, purpose: "primary" | "sending" }
+      const data = await apiPost<ApiDomainData>("/api/domains", {
         domain: domainInput.trim(),
+        purpose: "sending",
       });
-      if (data?.dnsRecords?.length) setDnsRecords(data.dnsRecords);
+      if (data?.dnsInstructions) {
+        setDnsRecords(instructionsToRecords(data.dnsInstructions));
+      }
       if (data?.id) setDomainId(data.id);
       setShowDns(true);
     } catch (err) {
