@@ -66,14 +66,18 @@ export async function GET() {
   logRequest('user.profile.GET', userId);
 
   try {
-    const doc = await adminDb.collection('users').doc(userId).get();
-    if (!doc.exists) {
-      return NextResponse.json({ data: mockProfile(userId) });
-    }
-    return NextResponse.json({ data: doc.data() });
+    const [doc, inboxSnap] = await Promise.all([
+      adminDb.collection('users').doc(userId).get(),
+      adminDb.collection('inboxes').where('userId', '==', userId).get(),
+    ]);
+
+    const profile = doc.exists ? doc.data() : mockProfile(userId);
+    const inboxes = inboxSnap.docs.map((d) => d.data());
+
+    return NextResponse.json({ data: { ...profile, inboxes } });
   } catch (err) {
     console.warn('[api:user.profile.GET] falling back to mock', err);
-    return NextResponse.json({ data: mockProfile(userId) });
+    return NextResponse.json({ data: { ...mockProfile(userId), inboxes: [] } });
   }
 }
 

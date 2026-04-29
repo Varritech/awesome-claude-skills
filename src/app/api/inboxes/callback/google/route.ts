@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { requireUser } from '@/lib/api/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,27 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://convergeflow-push.vercel.app';
+
+  // Resolve userId from the existing inbox doc (set during POST /api/inboxes)
+  // so we can attach it if the doc needs to be created from scratch.
+  let userId: string | undefined;
+  if (state) {
+    try {
+      const existing = await adminDb.collection('inboxes').doc(state).get();
+      userId = existing.exists ? (existing.data()?.userId as string | undefined) : undefined;
+    } catch {
+      // best-effort
+    }
+    if (!userId) {
+      // fallback: try to get from Clerk session (may not be available in redirect)
+      try {
+        const auth = await requireUser();
+        if (!auth.response) userId = auth.userId;
+      } catch {
+        // ignore
+      }
+    }
+  }
 
   if (error || !code) {
     return NextResponse.redirect(`${appUrl}/onboarding/inbox?error=oauth_denied`);
@@ -59,7 +81,16 @@ export async function GET(req: NextRequest) {
         if (snap.exists) {
           await ref.update(update);
         } else {
-          await ref.set({ id: state, ...update });
+          await ref.set({
+            id: state,
+            provider: 'gmail',
+            status: 'warming',
+            warmupEnabled: true,
+            dailySendLimit: 50,
+            createdAt: new Date().toISOString(),
+            ...(userId ? { userId } : {}),
+            ...update,
+          });
         }
       } catch (fsErr) {
         console.warn('[gmail-callback] firestore update failed (continuing)', fsErr);
