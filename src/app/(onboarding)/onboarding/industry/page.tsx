@@ -153,10 +153,10 @@ export default function IndustryPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await apiPatch("/api/user/onboarding", {
-        industry: selected,
-        industryOther: selected === "other" ? otherText.trim() : undefined,
-      });
+      // updateProfileSchema accepts { industry } — use /api/user/profile, NOT /api/user/onboarding.
+      // The onboarding endpoint only accepts { step, completed } and would reject this payload.
+      const industryValue = selected === "other" ? otherText.trim() : selected!;
+      await apiPatch("/api/user/profile", { industry: industryValue });
       router.push("/onboarding/style");
     } catch (err) {
       console.error(err);

@@ -68,10 +68,15 @@ export default function StylePage() {
     setError(null);
     setSubmitting(true);
     try {
-      await apiPatch("/api/user/onboarding", {
-        persona: selected,
-        onboardingComplete: true,
-      });
+      // Step 1: save the preferred writing style to the user profile.
+      // updateProfileSchema accepts { preferredStyle } — use /api/user/profile.
+      // The onboarding endpoint only accepts { step, completed } and rejects { persona, onboardingComplete }.
+      await apiPatch("/api/user/profile", { preferredStyle: selected });
+
+      // Step 2: mark onboarding complete via the dedicated onboarding endpoint.
+      // updateOnboardingSchema requires { step: Step, completed: boolean }.
+      await apiPatch("/api/user/onboarding", { step: "persona", completed: true });
+
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
