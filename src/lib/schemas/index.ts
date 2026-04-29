@@ -13,6 +13,7 @@ export * from './user';
 export * from './campaign';
 export * from './lead';
 export * from './domain';
+export * from './email';
 
 /* Personas (custom user-defined personas, separate from the persona preset enum) */
 
