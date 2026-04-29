@@ -133,7 +133,13 @@ export default function DomainPage() {
           setDnsRecords((prev) =>
             prev.map((r) => {
               const key = r.name.toLowerCase() as "spf" | "dkim" | "dmarc" | "mx";
-              const apiStatus = (data as Record<string, string | undefined>)[`${key}Status`];
+              const statusMap: Record<string, string | undefined> = {
+                spf: data.spfStatus,
+                dkim: data.dkimStatus,
+                dmarc: data.dmarcStatus,
+                mx: data.mxStatus,
+              };
+              const apiStatus = statusMap[key];
               return { ...r, status: mapApiStatus(apiStatus) };
             })
           );
