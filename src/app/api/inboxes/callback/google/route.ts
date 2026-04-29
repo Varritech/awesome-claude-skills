@@ -69,11 +69,11 @@ export async function GET(req: NextRequest) {
     if (state) {
       const update = {
         email,
-        status: 'warming',
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
+        status: 'warming' as const,
       };
       try {
         const ref = adminDb.collection('inboxes').doc(state);
