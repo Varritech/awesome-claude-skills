@@ -3,6 +3,8 @@
  *
  * Uses Node's built-in dns.promises to perform real DNS lookups against the
  * expected SPF/DKIM/DMARC/MX values stored on the domain Firestore doc.
+ * Also refreshes dnsInstructions from Mailforge if DKIM key was not yet
+ * ready at registration time.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -34,7 +36,6 @@ interface DomainDoc {
   dkimStatus?: DnsStatus;
   dmarcStatus?: DnsStatus;
   mxStatus?: DnsStatus;
-  // DNS instructions stored at creation time
   dnsInstructions?: {
     spf?: { host: string; value: string };
     dkim?: { host: string; value: string };
@@ -79,7 +80,6 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
 
   logRequest('domains.[id].verify.POST', userId, { id });
 
-  // Load the domain doc to get the actual domain name and expected values
   let domainDoc: DomainDoc | null = null;
   try {
     const snap = await adminDb.collection('domains').doc(id).get();
@@ -91,20 +91,48 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
   }
 
   const domain = domainDoc?.domain ?? id;
-  const instructions = domainDoc?.dnsInstructions;
+  let instructions = domainDoc?.dnsInstructions;
+  const mfId = domainDoc?.mailforgeDomainId;
 
-  // If Mailforge API is configured and we have a mailforgeDomainId, fetch
-  // the actual DNS records from Mailforge to use as the expected values.
-  const mfId = (domainDoc as Record<string, unknown> | null)?.mailforgeDomainId as string | undefined;
-  if (mailforge.isConfigured() && mfId) {
+  // If DKIM key was empty at registration time, try to fetch it now from Mailforge
+  const dkimValueStored = instructions?.dkim?.value ?? '';
+  const dkimKeyMissing = !dkimValueStored.replace('v=DKIM1; k=rsa; p=', '').trim();
+
+  if (mailforge.isConfigured() && mfId && dkimKeyMissing) {
     try {
-      await mailforge.getDomainDns(mfId);
+      const dnsRecs = await mailforge.getDomainDns(mfId);
+      const dkim = dnsRecs.find((r) => r.host?.includes('domainkey'));
+      const dkimReady = dkim?.value && dkim.value.replace('v=DKIM1; k=rsa; p=', '').trim().length > 0;
+
+      if (dkimReady) {
+        const spf = dnsRecs.find((r) => r.value?.includes('spf'));
+        const dmarc = dnsRecs.find((r) => r.host?.startsWith('_dmarc'));
+        const mx = dnsRecs.find((r) => r.type?.toUpperCase() === 'MX');
+
+        const refreshed = {
+          spf: spf ? { host: spf.host, type: spf.type, value: spf.value } : instructions?.spf,
+          dkim: { host: dkim!.host, type: dkim!.type, value: dkim!.value },
+          dmarc: dmarc ? { host: dmarc.host, type: dmarc.type, value: dmarc.value } : instructions?.dmarc,
+          mx: mx ? { host: mx.host, type: mx.type, value: mx.value } : instructions?.mx,
+        };
+
+        // Persist the refreshed instructions so the UI gets the real DKIM key
+        try {
+          await adminDb.collection('domains').doc(id).set(
+            { dnsInstructions: refreshed, updatedAt: new Date().toISOString() },
+            { merge: true },
+          );
+          instructions = refreshed as typeof instructions;
+          console.info('[api:domains.[id].verify] DKIM key now available, dnsInstructions updated');
+        } catch (err) {
+          console.warn('[api:domains.[id].verify] failed to persist refreshed dnsInstructions', err);
+        }
+      }
     } catch (err) {
       console.warn('[api:domains.[id].verify] mailforge.getDomainDns failed', err);
     }
   }
 
-  // Default expected values (Mailforge standard) if not stored on the doc
   const spfHost = instructions?.spf?.host ?? domain;
   const spfExpected = instructions?.spf?.value ?? 'v=spf1 include:_spf.mailforge.com';
   const dkimHost = instructions?.dkim?.host ?? `cf._domainkey.${domain}`;
@@ -152,6 +180,8 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
       domain,
       ...patch,
       checks,
+      // Return refreshed instructions so the UI can update displayed DNS records
+      dnsInstructions: instructions,
     },
   });
 }
