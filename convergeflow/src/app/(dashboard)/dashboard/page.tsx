@@ -223,16 +223,19 @@ export default function DashboardPage() {
             icon={<MailIcon size={18} className="text-white/50" />}
             title="Send New Emails"
             description="Start a new batch"
+            href="/emails"
           />
           <ActionCard
             icon={<UsersIcon size={18} className="text-white/50" />}
             title="Find Customers"
             description="Browse leads in your area"
+            href="/customers"
           />
           <ActionCard
             icon={<PenIcon size={18} className="text-white/50" />}
             title="Email Styles"
             description="Pick your writing persona"
+            href="/styles"
           />
         </div>
 
