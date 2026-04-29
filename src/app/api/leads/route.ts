@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
       .where('userId', '==', userId)
       .limit(200)
       .get();
-    let firestoreLeads = snap.docs
+    const firestoreLeads = snap.docs
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt)
       .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))

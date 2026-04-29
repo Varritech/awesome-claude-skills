@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       .where('userId', '==', userId)
       .limit(200)
       .get();
-    let emails = snap.docs
+    const emails = snap.docs
       .map((d) => d.data() as EmailRecord)
       .filter((e) => !e.deletedAt)
       .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
