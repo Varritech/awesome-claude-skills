@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Card, Button, Input, Toggle, Skeleton } from "@/components/ui";
 import { MailIcon } from "@/components/icons";
 import { apiGet, apiPatch } from "@/lib/api-client";
@@ -45,6 +47,8 @@ interface UserProfile {
 }
 
 export default function SettingsPage() {
+  const { signOut } = useClerk();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
@@ -320,6 +324,22 @@ export default function SettingsPage() {
             <p className="text-[12px] text-white/25">{plan?.emailLimitLabel ?? "No plan"}</p>
           </div>
           <p className="text-[15px] font-bold font-mono">{plan?.price ?? "--"}</p>
+        </div>
+      </Card>
+
+      {/* Sign Out */}
+      <Card className="mb-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[13px] font-medium">Sign Out</p>
+            <p className="text-[11px] text-white/20">Sign out of your account</p>
+          </div>
+          <button
+            onClick={() => signOut(() => router.push("/"))}
+            className="px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
       </Card>
 
