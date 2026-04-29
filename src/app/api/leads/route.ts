@@ -141,22 +141,17 @@ export async function GET(req: NextRequest) {
 
   // 1. Try Firestore
   try {
-    let q = adminDb
+    const snap = await adminDb
       .collection('leads')
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .limit(limit);
-    if (industry) q = q.where('industry', '==', industry);
-    if (location) q = q.where('location', '==', location);
-    if (status) q = q.where('status', '==', status);
-    if (cursor) {
-      const cursorDoc = await adminDb.collection('leads').doc(cursor).get();
-      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
-    }
-    const snap = await q.get();
-    const firestoreLeads = snap.docs
+      .limit(200)
+      .get();
+    let firestoreLeads = snap.docs
       .map((d) => d.data() as LeadRecord)
-      .filter((l) => !l.deletedAt);
+      .filter((l) => !l.deletedAt)
+      .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
+      .slice(0, limit);
 
     if (firestoreLeads.length > 0) {
       const nextCursor = firestoreLeads.length === limit ? firestoreLeads[firestoreLeads.length - 1]?.id : null;

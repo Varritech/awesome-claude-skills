@@ -91,24 +91,20 @@ export async function GET(req: NextRequest) {
   logRequest('emails.GET', userId, { limit, cursor });
 
   try {
-    let q = adminDb
+    const snap = await adminDb
       .collection('emails')
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .limit(limit);
-    if (cursor) {
-      const cursorDoc = await adminDb.collection('emails').doc(cursor).get();
-      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
-    }
-    const snap = await q.get();
-    const emails = snap.docs
+      .limit(200)
+      .get();
+    let emails = snap.docs
       .map((d) => d.data() as EmailRecord)
-      .filter((e) => !e.deletedAt);
-    const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
+      .filter((e) => !e.deletedAt)
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
+      .slice(0, limit);
     if (emails.length === 0) {
-      const seed = mockSeed(userId).slice(0, limit);
-      return NextResponse.json({ data: seed, nextCursor: null });
+      return NextResponse.json({ data: mockSeed(userId).slice(0, limit), nextCursor: null });
     }
+    const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
     return NextResponse.json({ data: emails, nextCursor });
   } catch (err) {
     console.warn('[api:emails.GET] falling back to mock seed', err);
