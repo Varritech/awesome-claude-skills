@@ -55,6 +55,16 @@ export interface ALeadContact {
   linkedin_url?: string;
   phone?: string;
   confidence?: number;
+  // Raw ALeads field names returned by the API
+  member_id?: number;
+  member_name_last?: string;
+  member_full_name?: string;
+  job_title?: string;
+  company_name?: string;
+  domain?: string;
+  member_location_raw_address?: string;
+  member_picture_url?: string;
+  email_found?: boolean;
 }
 
 export interface ALeadsSearchParams {
@@ -84,15 +94,27 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
   if (params.location) advanced_filters.person_location = [params.location];
   if (params.title?.length) advanced_filters.person_seniority = params.title;
 
-  const raw = await req<{ data?: ALeadContact[]; total?: number; current_page?: number }>(
+  const raw = await req<{ data?: ALeadContact[]; total?: number; current_page?: number; meta_data?: { total_count?: number } }>(
     'POST',
     '/search/advanced-search',
-    { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
+    { advanced_filters, current_page: params.page ?? 1, search_type: 'total' },
   );
 
+  // Normalize raw ALeads field names to the canonical shape
+  const data = (raw.data ?? []).map((c) => ({
+    ...c,
+    id: String(c.member_id ?? c.id ?? Math.random()),
+    first_name: c.first_name ?? (c.member_full_name?.split(' ')[0]),
+    last_name: c.last_name ?? c.member_name_last ?? (c.member_full_name?.split(' ').slice(1).join(' ')),
+    company: c.company ?? c.company_name,
+    title: c.title ?? c.job_title,
+    location: c.location ?? c.member_location_raw_address,
+    linkedin_url: c.linkedin_url,
+  }));
+
   return {
-    data: raw.data ?? [],
-    total: raw.total ?? 0,
+    data,
+    total: raw.total ?? raw.meta_data?.total_count ?? 0,
     page: raw.current_page ?? 1,
     limit: params.limit ?? 50,
   };
