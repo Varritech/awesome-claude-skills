@@ -12,7 +12,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { chat } from '@/lib/ollama/client';
-import { jsonError, logRequest, requireUser } from '@/lib/api/helpers';
+import { logRequest, requireUser } from '@/lib/api/helpers';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -84,7 +84,7 @@ const MOCK_LEADS: LeadDoc[] = [
   { id: 'ld_10', firstName: 'Drew', lastName: 'Wilson', email: 'drew@luminate.agency', company: 'Luminate Agency', title: 'Founder', industry: 'Marketing', status: 'new' },
 ];
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
   const { userId } = auth;
