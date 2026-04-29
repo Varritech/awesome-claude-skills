@@ -162,21 +162,9 @@ export default function DomainPage() {
     setError(null);
 
     if (selected === "convergeflow") {
-      setSubmitting(true);
-      try {
-        // API expects { domain, purpose } — use a placeholder domain for ConvergeFlow-managed ones.
-        // The backend recognises "convergeflow" purpose and provisions the domain automatically.
-        await apiPost<ApiDomainData>("/api/domains", {
-          domain: "convergeflow.io",
-          purpose: "sending",
-        });
-        router.push("/onboarding/inbox");
-      } catch (err) {
-        console.error(err);
-        setError("Could not provision domain. Please try again.");
-      } finally {
-        setSubmitting(false);
-      }
+      // ConvergeFlow-managed domain: no API call needed during onboarding.
+      // Domain provisioning happens asynchronously after signup.
+      router.push("/onboarding/inbox");
       return;
     }
 
