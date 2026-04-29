@@ -17,9 +17,41 @@ interface Lead {
   score: number;
 }
 
-interface LeadsResponse {
-  leads?: Lead[];
+interface ApiLead {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  industry?: string;
+  location?: string;
+  status?: string;
+  score?: number;
+  freshness?: Freshness;
+  name?: string;
+}
+
+interface ApiLeadsResponse {
+  data?: ApiLead[];
+  leads?: ApiLead[];
   industries?: string[];
+}
+
+function statusToFreshness(status?: string): Freshness {
+  if (status === "new") return "new";
+  if (status === "contacted" || status === "replied") return "warm";
+  return "cold";
+}
+
+function normalizeLead(l: ApiLead): Lead {
+  return {
+    id: l.id,
+    name: l.name ?? `${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || "Unknown",
+    company: l.company ?? "",
+    industry: l.industry ?? "",
+    location: l.location ?? "",
+    freshness: l.freshness ?? statusToFreshness(l.status),
+    score: l.score ?? 0,
+  };
 }
 
 const defaultIndustries = [
@@ -56,16 +88,14 @@ export default function CustomersPage() {
       ? `/api/leads/search?${new URLSearchParams({ q: params.q!.trim(), ...(params.industry && params.industry !== "All" ? { industry: params.industry } : {}) }).toString()}`
       : `/api/leads${search.toString() ? `?${search.toString()}` : ""}`;
 
-    apiGet<LeadsResponse | Lead[]>(path)
+    apiGet<ApiLeadsResponse | ApiLead[]>(path)
       .then((res) => {
-        if (Array.isArray(res)) {
-          setLeads(res);
-        } else {
-          setLeads(res?.leads ?? []);
-          if (res?.industries?.length) {
-            setIndustries(["All", ...res.industries]);
-          }
-        }
+        const raw: ApiLead[] = Array.isArray(res)
+          ? res
+          : (res?.data ?? res?.leads ?? []);
+        setLeads(raw.map(normalizeLead));
+        const inds = !Array.isArray(res) ? res?.industries : undefined;
+        if (inds?.length) setIndustries(["All", ...inds]);
       })
       .catch((err) => {
         console.error("Failed to load leads", err);
@@ -160,7 +190,7 @@ export default function CustomersPage() {
       {!loading && leads.length > 0 && (
         <div className="flex flex-col gap-2 mb-5">
           {leads.map((lead) => {
-            const config = freshnessConfig[lead.freshness];
+            const config = freshnessConfig[lead.freshness] ?? freshnessConfig.cold;
             const isSelected = selectedLeads.includes(lead.id);
             return (
               <Card
