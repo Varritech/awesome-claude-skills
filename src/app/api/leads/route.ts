@@ -161,12 +161,21 @@ export async function GET(req: NextRequest) {
     console.warn('[api:leads.GET] firestore query failed, trying external', err);
   }
 
-  // 2. Fetch live from ALeads + Snov
+  // 2. Fetch live from ALeads + Snov, persist to Firestore, return
   if (snov.isConfigured() || aleads.isConfigured()) {
     try {
-      const external = await fetchExternalLeads({ industry, location, limit, userId });
+      const external = await fetchExternalLeads({ industry, location, limit: 20, userId });
       if (external.length > 0) {
-        return NextResponse.json({ data: external, nextCursor: null });
+        // Persist so future requests return from Firestore (no repeat API calls)
+        const batch = adminDb.batch();
+        for (const rec of external) {
+          batch.set(adminDb.collection('leads').doc(rec.id), rec);
+        }
+        await batch.commit();
+        const filtered = external
+          .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))
+          .slice(0, limit);
+        return NextResponse.json({ data: filtered, nextCursor: null });
       }
     } catch (err) {
       console.warn('[api:leads.GET] external fetch failed', err);
