@@ -1,4 +1,5 @@
 import { HTMLAttributes, forwardRef } from "react";
+import Link from "next/link";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "elevated" | "mint" | "orange";
@@ -72,11 +73,12 @@ interface ActionCardProps extends HTMLAttributes<HTMLDivElement> {
   icon: React.ReactNode;
   title: string;
   description: string;
+  href?: string;
 }
 
 export const ActionCard = forwardRef<HTMLDivElement, ActionCardProps>(
-  ({ icon, title, description, className = "", ...props }, ref) => {
-    return (
+  ({ icon, title, description, href, className = "", ...props }, ref) => {
+    const inner = (
       <Card
         ref={ref}
         className={`flex items-center gap-4 cursor-pointer transition-colors duration-cf-fast hover:!bg-cf-elevated ${className}`}
@@ -94,6 +96,11 @@ export const ActionCard = forwardRef<HTMLDivElement, ActionCardProps>(
         </svg>
       </Card>
     );
+
+    if (href) {
+      return <Link href={href} className="block">{inner}</Link>;
+    }
+    return inner;
   }
 );
 
