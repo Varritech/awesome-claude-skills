@@ -84,7 +84,6 @@ export async function GET(req: NextRequest) {
           await ref.set({
             id: state,
             provider: 'gmail',
-            status: 'warming',
             warmupEnabled: true,
             dailySendLimit: 50,
             createdAt: new Date().toISOString(),
