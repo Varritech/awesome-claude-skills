@@ -135,6 +135,126 @@ async function fetchFromSnov(
 
 // ─── Route handler ───────────────────────────────────────────────────────────
 
+/** GET /api/leads/search?q=&industry= — used by the customers page search bar */
+export async function GET(req: NextRequest) {
+  const auth = await requireUser();
+  if (auth.response) return auth.response;
+  const { userId } = auth;
+
+  const url = new URL(req.url);
+  const q = url.searchParams.get('q') ?? '';
+  const industry = url.searchParams.get('industry') ?? '';
+
+  logRequest('leads.search.GET', userId, { q, industry });
+
+  const tasks: Promise<NormalizedLead[]>[] = [];
+
+  if (aleads.isConfigured()) {
+    tasks.push(
+      aleads
+        .searchContacts({ industry: industry || undefined, limit: 50 })
+        .then((res) =>
+          res.data.map((c) => ({
+            externalId: c.id,
+            firstName: c.first_name,
+            lastName: c.last_name,
+            fullName: [c.first_name, c.last_name].filter(Boolean).join(' '),
+            email: c.email,
+            company: c.company,
+            title: c.title,
+            industry: c.industry ?? industry,
+            location: c.location,
+            linkedinUrl: c.linkedin_url,
+            phone: c.phone,
+            confidence: c.confidence,
+          })),
+        )
+        .catch((err) => { console.warn('[api:leads.search.GET] aleads failed', err); return []; }),
+    );
+  }
+
+  if (snov.isConfigured()) {
+    tasks.push(
+      snov
+        .searchProspects({ industry: industry ? [industry] : undefined, limit: 50 })
+        .then((res) =>
+          (res.data ?? []).map((p, i) => ({
+            externalId: p.id ?? `snov_${i}`,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            fullName: [p.firstName, p.lastName].filter(Boolean).join(' '),
+            email: p.email,
+            company: p.currentCompany,
+            title: p.currentTitle,
+            industry: p.industry ?? industry,
+            location: p.location,
+            linkedinUrl: p.linkedinUrl,
+            phone: p.phone,
+          })),
+        )
+        .catch((err) => { console.warn('[api:leads.search.GET] snov failed', err); return []; }),
+    );
+  }
+
+  let results: NormalizedLead[] = [];
+  if (tasks.length > 0) {
+    const settled = await Promise.all(tasks);
+    const seen = new Set<string>();
+    for (const batch of settled) {
+      for (const lead of batch) {
+        const key = lead.email?.toLowerCase() ?? lead.externalId;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push(lead);
+      }
+    }
+  }
+
+  // Filter by search query client-side on the merged results
+  if (q) {
+    const lq = q.toLowerCase();
+    results = results.filter(
+      (l) =>
+        l.fullName?.toLowerCase().includes(lq) ||
+        l.company?.toLowerCase().includes(lq) ||
+        l.location?.toLowerCase().includes(lq) ||
+        l.email?.toLowerCase().includes(lq),
+    );
+  }
+
+  if (results.length === 0) {
+    // Fall back to mock filtered by query
+    results = mockResults(industry || 'General', 'US', 20).filter((l) => {
+      if (!q) return true;
+      const lq = q.toLowerCase();
+      return (
+        l.fullName?.toLowerCase().includes(lq) ||
+        l.company?.toLowerCase().includes(lq) ||
+        l.location?.toLowerCase().includes(lq)
+      );
+    });
+  }
+
+  // Normalize to the shape customers/page.tsx expects
+  const now = new Date().toISOString();
+  const data = results.map((l) => ({
+    id: l.externalId,
+    name: l.fullName,
+    firstName: l.firstName,
+    lastName: l.lastName,
+    company: l.company ?? '',
+    industry: l.industry ?? '',
+    location: l.location ?? '',
+    email: l.email,
+    status: 'new',
+    score: Math.round((l.confidence ?? 0.5) * 100),
+    freshness: 'new',
+    createdAt: now,
+  }));
+
+  return NextResponse.json({ data });
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
