@@ -88,9 +88,11 @@ export interface ALeadsSearchResponse {
  * Search for contacts via advanced-search.
  * POST /gateway/v1/search/advanced-search
  */
+const DEFAULT_INDUSTRIES = ['Roofing', 'Solar', 'HVAC', 'Plumbing', 'Electrical', 'Landscaping', 'Painting', 'Cleaning'];
+
 export async function searchContacts(params: ALeadsSearchParams): Promise<ALeadsSearchResponse> {
   const advanced_filters: Record<string, unknown> = {};
-  if (params.industry) advanced_filters.company_industry = [params.industry];
+  advanced_filters.company_industry = params.industry ? [params.industry] : DEFAULT_INDUSTRIES;
   if (params.location) advanced_filters.person_location = [params.location];
   if (params.title?.length) advanced_filters.person_seniority = params.title;
 
