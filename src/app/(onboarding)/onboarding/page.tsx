@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { apiGet } from "@/lib/api-client";
@@ -15,8 +15,6 @@ interface UserProfile {
 export default function OnboardingLandingPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useUser();
-  const [checking, setChecking] = useState(true);
-
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -51,7 +49,7 @@ export default function OnboardingLandingPage() {
   }, [isLoaded, isSignedIn, router]);
 
   // Show a minimal spinner while the profile fetch and redirect resolve.
-  if (checking || isLoaded) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-cf-page flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-2 border-cf-orange/30 border-t-cf-orange animate-spin" />
