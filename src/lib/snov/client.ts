@@ -17,7 +17,7 @@ export class SnovNotConfiguredError extends Error {
   }
 }
 
-const BASE = 'https://api.snov.io/v1';
+const BASE = 'https://api.snov.io';
 
 // Module-level token cache (lives for the serverless instance lifetime)
 let _cachedToken: string | null = null;
@@ -34,10 +34,10 @@ async function getAccessToken(): Promise<string> {
   if (_cachedToken && Date.now() < _tokenExpiresAt) return _cachedToken;
 
   const { clientId, clientSecret } = credentials();
-  const res = await fetch(`${BASE}/oauth/access_token`, {
+  const res = await fetch(`${BASE}/v1/oauth/access_token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: clientId,
       client_secret: clientSecret,
@@ -116,26 +116,55 @@ export interface SnovEmailVerifyResult {
 // ─── Operations ──────────────────────────────────────────────────────────────
 
 /**
- * Search for prospects using the Snov prospect search API.
- * Supports filtering by title (position), industry, and location.
+ * Search for prospects by domain using Snov's async domain-search API (v2).
+ * Step 1: POST to start the search, get a task_hash.
+ * Step 2: GET results using the task_hash.
  */
-export async function searchProspects(params: SnovSearchParams): Promise<SnovSearchResponse> {
-  const body: Record<string, unknown> = {
-    rows: params.limit ?? 50,
-  };
-  if (params.position?.length) body.position = params.position;
-  if (params.industry?.length) body.industry = params.industry;
-  if (params.location?.length) body.location = params.location;
-  if (params.lastId) body.lastId = params.lastId;
+export async function searchProspectsByDomain(
+  domain: string,
+  positions?: string[],
+  page = 1,
+): Promise<SnovSearchResponse> {
+  // Step 1: start the search
+  const startRes = await req<{ task_hash?: string; success?: boolean }>(
+    'POST',
+    '/v2/domain-search/prospects/start',
+    { domain, positions: positions ?? [], page },
+  );
 
-  return req<SnovSearchResponse>('POST', '/prospect-search', body);
+  const taskHash = startRes.task_hash;
+  if (!taskHash) return { success: false, data: [] };
+
+  // Step 2: poll for results (max 5 attempts, 1s apart)
+  for (let i = 0; i < 5; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const result = await req<SnovSearchResponse>(
+        'GET',
+        `/v2/domain-search/prospects/result/${taskHash}`,
+      );
+      if (result.data?.length) return result;
+    } catch {
+      // still processing
+    }
+  }
+
+  return { success: false, data: [] };
+}
+
+/**
+ * Generic prospect search — Snov does not expose a public industry/location search API.
+ * Returns empty so the leads route falls through to ALeads for browsing.
+ */
+export async function searchProspects(_params: SnovSearchParams): Promise<SnovSearchResponse> {
+  return { success: false, data: [] };
 }
 
 /**
  * Verify a single email address via Snov's email verifier.
  */
 export async function verifyEmail(email: string): Promise<SnovEmailVerifyResult> {
-  return req<SnovEmailVerifyResult>('POST', '/get-emails-verification-status', { emails: [email] });
+  return req<SnovEmailVerifyResult>('POST', '/v1/get-emails-verification-status', { emails: [email] });
 }
 
 /**
@@ -146,7 +175,7 @@ export async function findEmail(
   lastName: string,
   domain: string,
 ): Promise<{ emails: Array<{ email: string; emailStatus: string }> }> {
-  return req('POST', '/get-emails-from-names', {
+  return req('POST', '/v1/get-emails-from-names', {
     firstName,
     lastName,
     domain,
