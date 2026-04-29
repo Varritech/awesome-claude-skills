@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { apiGet } from "@/lib/api-client";
 
+// onboardingCompleted (with 'd') matches the field name returned by /api/user/profile.
 interface UserProfile {
-  onboardingComplete?: boolean;
+  onboardingCompleted?: boolean;
   industry?: string | null;
-  persona?: string | null;
+  preferredStyle?: string | null;
 }
 
 export default function OnboardingLandingPage() {
@@ -19,9 +20,9 @@ export default function OnboardingLandingPage() {
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Anonymous visitors see the marketing landing page (no check needed)
+    // Anonymous visitors: send straight to sign-up.
     if (!isSignedIn) {
-      setChecking(false);
+      router.replace("/onboarding/signup");
       return;
     }
 
@@ -30,17 +31,18 @@ export default function OnboardingLandingPage() {
     apiGet<UserProfile>("/api/user/profile")
       .then((profile) => {
         if (cancelled) return;
-        if (profile?.onboardingComplete) {
+        // onboardingCompleted (with 'd') is the canonical field name from UserProfileRecord.
+        if (profile?.onboardingCompleted) {
           router.replace("/dashboard");
         } else {
-          setChecking(false);
+          router.replace("/onboarding/path");
         }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        // If the profile doesn't exist yet, just show the path selector
         console.error("Failed to load profile", err);
-        setChecking(false);
+        // On error, default to the path selector so the user can continue.
+        router.replace("/onboarding/path");
       });
 
     return () => {
@@ -48,9 +50,8 @@ export default function OnboardingLandingPage() {
     };
   }, [isLoaded, isSignedIn, router]);
 
-  // Always redirect signed-in users — either to dashboard if done, or to path selector
-  // The checking state covers the profile fetch; if still loading show a minimal spinner
-  if (checking) {
+  // Show a minimal spinner while the profile fetch and redirect resolve.
+  if (checking || isLoaded) {
     return (
       <div className="min-h-screen bg-cf-page flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-2 border-cf-orange/30 border-t-cf-orange animate-spin" />
@@ -58,13 +59,5 @@ export default function OnboardingLandingPage() {
     );
   }
 
-  // Signed-out visitors: redirect to signup
-  if (!isSignedIn) {
-    router.replace("/onboarding/signup");
-    return null;
-  }
-
-  // Signed-in, not complete: go to path selector
-  router.replace("/onboarding/path");
   return null;
 }
