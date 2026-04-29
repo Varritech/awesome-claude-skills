@@ -169,8 +169,8 @@ export default function DomainPage() {
     setError(null);
 
     if (selected === "convergeflow") {
-      // ConvergeFlow-managed domain: no API call needed during onboarding.
-      // Domain provisioning happens asynchronously after signup.
+      // Store intent so the industry step can provision {industry}-{slug}.convergeflow.io
+      sessionStorage.setItem("cf_domain_choice", "convergeflow");
       router.push("/onboarding/inbox");
       return;
     }

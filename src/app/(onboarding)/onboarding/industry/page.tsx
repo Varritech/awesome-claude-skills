@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
-import { apiPatch } from "@/lib/api-client";
+import { apiPatch, apiPost } from "@/lib/api-client";
 
 type Industry = "roofing" | "solar" | "hvac" | "plumbing" | "electrical" | "landscaping" | "general-contracting" | "painting" | "cleaning" | "other";
 
@@ -157,6 +157,21 @@ export default function IndustryPage() {
       // The onboarding endpoint only accepts { step, completed } and would reject this payload.
       const industryValue = selected === "other" ? otherText.trim() : selected!;
       await apiPatch("/api/user/profile", { industry: industryValue });
+
+      // If the user chose a ConvergeFlow-managed domain, provision it now
+      // using the industry they just selected: {industry}-{random4}.convergeflow.io
+      if (sessionStorage.getItem("cf_domain_choice") === "convergeflow") {
+        sessionStorage.removeItem("cf_domain_choice");
+        const slug = industryValue.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 20);
+        const rand = Math.random().toString(36).slice(2, 6);
+        const domain = `${slug}-${rand}.convergeflow.io`;
+        try {
+          await apiPost("/api/domains", { domain, purpose: "sending" });
+        } catch (err) {
+          console.warn("ConvergeFlow domain provisioning failed (non-fatal)", err);
+        }
+      }
+
       router.push("/onboarding/style");
     } catch (err) {
       console.error(err);
