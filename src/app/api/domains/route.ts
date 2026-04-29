@@ -100,7 +100,7 @@ async function fetchDnsWithRetry(
   }
 }
 
-function parseDnsRecords(dnsRecs: MailforgeDnsRecord[], domain: string): MailforgeDomain['dnsRecords'] {
+function parseDnsRecords(dnsRecs: MailforgeDnsRecord[]): MailforgeDomain['dnsRecords'] {
   const find = (predicate: (r: MailforgeDnsRecord) => boolean) => dnsRecs.find(predicate);
   return {
     spf: find((r) => r.type?.toUpperCase() === 'TXT' && r.value?.includes('spf')),
@@ -161,11 +161,11 @@ export async function POST(req: NextRequest) {
         const dkimValue = (mfDomain.dnsRecords.dkim as MailforgeDnsRecord | undefined)?.value ?? '';
         if (!dkimValue.replace('v=DKIM1; k=rsa; p=', '').trim()) {
           const retried = await fetchDnsWithRetry(mailforgeDomainId);
-          if (retried) apiDnsRecords = parseDnsRecords(retried, domain);
+          if (retried) apiDnsRecords = parseDnsRecords(retried);
         }
       } else if (mailforgeDomainId) {
         const dnsRecs = await fetchDnsWithRetry(mailforgeDomainId);
-        if (dnsRecs) apiDnsRecords = parseDnsRecords(dnsRecs, domain);
+        if (dnsRecs) apiDnsRecords = parseDnsRecords(dnsRecs);
       }
     } catch (err) {
       console.warn('[api:domains.POST] mailforge.purchaseDomain failed', err);
