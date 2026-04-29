@@ -15,6 +15,34 @@ import type { MailforgeDomain } from '@/lib/mailforge/client';
 
 export const dynamic = 'force-dynamic';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchDnsWithRetry(
+  domainId: string,
+  maxAttempts = 6,
+  delayMs = 3000,
+): Promise<mailforge.MailforgeDnsRecord[]> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const recs = await mailforge.getDomainDns(domainId);
+    const dkim = recs.find((r) => r.host?.includes('domainkey'));
+    const dkimKey = dkim?.value?.replace('v=DKIM1; k=rsa; p=', '').trim();
+    if (dkimKey && dkimKey.length > 0) {
+      return recs;
+    }
+    if (attempt < maxAttempts) await sleep(delayMs);
+  }
+  return mailforge.getDomainDns(domainId);
+}
+
+function parseDnsRecords(recs: mailforge.MailforgeDnsRecord[]): MailforgeDomain['dnsRecords'] {
+  return {
+    spf: recs.find((r) => r.type?.toUpperCase() === 'TXT' && r.value?.includes('spf')),
+    dkim: recs.find((r) => r.host?.includes('domainkey')),
+    dmarc: recs.find((r) => r.host?.startsWith('_dmarc')),
+    mx: recs.find((r) => r.type?.toUpperCase() === 'MX'),
+  };
+}
+
 type DnsStatus = 'pending' | 'red' | 'yellow' | 'green';
 
 interface DnsInstruction {
@@ -112,26 +140,18 @@ export async function POST(req: NextRequest) {
     try {
       const mfDomain = await mailforge.purchaseDomain(domain);
       mailforgeDomainId = mfDomain.id;
-      // Fetch DNS records separately if not returned in purchase response
-      if (!mfDomain.dnsRecords && mailforgeDomainId) {
-        const dnsRecs = await mailforge.getDomainDns(mailforgeDomainId);
-        const find = (type: string) => dnsRecs.find((r) => r.type.toUpperCase() === type || r.host?.startsWith(type.toLowerCase()));
-        apiDnsRecords = {
-          spf: find('TXT'),
-          dkim: dnsRecs.find((r) => r.host?.includes('domainkey')),
-          dmarc: dnsRecs.find((r) => r.host?.startsWith('_dmarc')),
-          mx: find('MX'),
-        };
-      } else {
-        apiDnsRecords = mfDomain.dnsRecords;
-      }
+
+      // DKIM is provisioned asynchronously by Mailforge — retry until p= is populated
+      const dnsRecs = await fetchDnsWithRetry(mailforgeDomainId);
+      apiDnsRecords = parseDnsRecords(dnsRecs);
     } catch (err) {
       console.warn('[api:domains.POST] mailforge.purchaseDomain failed', err);
     }
   }
 
-  // DNS instructions: prefer values from Mailforge API if available,
-  // otherwise use known Mailforge standard values as defaults.
+  // DNS instructions: use Mailforge API values when available.
+  // SPF/DMARC/MX have known standard values as fallbacks; DKIM has NO fallback
+  // since an empty p= value is useless and misleading.
   const instructions = {
     spf: apiDnsRecords?.spf ?? {
       host: domain,
@@ -141,7 +161,7 @@ export async function POST(req: NextRequest) {
     dkim: apiDnsRecords?.dkim ?? {
       host: `cf._domainkey.${domain}`,
       type: 'TXT',
-      value: 'v=DKIM1; k=rsa; p=',
+      value: '',
     },
     dmarc: apiDnsRecords?.dmarc ?? {
       host: `_dmarc.${domain}`,
