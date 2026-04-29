@@ -45,7 +45,7 @@ function statusToFreshness(status?: string): Freshness {
 function normalizeLead(l: ApiLead): Lead {
   return {
     id: l.id,
-    name: l.name ?? `${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || "Unknown",
+    name: l.name ?? (`${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || "Unknown"),
     company: l.company ?? "",
     industry: l.industry ?? "",
     location: l.location ?? "",
