@@ -43,6 +43,7 @@ interface DomainVerifyData {
   spfStatus?: string;
   dkimStatus?: string;
   dmarcStatus?: string;
+  mxStatus?: string;
 }
 
 /** Convert the flat dnsInstructions map from the API into the array the UI renders. */
