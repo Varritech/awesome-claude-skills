@@ -9,7 +9,7 @@
  * dashboard mount; exits early when queued/sent emails already exist.
  */
 
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { chat } from '@/lib/ollama/client';
 import { logRequest, requireUser } from '@/lib/api/helpers';
@@ -84,7 +84,7 @@ const MOCK_LEADS: LeadDoc[] = [
   { id: 'ld_10', firstName: 'Drew', lastName: 'Wilson', email: 'drew@luminate.agency', company: 'Luminate Agency', title: 'Founder', industry: 'Marketing', status: 'new' },
 ];
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const auth = await requireUser();
   if (auth.response) return auth.response;
   const { userId } = auth;
