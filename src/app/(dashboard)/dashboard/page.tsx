@@ -113,6 +113,13 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // On first dashboard load, auto-draft emails from leads in the background.
+  // The route is idempotent — it exits early if queued/sent emails already exist.
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/emails/auto-draft", { method: "POST" }).catch(() => {});
+  }, [user]);
+
   if (loading) {
     return <DashboardSkeleton />;
   }
