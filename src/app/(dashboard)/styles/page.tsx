@@ -15,10 +15,8 @@ interface PersonaRecord {
 }
 
 interface PersonasApiResponse {
-  data: {
-    builtIns: PersonaRecord[];
-    custom: PersonaRecord[];
-  };
+  builtIns: PersonaRecord[];
+  custom: PersonaRecord[];
 }
 
 const TONE_EMOJI: Record<string, string> = {
@@ -57,8 +55,8 @@ export default function StylesPage() {
     apiGet<PersonasApiResponse>("/api/personas")
       .then((res) => {
         if (cancelled) return;
-        const built = res?.data?.builtIns ?? [];
-        const custom = res?.data?.custom ?? [];
+        const built = res?.builtIns ?? [];
+        const custom = res?.custom ?? [];
         setBuiltIns(built);
         setCustomPersonas(custom);
         // Default select first built-in
@@ -81,11 +79,11 @@ export default function StylesPage() {
     setGenerating(true);
     try {
       // Ask the AI to turn the user's description into a system prompt
-      const res = await apiPost<{ data: { systemPrompt: string } }>(
+      const res = await apiPost<{ systemPrompt: string }>(
         "/api/personas/generate",
         { description: customDesc, name: customName },
       );
-      setGeneratedPrompt(res?.data?.systemPrompt ?? "");
+      setGeneratedPrompt(res?.systemPrompt ?? "");
     } catch {
       // Fallback: build a basic prompt from the description
       setGeneratedPrompt(
@@ -100,15 +98,15 @@ export default function StylesPage() {
     if (saving || !generatedPrompt.trim()) return;
     setSaving(true);
     try {
-      const res = await apiPost<{ data: PersonaRecord }>("/api/personas", {
+      const res = await apiPost<PersonaRecord>("/api/personas", {
         name: customName || "My Style",
         description: customDesc,
         systemPrompt: generatedPrompt,
         tone: "direct",
       });
-      if (res?.data) {
-        setCustomPersonas((prev) => [...prev, res.data]);
-        setSelected(res.data.id);
+      if (res?.id) {
+        setCustomPersonas((prev) => [...prev, res]);
+        setSelected(res.id);
         // Reset form
         setCustomDesc("");
         setGeneratedPrompt("");
