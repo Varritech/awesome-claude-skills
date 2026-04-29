@@ -2,10 +2,66 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogoIcon } from "@/components/icons";
 
+// WhatsApp number for the OpenClaw DWY service.
+const WHATSAPP_NUMBER = "15551234567"; // replace with the real number
+
+interface ChatMessage {
+  from: "bot" | "user";
+  text: string;
+}
+
+const initialMessages: ChatMessage[] = [
+  {
+    from: "bot",
+    text: "Hey! I'm going to set everything up for you. Quick question — what kind of work does your company do?",
+  },
+  {
+    from: "user",
+    text: "We do residential roofing in the Dallas area. Mainly shingle replacement and storm damage repairs.",
+  },
+  {
+    from: "bot",
+    text: "Got it. I found 47 potential customers in Dallas who might need roofing work. I'll write the emails, set up your inbox, and start sending. Sound good?",
+  },
+];
+
 export default function OpenClawPage() {
+  const router = useRouter();
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+
+  const handleSend = () => {
+    const text = input.trim();
+    if (!text) return;
+    setMessages((prev) => [...prev, { from: "user", text }]);
+    setInput("");
+    // Simulate a brief bot acknowledgement so the conversation feels alive.
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          from: "bot",
+          text: "Got it — I'll take it from here. You'll hear back shortly via WhatsApp.",
+        },
+      ]);
+      // After the bot replies, move the user to the dashboard after a short pause.
+      setTimeout(() => router.push("/dashboard"), 1800);
+    }, 900);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleSend();
+  };
+
+  const handleWhatsApp = () => {
+    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      "Hi! I'd like help setting up my cold email outreach with ConvergeFlow."
+    )}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="min-h-screen bg-cf-page flex flex-col items-center justify-center px-5 py-10">
@@ -37,47 +93,30 @@ export default function OpenClawPage() {
 
           {/* Chat messages */}
           <div className="flex flex-col gap-3 mb-7">
-            {/* Bot message 1 */}
-            <div className="flex gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-cf-orange flex items-center justify-center flex-shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 4L12 12L4 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 4L20 12L12 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="bg-[#222228] rounded-[16px] rounded-tl-[4px] py-3.5 px-[18px] max-w-[400px]">
-                <p className="text-[13px] text-white/60 leading-[1.6]">
-                  Hey Jake! I&apos;m going to set everything up for you. Quick question — what kind of work does your company do?
-                </p>
-              </div>
-            </div>
-
-            {/* User message */}
-            <div className="flex justify-end gap-2.5">
-              <div className="bg-cf-orange rounded-[16px] rounded-tr-[4px] py-3.5 px-[18px] max-w-[400px]">
-                <p className="text-[13px] text-white leading-[1.6]">
-                  We do residential roofing in the Dallas area. Mainly shingle replacement and storm damage repairs.
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cf-orange to-[#FB923C] flex items-center justify-center flex-shrink-0 text-[11px] font-bold">
-                JR
-              </div>
-            </div>
-
-            {/* Bot message 2 */}
-            <div className="flex gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-cf-orange flex items-center justify-center flex-shrink-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 4L12 12L4 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 4L20 12L12 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="bg-[#222228] rounded-[16px] rounded-tl-[4px] py-3.5 px-[18px] max-w-[400px]">
-                <p className="text-[13px] text-white/60 leading-[1.6]">
-                  Got it. I found 47 potential customers in Dallas who might need roofing work. I&apos;ll write the emails, set up your inbox, and start sending. Sound good?
-                </p>
-              </div>
-            </div>
+            {messages.map((msg, i) =>
+              msg.from === "bot" ? (
+                <div key={i} className="flex gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-cf-orange flex items-center justify-center flex-shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 4L12 12L4 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M12 4L20 12L12 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="bg-[#222228] rounded-[16px] rounded-tl-[4px] py-3.5 px-[18px] max-w-[400px]">
+                    <p className="text-[13px] text-white/60 leading-[1.6]">{msg.text}</p>
+                  </div>
+                </div>
+              ) : (
+                <div key={i} className="flex justify-end gap-2.5">
+                  <div className="bg-cf-orange rounded-[16px] rounded-tr-[4px] py-3.5 px-[18px] max-w-[400px]">
+                    <p className="text-[13px] text-white leading-[1.6]">{msg.text}</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cf-orange to-[#FB923C] flex items-center justify-center flex-shrink-0 text-[11px] font-bold">
+                    JR
+                  </div>
+                </div>
+              )
+            )}
           </div>
 
           {/* Input row */}
@@ -86,12 +125,14 @@ export default function OpenClawPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Type your answer..."
               className="flex-1 bg-[#222228] border-none rounded-[14px] py-3.5 px-[18px] text-sm text-white outline-none placeholder:text-white/35"
             />
             <button
               type="button"
-              className="w-12 h-12 min-w-[48px] bg-cf-orange rounded-[14px] border-none flex items-center justify-center cursor-pointer"
+              onClick={handleSend}
+              className="w-12 h-12 min-w-[48px] bg-cf-orange rounded-[14px] border-none flex items-center justify-center cursor-pointer hover:bg-cf-orange-dark transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13" />
@@ -108,6 +149,7 @@ export default function OpenClawPage() {
         <div className="text-center mb-6">
           <button
             type="button"
+            onClick={handleWhatsApp}
             className="inline-flex items-center justify-center gap-2.5 bg-[#22C55E] text-white text-sm font-bold py-3.5 px-8 rounded-[14px] border-none cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(34,197,94,0.3)] font-heading uppercase tracking-wide"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
