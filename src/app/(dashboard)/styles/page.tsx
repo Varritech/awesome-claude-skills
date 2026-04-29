@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, Skeleton } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 
 interface PersonaRecord {
@@ -19,20 +20,35 @@ interface PersonasApiResponse {
   custom: PersonaRecord[];
 }
 
-const TONE_EMOJI: Record<string, string> = {
-  direct: "🎯",
-  warm: "👋",
-  expert: "🧠",
-  friendly: "🤝",
-  irreverent: "😏",
-};
-
-const TONE_LABEL: Record<string, string> = {
-  direct: "Direct",
-  warm: "Warm",
-  expert: "Expert",
-  friendly: "Friendly",
-  irreverent: "Irreverent",
+const BUILT_IN_META: Record<string, { avatar: string; desc: string; subject: string; body: string; sig: string }> = {
+  closer: {
+    avatar: "/avatars/closer.png",
+    desc: "Direct and confident. Gets straight to the point.",
+    subject: "Quick question about your roof",
+    body: "Hi Mike, I noticed some shingles lifting on your roof at 42 Elm St. We're doing work in your neighborhood this week. Want a free quote before it gets worse?",
+    sig: "— Jake, Jake's Roofing",
+  },
+  neighbor: {
+    avatar: "/avatars/neighbor.png",
+    desc: "Friendly and warm. Like a recommendation from next door.",
+    subject: "Hey from a local roofer",
+    body: "Hey Mike! Just finished a roof for the Johnsons down the street. They were really happy with how it turned out. If you ever need anything, we'd love to help.",
+    sig: "— Jake, Jake's Roofing",
+  },
+  expert: {
+    avatar: "/avatars/expert.png",
+    desc: "Professional and knowledgeable. Builds trust with expertise.",
+    subject: "Roof inspection before storm season",
+    body: "Hi Mike, with the recent storms, homes built before 2005 often show early wear on ridge caps and flashing. A quick inspection can catch small issues before they become costly repairs.",
+    sig: "— Jake, Jake's Roofing",
+  },
+  helper: {
+    avatar: "/avatars/helper.png",
+    desc: "Helpful and genuine. Focused on solving problems.",
+    subject: "Can I help with your roof?",
+    body: "Hi Mike, I know dealing with roof stuff can be stressful, especially when you're not sure how bad it is. I'm happy to come take a look for free. No pressure at all.",
+    sig: "— Jake, Jake's Roofing",
+  },
 };
 
 const CUSTOM_ID = "__custom__";
@@ -150,79 +166,101 @@ export default function StylesPage() {
         <p className="text-[13px] text-white/25 mt-1">Pick your writing persona</p>
       </div>
 
-      {/* Built-in persona grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+      {/* Persona grid — matches onboarding style page design */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {allPersonas.map((persona) => {
           const isSelected = selected === persona.id;
+          const meta = BUILT_IN_META[persona.id];
           return (
-            <Card
+            <button
               key={persona.id}
-              className={`cursor-pointer transition-all ${
-                isSelected
-                  ? "ring-2 ring-cf-orange bg-cf-orange/[0.06]"
-                  : "hover:bg-white/[0.03]"
-              }`}
+              type="button"
               onClick={() => setSelected(persona.id)}
+              className={`relative bg-cf-card rounded-[20px] p-7 text-left cursor-pointer transition-all duration-200 overflow-hidden ${
+                isSelected ? "bg-[#1F1F25]" : "hover:bg-[#1F1F25]"
+              }`}
+              style={isSelected ? { boxShadow: "inset 0 0 0 1.5px rgba(249,115,22,0.4)" } : undefined}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl">{TONE_EMOJI[persona.tone] ?? "✉️"}</span>
-                  <h3 className="text-[15px] font-bold font-heading">{persona.name}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  {persona.builtIn ? null : (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cf-orange/20 text-cf-orange uppercase tracking-wide">
-                      Custom
-                    </span>
-                  )}
-                  {isSelected && (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cf-orange text-white uppercase tracking-wide">
-                      Selected
-                    </span>
+              {/* Selected checkmark */}
+              <div
+                className={`absolute top-5 right-5 w-[22px] h-[22px] rounded-full bg-cf-orange flex items-center justify-center transition-all duration-200 ${
+                  isSelected ? "opacity-100 scale-100" : "opacity-0 scale-50"
+                }`}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-3.5 mb-3.5">
+                {meta ? (
+                  <div className="w-12 h-12 min-w-[48px] rounded-[16px] overflow-hidden">
+                    <img src={meta.avatar} alt={persona.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 min-w-[48px] rounded-[16px] bg-cf-elevated flex items-center justify-center text-xl">
+                    ✏️
+                  </div>
+                )}
+                <div>
+                  <span className="text-[15px] font-bold tracking-[-0.01em] font-heading block">{persona.name}</span>
+                  {!persona.builtIn && (
+                    <span className="text-[10px] text-cf-orange font-medium uppercase tracking-wide">Custom</span>
                   )}
                 </div>
               </div>
-              <p className="text-[12px] text-white/35 leading-relaxed mb-3">
-                {persona.description}
+
+              {/* Description */}
+              <p className="text-[13px] text-white/30 leading-relaxed mb-[18px]">
+                {meta?.desc ?? persona.description}
               </p>
-              <div className="flex gap-1.5 flex-wrap">
-                <span className="px-2.5 py-1 rounded-[var(--radius-pill)] text-[10px] font-medium bg-white/[0.04] text-white/30">
-                  {TONE_LABEL[persona.tone] ?? persona.tone}
-                </span>
-              </div>
-            </Card>
+
+              {/* Email preview for built-ins */}
+              {meta && (
+                <div className="bg-[#161618] rounded-[14px] p-[18px_20px]">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cf-orange flex-shrink-0" />
+                    <span className="text-[11px] text-white/20 font-medium">{meta.subject}</span>
+                  </div>
+                  <p className="text-[13px] text-white/35 leading-[1.65]">{meta.body}</p>
+                  <p className="text-[11px] text-white/[0.12] mt-3">{meta.sig}</p>
+                </div>
+              )}
+            </button>
           );
         })}
 
         {/* Custom / Create your own card */}
-        <Card
-          className={`cursor-pointer transition-all ${
-            selected === CUSTOM_ID
-              ? "ring-2 ring-cf-orange bg-cf-orange/[0.06]"
-              : "hover:bg-white/[0.03]"
-          }`}
+        <button
+          type="button"
           onClick={() => setSelected(CUSTOM_ID)}
+          className={`relative bg-cf-card rounded-[20px] p-7 text-left cursor-pointer transition-all duration-200 overflow-hidden ${
+            selected === CUSTOM_ID ? "bg-[#1F1F25]" : "hover:bg-[#1F1F25]"
+          }`}
+          style={selected === CUSTOM_ID ? { boxShadow: "inset 0 0 0 1.5px rgba(249,115,22,0.4)" } : undefined}
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">✏️</span>
-              <h3 className="text-[15px] font-bold font-heading">Custom Style</h3>
-            </div>
-            {selected === CUSTOM_ID && (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cf-orange text-white uppercase tracking-wide">
-                Selected
-              </span>
-            )}
+          <div
+            className={`absolute top-5 right-5 w-[22px] h-[22px] rounded-full bg-cf-orange flex items-center justify-center transition-all duration-200 ${
+              selected === CUSTOM_ID ? "opacity-100 scale-100" : "opacity-0 scale-50"
+            }`}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </div>
-          <p className="text-[12px] text-white/35 leading-relaxed mb-3">
+          <div className="flex items-center gap-3.5 mb-3.5">
+            <div className="w-12 h-12 min-w-[48px] rounded-[16px] bg-cf-elevated flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+            </div>
+            <span className="text-[15px] font-bold tracking-[-0.01em] font-heading">Custom Style</span>
+          </div>
+          <p className="text-[13px] text-white/30 leading-relaxed">
             Describe how you want to sound and the AI will build your writing persona.
           </p>
-          <div className="flex gap-1.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-[var(--radius-pill)] text-[10px] font-medium bg-white/[0.04] text-white/30">
-              AI-generated
-            </span>
-          </div>
-        </Card>
+        </button>
       </div>
 
       {/* Custom style builder — shown when Custom is selected */}
