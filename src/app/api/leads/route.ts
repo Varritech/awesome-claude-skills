@@ -11,6 +11,8 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
+import * as snov from '@/lib/snov/client';
+import * as aleads from '@/lib/aleads/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,61 +28,99 @@ interface LeadRecord {
   location?: string;
   status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
   source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
+  score?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
 }
 
+async function fetchExternalLeads(params: {
+  industry?: string;
+  location?: string;
+  limit: number;
+  userId: string;
+}): Promise<LeadRecord[]> {
+  const now = new Date().toISOString();
+  const results: LeadRecord[] = [];
+  const seen = new Set<string>();
+
+  const add = (lead: LeadRecord) => {
+    const key = lead.email?.toLowerCase() ?? `${lead.firstName}-${lead.lastName}-${lead.company}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    results.push(lead);
+  };
+
+  await Promise.all([
+    aleads.isConfigured()
+      ? aleads
+          .searchContacts({ industry: params.industry, location: params.location, limit: params.limit })
+          .then((res) => {
+            for (const c of res.data ?? []) {
+              add({
+                id: `ld_al_${c.id}`,
+                userId: params.userId,
+                firstName: c.first_name,
+                lastName: c.last_name,
+                email: c.email,
+                company: c.company,
+                title: c.title,
+                industry: c.industry ?? params.industry,
+                location: c.location ?? params.location,
+                status: 'new',
+                source: 'aleads',
+                score: c.confidence ? Math.round(c.confidence * 100) : 0,
+                createdAt: now,
+                updatedAt: now,
+                deletedAt: null,
+              });
+            }
+          })
+          .catch((err) => console.warn('[api:leads.GET] aleads failed', err))
+      : Promise.resolve(),
+
+    snov.isConfigured()
+      ? snov
+          .searchProspects({
+            industry: params.industry ? [params.industry] : undefined,
+            location: params.location ? [params.location] : undefined,
+            limit: params.limit,
+          })
+          .then((res) => {
+            for (const p of res.data ?? []) {
+              add({
+                id: `ld_sn_${p.id ?? Math.random().toString(36).slice(2, 10)}`,
+                userId: params.userId,
+                firstName: p.firstName,
+                lastName: p.lastName,
+                email: p.email,
+                company: p.currentCompany,
+                title: p.currentTitle,
+                industry: p.industry ?? params.industry,
+                location: p.location ?? params.location,
+                status: 'new',
+                source: 'snov',
+                score: p.emailStatus === 'valid' ? 80 : 40,
+                createdAt: now,
+                updatedAt: now,
+                deletedAt: null,
+              });
+            }
+          })
+          .catch((err) => console.warn('[api:leads.GET] snov failed', err))
+      : Promise.resolve(),
+  ]);
+
+  return results.slice(0, params.limit);
+}
+
 function mockSeed(userId: string): LeadRecord[] {
   const now = new Date().toISOString();
-  const rows: Array<Partial<LeadRecord>> = [
-    {
-      id: 'ld_demo_1',
-      firstName: 'Alex',
-      lastName: 'Chen',
-      email: 'alex@acme.io',
-      company: 'Acme SaaS',
-      title: 'Head of Growth',
-      industry: 'SaaS',
-      location: 'New York, NY',
-      status: 'contacted',
-      source: 'apollo',
-    },
-    {
-      id: 'ld_demo_2',
-      firstName: 'Jordan',
-      lastName: 'Patel',
-      email: 'jordan@northside.dental',
-      company: 'Northside Dental',
-      title: 'Practice Owner',
-      industry: 'Healthcare',
-      location: 'Austin, TX',
-      status: 'new',
-      source: 'aleads',
-    },
-    {
-      id: 'ld_demo_3',
-      firstName: 'Sam',
-      lastName: 'Ruiz',
-      email: 'sam@hawkcap.com',
-      company: 'Hawk Capital',
-      title: 'Managing Partner',
-      industry: 'Finance',
-      location: 'Miami, FL',
-      status: 'booked',
-      source: 'manual',
-    },
+  return [
+    { id: 'ld_demo_1', userId, firstName: 'Alex', lastName: 'Chen', email: 'alex@acme.io', company: 'Acme SaaS', title: 'Head of Growth', industry: 'SaaS', location: 'New York, NY', status: 'contacted', source: 'apollo', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
+    { id: 'ld_demo_2', userId, firstName: 'Jordan', lastName: 'Patel', email: 'jordan@northside.dental', company: 'Northside Dental', title: 'Practice Owner', industry: 'Healthcare', location: 'Austin, TX', status: 'new', source: 'aleads', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
+    { id: 'ld_demo_3', userId, firstName: 'Sam', lastName: 'Ruiz', email: 'sam@hawkcap.com', company: 'Hawk Capital', title: 'Managing Partner', industry: 'Finance', location: 'Miami, FL', status: 'booked', source: 'manual', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
   ];
-  return rows.map(
-    (r) =>
-      ({
-        userId,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        ...r,
-      }) as LeadRecord,
-  );
 }
 
 export async function GET(req: NextRequest) {
@@ -99,6 +139,7 @@ export async function GET(req: NextRequest) {
 
   logRequest('leads.GET', userId, { industry, location, status, limit, cursor });
 
+  // 1. Try Firestore
   try {
     let q = adminDb
       .collection('leads')
@@ -113,25 +154,38 @@ export async function GET(req: NextRequest) {
       if (cursorDoc.exists) q = q.startAfter(cursorDoc);
     }
     const snap = await q.get();
-    const leads = snap.docs
+    const firestoreLeads = snap.docs
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt);
-    if (leads.length === 0) {
-      const seed = mockSeed(userId);
-      const filtered = seed.filter(
-        (l) =>
-          (!industry || l.industry === industry) &&
-          (!location || l.location === location) &&
-          (!status || l.status === status),
-      );
-      return NextResponse.json({ data: filtered, nextCursor: null });
+
+    if (firestoreLeads.length > 0) {
+      const nextCursor = firestoreLeads.length === limit ? firestoreLeads[firestoreLeads.length - 1]?.id : null;
+      return NextResponse.json({ data: firestoreLeads, nextCursor });
     }
-    const nextCursor = leads.length === limit ? leads[leads.length - 1]?.id : null;
-    return NextResponse.json({ data: leads, nextCursor });
   } catch (err) {
-    console.warn('[api:leads.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: mockSeed(userId), nextCursor: null });
+    console.warn('[api:leads.GET] firestore query failed, trying external', err);
   }
+
+  // 2. Fetch live from ALeads + Snov
+  if (snov.isConfigured() || aleads.isConfigured()) {
+    try {
+      const external = await fetchExternalLeads({ industry, location, limit, userId });
+      if (external.length > 0) {
+        return NextResponse.json({ data: external, nextCursor: null });
+      }
+    } catch (err) {
+      console.warn('[api:leads.GET] external fetch failed', err);
+    }
+  }
+
+  // 3. Mock fallback
+  const seed = mockSeed(userId).filter(
+    (l) =>
+      (!industry || l.industry === industry) &&
+      (!location || l.location === location) &&
+      (!status || l.status === status),
+  );
+  return NextResponse.json({ data: seed, nextCursor: null });
 }
 
 export async function POST(req: NextRequest) {
@@ -158,13 +212,13 @@ export async function POST(req: NextRequest) {
     location: l.location,
     status: 'new',
     source,
+    score: 0,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
   }));
 
   try {
-    // TODO: batch-write in 500-doc chunks once real Firestore is wired.
     for (const rec of inserted) {
       await adminDb.collection('leads').doc(rec.id).set(rec);
     }
