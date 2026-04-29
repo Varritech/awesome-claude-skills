@@ -156,7 +156,7 @@ export async function searchProspectsByDomain(
  * Generic prospect search — Snov does not expose a public industry/location search API.
  * Returns empty so the leads route falls through to ALeads for browsing.
  */
-export async function searchProspects(_params: SnovSearchParams): Promise<SnovSearchResponse> {
+export async function searchProspects(_params: SnovSearchParams): Promise<SnovSearchResponse> { // eslint-disable-line @typescript-eslint/no-unused-vars
   return { success: false, data: [] };
 }
 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui";
+import { Card, Skeleton } from "@/components/ui";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 
 interface PersonaRecord {
