@@ -182,9 +182,10 @@ export default function DomainPage() {
 
     setSubmitting(true);
     try {
+      const cleanDomain = domainInput.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
       // API expects { domain: string, purpose: "primary" | "sending" }
       const data = await apiPost<ApiDomainData>("/api/domains", {
-        domain: domainInput.trim(),
+        domain: cleanDomain,
         purpose: "sending",
       });
       if (data?.dnsInstructions) {

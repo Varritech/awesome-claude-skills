@@ -45,14 +45,25 @@ export async function GET(req: NextRequest) {
 
     // Update or create the inbox record in Firestore
     if (state) {
-      await adminDb.collection('inboxes').doc(state).update({
+      const update = {
         email,
         status: 'warming',
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+      try {
+        const ref = adminDb.collection('inboxes').doc(state);
+        const snap = await ref.get();
+        if (snap.exists) {
+          await ref.update(update);
+        } else {
+          await ref.set({ id: state, ...update });
+        }
+      } catch (fsErr) {
+        console.warn('[gmail-callback] firestore update failed (continuing)', fsErr);
+      }
     }
 
     return NextResponse.redirect(`${appUrl}/onboarding/industry?inbox=connected`);
