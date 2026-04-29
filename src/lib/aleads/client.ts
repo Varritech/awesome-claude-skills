@@ -15,7 +15,7 @@ export class ALeadsNotConfiguredError extends Error {
   }
 }
 
-const BASE = 'https://api.a-leads.co/v1';
+const BASE = 'https://api.a-leads.co/gateway/v1';
 
 function apiKey(): string {
   const key = process.env.ALEADS_API_KEY;
@@ -75,18 +75,27 @@ export interface ALeadsSearchResponse {
 // ─── Operations ──────────────────────────────────────────────────────────────
 
 /**
- * Search for contacts matching the given criteria.
- * Returns up to `limit` leads (default 50, max 200 per page).
+ * Search for contacts via advanced-search.
+ * POST /gateway/v1/search/advanced-search
  */
 export async function searchContacts(params: ALeadsSearchParams): Promise<ALeadsSearchResponse> {
-  const qs = new URLSearchParams();
-  if (params.industry) qs.set('industry', params.industry);
-  if (params.location) qs.set('location', params.location);
-  if (params.title?.length) params.title.forEach((t) => qs.append('title[]', t));
-  if (params.limit) qs.set('limit', String(params.limit));
-  if (params.page) qs.set('page', String(params.page));
+  const advanced_filters: Record<string, unknown> = {};
+  if (params.industry) advanced_filters.company_industry = [params.industry];
+  if (params.location) advanced_filters.person_location = [params.location];
+  if (params.title?.length) advanced_filters.person_seniority = params.title;
 
-  return req<ALeadsSearchResponse>('GET', `/contacts?${qs}`);
+  const raw = await req<{ data?: ALeadContact[]; total?: number; current_page?: number }>(
+    'POST',
+    '/search/advanced-search',
+    { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
+  );
+
+  return {
+    data: raw.data ?? [],
+    total: raw.total ?? 0,
+    page: raw.current_page ?? 1,
+    limit: params.limit ?? 50,
+  };
 }
 
 export function isConfigured(): boolean {
