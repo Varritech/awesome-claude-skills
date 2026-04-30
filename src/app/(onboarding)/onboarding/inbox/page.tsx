@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/layout";
-import { apiPost } from "@/lib/api-client";
+import { apiPost, apiPatch } from "@/lib/api-client";
 
 type Provider = "gmail" | "yahoo" | "custom" | null;
 
@@ -44,6 +44,7 @@ export default function InboxPage() {
         return;
       }
       // No OAuth URL returned (placeholder env) — proceed to next step
+      apiPatch("/api/user/onboarding", { step: "inbox", completed: true }).catch(() => {});
       router.push("/onboarding/industry");
     } catch (err) {
       console.error(err);
@@ -67,6 +68,7 @@ export default function InboxPage() {
           password: custom.password,
         },
       });
+      apiPatch("/api/user/onboarding", { step: "inbox", completed: true }).catch(() => {});
       router.push("/onboarding/industry");
     } catch (err) {
       console.error(err);

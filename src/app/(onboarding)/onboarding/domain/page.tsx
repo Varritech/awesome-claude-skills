@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
-import { apiPost } from "@/lib/api-client";
+import { apiPost, apiPatch } from "@/lib/api-client";
 
 type DomainOption = "own" | "convergeflow" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
@@ -171,6 +171,7 @@ export default function DomainPage() {
     if (selected === "convergeflow") {
       // Store intent so the industry step can provision {industry}-{slug}.convergeflow.io
       sessionStorage.setItem("cf_domain_choice", "convergeflow");
+      apiPatch("/api/user/onboarding", { step: "domain", completed: true }).catch(() => {});
       router.push("/onboarding/inbox");
       return;
     }
@@ -192,6 +193,7 @@ export default function DomainPage() {
         setDnsRecords(instructionsToRecords(data.dnsInstructions));
       }
       if (data?.id) setDomainId(data.id);
+      apiPatch("/api/user/onboarding", { step: "domain", completed: true }).catch(() => {});
       setShowDns(true);
     } catch (err) {
       console.error(err);

@@ -73,11 +73,12 @@ export default function StylePage() {
       // The onboarding endpoint only accepts { step, completed } and rejects { persona, onboardingComplete }.
       await apiPatch("/api/user/profile", { preferredStyle: selected });
 
-      // Step 2: mark onboarding complete via the dedicated onboarding endpoint.
-      // updateOnboardingSchema requires { step: Step, completed: boolean }.
+      // Step 2: mark onboarding complete — this also sets Clerk publicMetadata.onboardingCompleted.
       await apiPatch("/api/user/onboarding", { step: "persona", completed: true });
 
-      router.push("/dashboard");
+      // Hard navigation forces a new Clerk session fetch so the middleware
+      // sees onboardingCompleted: true and allows through to /dashboard.
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error(err);
       setError("Could not save your style. Please try again.");

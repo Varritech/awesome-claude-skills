@@ -172,6 +172,7 @@ export default function IndustryPage() {
         }
       }
 
+      apiPatch("/api/user/onboarding", { step: "leads", completed: true }).catch(() => {});
       router.push("/onboarding/style");
     } catch (err) {
       console.error(err);
