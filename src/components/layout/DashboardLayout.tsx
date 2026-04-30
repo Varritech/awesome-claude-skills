@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { apiGet } from "@/lib/api-client";
 import {
   HomeIcon,
   MailIcon,
@@ -139,13 +142,29 @@ export function MobileNav() {
   );
 }
 
+function OnboardingGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    apiGet<{ onboardingCompleted?: boolean }>("/api/user/profile")
+      .then((profile) => {
+        if (!profile?.onboardingCompleted) router.replace("/onboarding");
+      })
+      .catch(() => {});
+  }, [isLoaded, isSignedIn, router]);
+
+  return <>{children}</>;
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-cf-page flex">
       <Sidebar />
       <main className="flex-1 p-7 md:p-7 max-md:p-6 max-md:pb-[calc(var(--mobile-nav-height)+1rem)]">
         <div className="max-w-cf-content mx-auto">
-          {children}
+          <OnboardingGuard>{children}</OnboardingGuard>
         </div>
       </main>
       <MobileNav />

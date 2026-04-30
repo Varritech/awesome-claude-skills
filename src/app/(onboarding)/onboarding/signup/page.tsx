@@ -53,7 +53,7 @@ export default function SignupPage() {
               path="/onboarding/signup"
               routing="path"
               signInUrl="/login"
-              afterSignUpUrl="/onboarding"
+              forceRedirectUrl="/onboarding"
               appearance={{
                 variables: {
                   colorPrimary: "#F97316",
