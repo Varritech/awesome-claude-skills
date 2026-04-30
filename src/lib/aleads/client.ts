@@ -85,7 +85,26 @@ export interface ALeadsSearchResponse {
 // ─── Operations ──────────────────────────────────────────────────────────────
 
 /**
- * Search for contacts via advanced-search.
+ * Fetch the email address for a single contact by member_id.
+ * POST /gateway/v1/find-email/personal
+ * Returns null if no email found or on error.
+ */
+async function findPersonalEmail(memberId: number): Promise<string | null> {
+  try {
+    const res = await req<{ email?: string; data?: { email?: string } }>(
+      'POST',
+      '/find-email/personal',
+      { data: { member_id: memberId } },
+    );
+    return res.email ?? res.data?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Search for contacts via advanced-search, then enrich with emails.
+ * Only contacts where email_found === true are enriched; the rest are discarded.
  * POST /gateway/v1/search/advanced-search
  */
 const DEFAULT_INDUSTRIES = ['Roofing', 'Solar', 'HVAC', 'Plumbing', 'Electrical', 'Landscaping', 'Painting', 'Cleaning'];
@@ -102,14 +121,8 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
   );
 
-  // Log first contact shape so we can see all raw field names
-  if (raw.data?.[0]) {
-    console.log('[aleads] first contact raw keys:', Object.keys(raw.data[0]));
-    console.log('[aleads] first contact sample:', JSON.stringify(raw.data[0]));
-  }
-
   // Normalize raw ALeads field names to the canonical shape
-  const data = (raw.data ?? []).map((c) => ({
+  const normalized = (raw.data ?? []).map((c) => ({
     ...c,
     id: String(c.member_id ?? c.id ?? Math.random()),
     first_name: c.first_name ?? (c.member_full_name?.split(' ')[0]),
@@ -120,8 +133,23 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     linkedin_url: c.linkedin_url,
   }));
 
+  // Enrich only contacts flagged as email_found, in parallel (max 10 at a time)
+  const toEnrich = normalized.filter((c) => c.email_found && c.member_id);
+  const enriched: ALeadContact[] = [];
+
+  for (let i = 0; i < toEnrich.length; i += 10) {
+    const batch = toEnrich.slice(i, i + 10);
+    const emails = await Promise.all(
+      batch.map((c) => findPersonalEmail(c.member_id!)),
+    );
+    batch.forEach((c, j) => {
+      const email = emails[j];
+      if (email) enriched.push({ ...c, email });
+    });
+  }
+
   return {
-    data,
+    data: enriched,
     total: raw.total ?? raw.meta_data?.total_count ?? 0,
     page: raw.current_page ?? 1,
     limit: params.limit ?? 50,
