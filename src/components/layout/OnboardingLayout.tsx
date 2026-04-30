@@ -1,7 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogoIcon } from "@/components/icons";
+import { apiGet } from "@/lib/api-client";
+
+interface OnboardingState {
+  completed?: boolean;
+}
 
 const steps = [
   { label: "Account", href: "/onboarding/path" },
@@ -20,7 +27,28 @@ interface OnboardingLayoutProps {
 }
 
 export function OnboardingLayout({ children, currentStep }: OnboardingLayoutProps) {
+  const router = useRouter();
   const fillWidth = progressWidths[currentStep - 1] ?? 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const data = await apiGet<OnboardingState>("/api/user/onboarding");
+        if (!cancelled && data?.completed) {
+          window.location.href = "/dashboard";
+        }
+      } catch {
+        // non-fatal — keep polling
+      }
+    };
+    check();
+    const interval = setInterval(check, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-cf-page">
