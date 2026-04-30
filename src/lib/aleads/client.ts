@@ -102,6 +102,12 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
   );
 
+  // Log first contact shape so we can see all raw field names
+  if (raw.data?.[0]) {
+    console.log('[aleads] first contact raw keys:', Object.keys(raw.data[0]));
+    console.log('[aleads] first contact sample:', JSON.stringify(raw.data[0]));
+  }
+
   // Normalize raw ALeads field names to the canonical shape
   const data = (raw.data ?? []).map((c) => ({
     ...c,
