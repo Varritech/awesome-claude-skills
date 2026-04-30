@@ -57,6 +57,7 @@ export const updateProfileSchema = z.object({
   industry: z.string().max(80).optional(),
   role: z.string().max(80).optional(),
   timezone: z.string().max(60).optional(),
+  preferredStyle: z.string().max(40).optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 

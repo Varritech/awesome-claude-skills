@@ -68,10 +68,10 @@ export default function StylePage() {
     setError(null);
     setSubmitting(true);
     try {
-      await apiPatch("/api/user/onboarding", {
-        persona: selected,
-        onboardingComplete: true,
-      });
+      await Promise.all([
+        apiPatch("/api/user/onboarding", { step: "persona", completed: true }),
+        apiPatch("/api/user/profile", { preferredStyle: selected }),
+      ]);
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
