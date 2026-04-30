@@ -66,13 +66,21 @@ export async function GET() {
 
   logRequest('user.profile.GET', userId);
 
-  const [doc, inboxSnap] = await Promise.all([
+  const [doc, inboxSnap, domainSnap] = await Promise.all([
     adminDb.collection('users').doc(userId).get(),
     adminDb.collection('inboxes').where('userId', '==', userId).get(),
+    adminDb.collection('domains').where('userId', '==', userId).get(),
   ]);
 
   const profile = doc.exists ? doc.data() : mockProfile(userId);
   const inboxes = inboxSnap.docs.map((d) => d.data());
+  const domains = domainSnap.docs
+    .map((d) => d.data())
+    .map((d) => ({
+      id: d.id,
+      domain: d.domain,
+      status: d.overallStatus === 'green' ? 'verified' : d.overallStatus === 'pending' ? 'pending' : 'failed',
+    }));
 
   // Backfill: if Firestore says onboarding is done but Clerk metadata doesn't,
   // update Clerk so the middleware lets them through to the dashboard.
@@ -88,7 +96,7 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ data: { ...profile, inboxes } });
+  return NextResponse.json({ data: { ...profile, inboxes, domains } });
 }
 
 export async function PATCH(req: NextRequest) {
