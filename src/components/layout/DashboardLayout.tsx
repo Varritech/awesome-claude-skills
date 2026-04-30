@@ -148,9 +148,9 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    apiGet<{ onboardingCompleted?: boolean }>("/api/user/profile")
-      .then((profile) => {
-        if (!profile?.onboardingCompleted) router.replace("/onboarding");
+    apiGet<{ completed?: boolean }>("/api/user/onboarding")
+      .then((state) => {
+        if (!state?.completed) router.replace("/onboarding");
       })
       .catch(() => {});
   }, [isLoaded, isSignedIn, router]);
