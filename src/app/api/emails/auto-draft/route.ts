@@ -106,11 +106,11 @@ export async function POST() {
     // Firestore unavailable — continue with mock path
   }
 
-  // Fetch user's saved persona from onboarding doc
+  // Fetch user's saved persona from users doc (set during onboarding as preferredStyle)
   let persona: Persona = 'neighbor';
   try {
-    const onboardingDoc = await adminDb.collection('onboarding').doc(userId).get();
-    const saved = onboardingDoc.data()?.persona as string | undefined;
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const saved = userDoc.data()?.preferredStyle as string | undefined;
     if (saved && saved in PERSONA_SYSTEM) persona = saved as Persona;
   } catch {
     // fall through to default

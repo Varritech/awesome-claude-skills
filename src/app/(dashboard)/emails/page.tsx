@@ -53,18 +53,35 @@ export default function EmailsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    apiGet<{ data: EmailRecord[] }>("/api/emails")
-      .then((res) => {
+
+    async function loadEmails() {
+      try {
+        const res = await apiGet<{ data: EmailRecord[] }>("/api/emails");
         if (cancelled) return;
         const items = Array.isArray(res) ? res : (res?.data ?? []);
-        setEmails(items);
-      })
-      .catch((err) => {
+
+        if (items.length === 0) {
+          // No emails yet — auto-draft from leads, then reload once
+          try {
+            await apiPost("/api/emails/auto-draft", {});
+          } catch {
+            // auto-draft failed (e.g. Ollama not reachable) — show empty state
+          }
+          if (cancelled) return;
+          const res2 = await apiGet<{ data: EmailRecord[] }>("/api/emails");
+          if (cancelled) return;
+          setEmails(Array.isArray(res2) ? res2 : (res2?.data ?? []));
+        } else {
+          setEmails(items);
+        }
+      } catch (err) {
         console.error("Failed to load emails", err);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    loadEmails();
     return () => {
       cancelled = true;
     };
