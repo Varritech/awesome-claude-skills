@@ -100,17 +100,20 @@ export async function PATCH(req: NextRequest) {
       console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
     }
   } else if (step !== undefined && completed !== undefined) {
-    const nextStep = completed
-      ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
-      : step;
+    // 'persona' is the last user-facing step — completing it finishes onboarding
+    const isLastStep = step === 'persona' && completed;
+    const nextStep = isLastStep
+      ? 'complete'
+      : completed
+        ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
+        : step;
     patch = {
       ...patch,
       step: nextStep,
       completed: nextStep === 'complete',
       [`stepsCompleted.${step}`]: completed,
     };
-    // 'persona' is the last user-facing onboarding step — mark complete in Clerk
-    if (step === 'persona' && completed) {
+    if (isLastStep) {
       try {
         await clerkClient.users.updateUserMetadata(userId, {
           publicMetadata: { onboardingCompleted: true },
