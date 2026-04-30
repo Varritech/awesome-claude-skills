@@ -10,6 +10,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { updateOnboardingSchema } from '@/lib/schemas';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,6 +96,14 @@ export async function PATCH(req: NextRequest) {
     patch = { ...patch, persona, step: 'leads', 'stepsCompleted.persona': true };
   } else if (onboardingComplete) {
     patch = { ...patch, step: 'complete', completed: true };
+    // Mark onboarding done in Clerk publicMetadata so middleware can gate the dashboard
+    try {
+      await clerkClient.users.updateUserMetadata(userId, {
+        publicMetadata: { onboardingCompleted: true },
+      });
+    } catch (err) {
+      console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
+    }
   } else if (step !== undefined && completed !== undefined) {
     const nextStep = completed
       ? (STEP_ORDER[Math.min(STEP_ORDER.indexOf(step) + 1, STEP_ORDER.length - 1)] as Step)
@@ -105,6 +114,16 @@ export async function PATCH(req: NextRequest) {
       completed: nextStep === 'complete',
       [`stepsCompleted.${step}`]: completed,
     };
+    // 'persona' is the last user-facing onboarding step — mark complete in Clerk
+    if (step === 'persona' && completed) {
+      try {
+        await clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: { onboardingCompleted: true },
+        });
+      } catch (err) {
+        console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
+      }
+    }
   }
 
   try {

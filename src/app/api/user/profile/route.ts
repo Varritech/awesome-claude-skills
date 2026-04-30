@@ -13,6 +13,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { updateProfileSchema } from '@/lib/schemas';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,20 @@ export async function GET() {
 
     const profile = doc.exists ? doc.data() : mockProfile(userId);
     const inboxes = inboxSnap.docs.map((d) => d.data());
+
+    // Backfill: if Firestore says onboarding is done but Clerk metadata doesn't,
+    // update Clerk so the middleware lets them through to the dashboard.
+    if (profile?.onboardingCompleted) {
+      const { sessionClaims } = auth;
+      const meta = sessionClaims?.publicMetadata as Record<string, unknown> | undefined;
+      if (!meta?.onboardingCompleted) {
+        clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: { onboardingCompleted: true },
+        }).catch((err: unknown) => {
+          console.warn('[api:user.profile.GET] failed to backfill Clerk metadata', err);
+        });
+      }
+    }
 
     return NextResponse.json({ data: { ...profile, inboxes } });
   } catch (err) {

@@ -8,7 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',
 ]);
 
-const isProtectedRoute = createRouteMatcher([
+const isDashboardRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/emails(.*)',
   '/customers(.*)',
@@ -24,8 +24,22 @@ export default clerkMiddleware((auth, req) => {
     return NextResponse.next();
   }
 
-  if (isProtectedRoute(req)) {
-    auth().protect();
+  if (isDashboardRoute(req)) {
+    const { userId, sessionClaims } = auth();
+
+    // Not signed in — protect (Clerk will redirect to sign-in)
+    if (!userId) {
+      auth().protect();
+      return NextResponse.next();
+    }
+
+    // Signed in but onboarding not completed → redirect to onboarding
+    const meta = sessionClaims?.publicMetadata as Record<string, unknown> | undefined;
+    if (!meta?.onboardingCompleted) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/onboarding';
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();
