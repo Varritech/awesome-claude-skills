@@ -35,6 +35,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
+    console.error(`[aleads] HTTP ${res.status} ${method} ${path}: ${text}`);
     throw new Error(`A-Leads ${method} ${path} → ${res.status}: ${text}`);
   }
 
@@ -96,11 +97,17 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
   if (params.location) advanced_filters.person_location = [params.location];
   if (params.title?.length) advanced_filters.person_seniority = params.title;
 
+  const requestBody = { advanced_filters, current_page: params.page ?? 1, search_type: 'new' };
+  console.log('[aleads] request', JSON.stringify(requestBody));
+
   const raw = await req<{ data?: ALeadContact[]; total?: number; current_page?: number; meta_data?: { total_count?: number } }>(
     'POST',
     '/search/advanced-search',
-    { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
+    requestBody,
   );
+
+  console.log('[aleads] raw response keys:', Object.keys(raw));
+  console.log('[aleads] raw response data length:', (raw.data ?? []).length, 'total:', raw.total ?? raw.meta_data?.total_count);
 
   // Normalize raw ALeads field names to the canonical shape
   const data = (raw.data ?? []).map((c) => ({
