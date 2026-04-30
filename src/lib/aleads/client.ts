@@ -85,30 +85,29 @@ export interface ALeadsSearchResponse {
 // ─── Operations ──────────────────────────────────────────────────────────────
 
 /**
- * Fetch the email address for a single contact by member_id.
- * POST /gateway/v1/find-email/personal
- * Returns null if no email found or on error.
+ * Fetch the personal email for a contact by LinkedIn username.
+ * POST /gateway/v1/search/find-email/personal
+ * Body: { data: { linkedin_username: string } }
+ * Response: { data: { personal_email: string | null } }
+ * Credits only deducted when email is found.
  */
-async function findPersonalEmail(memberId: number): Promise<string | null> {
+async function findPersonalEmail(linkedinUsername: string): Promise<string | null> {
   try {
-    // Try both body shapes — ALeads docs are sparse on this endpoint
-    const res = await req<{ email?: string; data?: { email?: string } | string }>(
+    const res = await req<{ data?: { personal_email?: string | null } }>(
       'POST',
-      '/find-email/personal',
-      { member_id: memberId },
+      '/search/find-email/personal',
+      { data: { linkedin_username: linkedinUsername } },
     );
-    const email = res.email ?? (typeof res.data === 'string' ? res.data : res.data?.email) ?? null;
-    console.log(`[aleads] findPersonalEmail(${memberId}) →`, email ?? 'null');
-    return email;
+    return res.data?.personal_email ?? null;
   } catch (err) {
-    console.warn(`[aleads] findPersonalEmail(${memberId}) failed:`, err instanceof Error ? err.message : err);
+    console.warn(`[aleads] findPersonalEmail(${linkedinUsername}) failed:`, err instanceof Error ? err.message : err);
     return null;
   }
 }
 
 /**
  * Search for contacts via advanced-search, then enrich with emails.
- * Only contacts where email_found === true are enriched; the rest are discarded.
+ * Contacts where email_found === true are enriched via find-email/personal (LinkedIn username).
  * POST /gateway/v1/search/advanced-search
  */
 const DEFAULT_INDUSTRIES = ['Roofing', 'Solar', 'HVAC', 'Plumbing', 'Electrical', 'Landscaping', 'Painting', 'Cleaning'];
@@ -137,8 +136,15 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     linkedin_url: c.linkedin_url,
   }));
 
-  // Enrich contacts flagged as email_found, in parallel batches of 10
-  const toEnrich = normalized.filter((c) => c.email_found && c.member_id);
+  // Extract LinkedIn username from linkedin_url (e.g. https://linkedin.com/in/john-doe → john-doe)
+  function linkedinUsername(url?: string): string | null {
+    if (!url) return null;
+    const m = url.match(/linkedin\.com\/in\/([^/?#]+)/);
+    return m ? m[1] : null;
+  }
+
+  // Enrich contacts flagged as email_found that have a LinkedIn URL, in batches of 10
+  const toEnrich = normalized.filter((c) => c.email_found && linkedinUsername(c.linkedin_url));
   console.log(`[aleads] searchContacts: ${normalized.length} contacts, ${toEnrich.length} to enrich`);
 
   const enriched: ALeadContact[] = [];
@@ -146,7 +152,7 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
   for (let i = 0; i < toEnrich.length; i += 10) {
     const batch = toEnrich.slice(i, i + 10);
     const emails = await Promise.all(
-      batch.map((c) => findPersonalEmail(c.member_id!)),
+      batch.map((c) => findPersonalEmail(linkedinUsername(c.linkedin_url)!)),
     );
     batch.forEach((c, j) => {
       const email = emails[j];
@@ -156,8 +162,7 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
 
   console.log(`[aleads] searchContacts: ${enriched.length} contacts after enrichment`);
 
-  // If enrichment API is broken/returning nothing, fall back to all contacts (some may lack email)
-  // This prevents mock data from showing when ALeads does return real contacts
+  // Fall back to all contacts if enrichment yields nothing (prevents mock fallback)
   const data = enriched.length > 0 ? enriched : normalized;
 
   return {
