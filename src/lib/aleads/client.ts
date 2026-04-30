@@ -18,7 +18,7 @@ export class ALeadsNotConfiguredError extends Error {
 const BASE = 'https://api.a-leads.co/gateway/v1';
 
 function apiKey(): string {
-  const key = process.env.ALEADS_API_KEY;
+  const key = process.env.ALEADS_API_KEY?.trim();
   if (!key) throw new ALeadsNotConfiguredError();
   return key;
 }
@@ -99,7 +99,7 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
   const raw = await req<{ data?: ALeadContact[]; total?: number; current_page?: number; meta_data?: { total_count?: number } }>(
     'POST',
     '/search/advanced-search',
-    { advanced_filters, current_page: params.page ?? 1, search_type: 'total' },
+    { advanced_filters, current_page: params.page ?? 1, search_type: 'new' },
   );
 
   // Normalize raw ALeads field names to the canonical shape

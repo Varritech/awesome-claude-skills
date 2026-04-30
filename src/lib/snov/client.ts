@@ -24,8 +24,8 @@ let _cachedToken: string | null = null;
 let _tokenExpiresAt = 0;
 
 function credentials(): { clientId: string; clientSecret: string } {
-  const clientId = process.env.SNOV_CLIENT_ID;
-  const clientSecret = process.env.SNOV_CLIENT_SECRET;
+  const clientId = process.env.SNOV_CLIENT_ID?.trim();
+  const clientSecret = process.env.SNOV_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) throw new SnovNotConfiguredError();
   return { clientId, clientSecret };
 }
