@@ -123,7 +123,6 @@ export async function POST() {
 
   for (const lead of leads) {
     try {
-      const firstName = lead.firstName ?? 'there';
       const company = lead.company ?? 'your company';
       let subject = `Quick question — ${company}`;
       let body = `Hi {{firstName}},\n\nI came across ${company} and wanted to reach out.\n\nWould you be open to a quick 15-minute call this week?\n\nBest,`;
