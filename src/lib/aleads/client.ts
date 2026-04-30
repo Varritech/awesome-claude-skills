@@ -91,13 +91,17 @@ export interface ALeadsSearchResponse {
  */
 async function findPersonalEmail(memberId: number): Promise<string | null> {
   try {
-    const res = await req<{ email?: string; data?: { email?: string } }>(
+    // Try both body shapes — ALeads docs are sparse on this endpoint
+    const res = await req<{ email?: string; data?: { email?: string } | string }>(
       'POST',
       '/find-email/personal',
-      { data: { member_id: memberId } },
+      { member_id: memberId },
     );
-    return res.email ?? res.data?.email ?? null;
-  } catch {
+    const email = res.email ?? (typeof res.data === 'string' ? res.data : res.data?.email) ?? null;
+    console.log(`[aleads] findPersonalEmail(${memberId}) →`, email ?? 'null');
+    return email;
+  } catch (err) {
+    console.warn(`[aleads] findPersonalEmail(${memberId}) failed:`, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -133,8 +137,10 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     linkedin_url: c.linkedin_url,
   }));
 
-  // Enrich only contacts flagged as email_found, in parallel (max 10 at a time)
+  // Enrich contacts flagged as email_found, in parallel batches of 10
   const toEnrich = normalized.filter((c) => c.email_found && c.member_id);
+  console.log(`[aleads] searchContacts: ${normalized.length} contacts, ${toEnrich.length} to enrich`);
+
   const enriched: ALeadContact[] = [];
 
   for (let i = 0; i < toEnrich.length; i += 10) {
@@ -148,8 +154,14 @@ export async function searchContacts(params: ALeadsSearchParams): Promise<ALeads
     });
   }
 
+  console.log(`[aleads] searchContacts: ${enriched.length} contacts after enrichment`);
+
+  // If enrichment API is broken/returning nothing, fall back to all contacts (some may lack email)
+  // This prevents mock data from showing when ALeads does return real contacts
+  const data = enriched.length > 0 ? enriched : normalized;
+
   return {
-    data: enriched,
+    data,
     total: raw.total ?? raw.meta_data?.total_count ?? 0,
     page: raw.current_page ?? 1,
     limit: params.limit ?? 50,
