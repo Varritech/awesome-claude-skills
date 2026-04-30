@@ -71,18 +71,6 @@ interface LeadDoc {
   status: string;
 }
 
-const MOCK_LEADS: LeadDoc[] = [
-  { id: 'ld_1', firstName: 'Alex', lastName: 'Chen', email: 'alex@acme.io', company: 'Acme SaaS', title: 'Head of Growth', industry: 'SaaS', status: 'new' },
-  { id: 'ld_2', firstName: 'Jordan', lastName: 'Patel', email: 'jordan@northside.dental', company: 'Northside Dental', title: 'Practice Owner', industry: 'Healthcare', status: 'new' },
-  { id: 'ld_3', firstName: 'Sam', lastName: 'Ruiz', email: 'sam@hawkcap.com', company: 'Hawk Capital', title: 'Managing Partner', industry: 'Finance', status: 'new' },
-  { id: 'ld_4', firstName: 'Maria', lastName: 'Torres', email: 'maria@bloomco.com', company: 'Bloom & Co', title: 'CEO', industry: 'Retail', status: 'new' },
-  { id: 'ld_5', firstName: 'Chris', lastName: 'Nguyen', email: 'chris@buildfast.dev', company: 'BuildFast', title: 'CTO', industry: 'SaaS', status: 'new' },
-  { id: 'ld_6', firstName: 'Taylor', lastName: 'Brooks', email: 'taylor@axiomlaw.com', company: 'Axiom Law', title: 'Partner', industry: 'Legal', status: 'new' },
-  { id: 'ld_7', firstName: 'Jamie', lastName: 'Kim', email: 'jamie@clearpath.io', company: 'ClearPath', title: 'VP Marketing', industry: 'SaaS', status: 'new' },
-  { id: 'ld_8', firstName: 'Morgan', lastName: 'Davis', email: 'morgan@pinnaclepm.com', company: 'Pinnacle PM', title: 'Director', industry: 'Real Estate', status: 'new' },
-  { id: 'ld_9', firstName: 'Riley', lastName: 'Scott', email: 'riley@vervehealth.com', company: 'Verve Health', title: 'COO', industry: 'Healthcare', status: 'new' },
-  { id: 'ld_10', firstName: 'Drew', lastName: 'Wilson', email: 'drew@luminate.agency', company: 'Luminate Agency', title: 'Founder', industry: 'Marketing', status: 'new' },
-];
 
 export async function POST() {
   const auth = await requireUser();
@@ -117,19 +105,16 @@ export async function POST() {
   }
 
   // Fetch up to 10 leads
-  let leads: LeadDoc[] = [];
-  try {
-    const snap = await adminDb
-      .collection('leads')
-      .where('userId', '==', userId)
-      .where('status', '==', 'new')
-      .limit(10)
-      .get();
-    leads = snap.docs.map((d) => ({ id: d.id, ...d.data() } as LeadDoc));
-  } catch {
-    // fall through
+  const leadsSnap = await adminDb
+    .collection('leads')
+    .where('userId', '==', userId)
+    .where('status', '==', 'new')
+    .limit(10)
+    .get();
+  const leads = leadsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as LeadDoc));
+  if (leads.length === 0) {
+    return NextResponse.json({ drafted: 0, skipped: 0, alreadyDrafted: false });
   }
-  if (leads.length === 0) leads = MOCK_LEADS;
 
   const scheduledFor = next8amUtc();
   const now = new Date().toISOString();
