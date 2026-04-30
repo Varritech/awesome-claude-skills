@@ -16,14 +16,14 @@ export type UserResult =
   | { userId: string; response?: undefined }
   | { userId?: undefined; response: NextResponse };
 
-export async function requireUser(): Promise<UserResult> {
-  const { userId } = await auth();
+export async function requireUser(): Promise<UserResult & { sessionClaims?: Record<string, unknown> }> {
+  const { userId, sessionClaims } = await auth();
   if (!userId) {
     return {
       response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     };
   }
-  return { userId };
+  return { userId, sessionClaims: sessionClaims as Record<string, unknown> | undefined };
 }
 
 export function jsonError(message: string, status = 500, details?: unknown) {

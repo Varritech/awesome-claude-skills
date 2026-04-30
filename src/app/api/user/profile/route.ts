@@ -13,6 +13,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { updateProfileSchema } from '@/lib/schemas';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,20 +66,29 @@ export async function GET() {
 
   logRequest('user.profile.GET', userId);
 
-  try {
-    const [doc, inboxSnap] = await Promise.all([
-      adminDb.collection('users').doc(userId).get(),
-      adminDb.collection('inboxes').where('userId', '==', userId).get(),
-    ]);
+  const [doc, inboxSnap] = await Promise.all([
+    adminDb.collection('users').doc(userId).get(),
+    adminDb.collection('inboxes').where('userId', '==', userId).get(),
+  ]);
 
-    const profile = doc.exists ? doc.data() : mockProfile(userId);
-    const inboxes = inboxSnap.docs.map((d) => d.data());
+  const profile = doc.exists ? doc.data() : mockProfile(userId);
+  const inboxes = inboxSnap.docs.map((d) => d.data());
 
-    return NextResponse.json({ data: { ...profile, inboxes } });
-  } catch (err) {
-    console.warn('[api:user.profile.GET] falling back to mock', err);
-    return NextResponse.json({ data: { ...mockProfile(userId), inboxes: [] } });
+  // Backfill: if Firestore says onboarding is done but Clerk metadata doesn't,
+  // update Clerk so the middleware lets them through to the dashboard.
+  if (profile?.onboardingCompleted) {
+    const { sessionClaims } = auth;
+    const meta = sessionClaims?.publicMetadata as Record<string, unknown> | undefined;
+    if (!meta?.onboardingCompleted) {
+      clerkClient.users.updateUserMetadata(userId, {
+        publicMetadata: { onboardingCompleted: true },
+      }).catch((err: unknown) => {
+        console.warn('[api:user.profile.GET] failed to backfill Clerk metadata', err);
+      });
+    }
   }
+
+  return NextResponse.json({ data: { ...profile, inboxes } });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -92,10 +102,6 @@ export async function PATCH(req: NextRequest) {
   const patch = { ...parsed.data, updatedAt: new Date().toISOString() };
   logRequest('user.profile.PATCH', userId, { patch });
 
-  try {
-    await adminDb.collection('users').doc(userId).set(patch, { merge: true });
-  } catch (err) {
-    console.warn('[api:user.profile.PATCH] placeholder mode', err);
-  }
+  await adminDb.collection('users').doc(userId).set(patch, { merge: true });
   return NextResponse.json({ data: { id: userId, ...patch } });
 }

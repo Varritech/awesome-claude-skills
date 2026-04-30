@@ -117,20 +117,15 @@ export async function GET() {
 
   logRequest('domains.GET', userId);
 
-  try {
-    const snap = await adminDb
-      .collection('domains')
-      .where('userId', '==', userId)
-      .get();
-    const domains = snap.docs.map((d) => d.data() as DomainRecord);
-    if (domains.length === 0) {
-      return NextResponse.json({ data: mockSeed(userId) });
-    }
-    return NextResponse.json({ data: domains });
-  } catch (err) {
-    console.warn('[api:domains.GET] falling back to mock seed', err);
+  const snap = await adminDb
+    .collection('domains')
+    .where('userId', '==', userId)
+    .get();
+  const domains = snap.docs.map((d) => d.data() as DomainRecord);
+  if (domains.length === 0) {
     return NextResponse.json({ data: mockSeed(userId) });
   }
+  return NextResponse.json({ data: domains });
 }
 
 export async function POST(req: NextRequest) {
@@ -212,11 +207,7 @@ export async function POST(req: NextRequest) {
     verifiedAt: null,
   };
 
-  try {
-    await adminDb.collection('domains').doc(id).set(record);
-  } catch (err) {
-    console.warn('[api:domains.POST] placeholder mode', err);
-  }
+  await adminDb.collection('domains').doc(id).set(record);
 
   return NextResponse.json(
     { data: { ...record, instructions } },
