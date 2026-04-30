@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { UsersIcon, PenIcon, SendIcon, ChartIcon } from "@/components/icons";
@@ -58,7 +57,6 @@ const personas: {
 ];
 
 export default function StylePage() {
-  const router = useRouter();
   const [selected, setSelected] = useState<Persona | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
