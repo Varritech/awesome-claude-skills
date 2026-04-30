@@ -58,16 +58,11 @@ export async function GET() {
 
   logRequest('user.onboarding.GET', userId);
 
-  try {
-    const doc = await adminDb.collection('onboarding').doc(userId).get();
-    if (!doc.exists) {
-      return NextResponse.json({ data: mockState(userId) });
-    }
-    return NextResponse.json({ data: doc.data() });
-  } catch (err) {
-    console.warn('[api:user.onboarding.GET] falling back to mock', err);
+  const doc = await adminDb.collection('onboarding').doc(userId).get();
+  if (!doc.exists) {
     return NextResponse.json({ data: mockState(userId) });
   }
+  return NextResponse.json({ data: doc.data() });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -126,11 +121,7 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  try {
-    await adminDb.collection('onboarding').doc(userId).set(patch, { merge: true });
-  } catch (err) {
-    console.warn('[api:user.onboarding.PATCH] placeholder mode', err);
-  }
+  await adminDb.collection('onboarding').doc(userId).set(patch, { merge: true });
 
   return NextResponse.json({ data: patch });
 }
