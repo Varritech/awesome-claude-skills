@@ -165,19 +165,17 @@ export async function GET(req: NextRequest) {
   if (snov.isConfigured() || aleads.isConfigured()) {
     try {
       const external = await fetchExternalLeads({ industry, location, limit: 20, userId });
-      // Only keep contacts that have a valid email address
-      const withEmail = external.filter((l) => l.email?.trim());
-      if (withEmail.length > 0) {
+      if (external.length > 0) {
         // Persist so future requests return from Firestore (no repeat API calls)
         // Strip undefined values — Firestore rejects docs with undefined fields
         const strip = (obj: Record<string, unknown>) =>
           Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
         const batch = adminDb.batch();
-        for (const rec of withEmail) {
+        for (const rec of external) {
           batch.set(adminDb.collection('leads').doc(rec.id), strip(rec as unknown as Record<string, unknown>));
         }
         await batch.commit();
-        const filtered = withEmail
+        const filtered = external
           .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))
           .slice(0, limit);
         return NextResponse.json({ data: filtered, nextCursor: null });
