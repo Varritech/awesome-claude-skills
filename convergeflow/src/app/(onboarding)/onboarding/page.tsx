@@ -9,10 +9,8 @@ import { Button } from "@/components/ui";
 import { LogoIcon, ZapIcon, MailIcon, ChartIcon } from "@/components/icons";
 import { apiGet } from "@/lib/api-client";
 
-interface UserProfile {
-  onboardingComplete?: boolean;
-  industry?: string | null;
-  persona?: string | null;
+interface OnboardingState {
+  completed?: boolean;
 }
 
 export default function OnboardingLandingPage() {
@@ -31,10 +29,10 @@ export default function OnboardingLandingPage() {
 
     let cancelled = false;
 
-    apiGet<UserProfile>("/api/user/profile")
-      .then((profile) => {
+    apiGet<OnboardingState>("/api/user/onboarding")
+      .then((state) => {
         if (cancelled) return;
-        if (profile?.onboardingComplete) {
+        if (state?.completed) {
           router.replace("/dashboard");
         } else {
           setChecking(false);
