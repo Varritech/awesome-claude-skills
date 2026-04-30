@@ -123,20 +123,21 @@ export async function POST() {
 
   for (const lead of leads) {
     try {
-      const prompt = buildPrompt(persona, lead as unknown as Record<string, unknown>);
-      const raw = await chat([{ role: 'user', content: prompt }]);
-
-      // Parse JSON from model response — strip any markdown fences
-      const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
-      let subject = `Following up — ${lead.company ?? lead.firstName ?? 'you'}`;
-      let body = cleaned;
+      const firstName = lead.firstName ?? 'there';
+      const company = lead.company ?? 'your company';
+      let subject = `Quick question — ${company}`;
+      let body = `Hi {{firstName}},\n\nI came across ${company} and wanted to reach out.\n\nWould you be open to a quick 15-minute call this week?\n\nBest,`;
 
       try {
+        const prompt = buildPrompt(persona, lead as unknown as Record<string, unknown>);
+        const raw = await chat([{ role: 'user', content: prompt }]);
+        const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
         const parsed = JSON.parse(cleaned);
         if (parsed.subject) subject = String(parsed.subject).slice(0, 60);
         if (parsed.body) body = String(parsed.body);
       } catch {
-        // model didn't return clean JSON — use raw as body
+        // Ollama unavailable or parse failed — use template fallback above
+        console.warn('[auto-draft] AI generation failed for lead', lead.id, '— using template');
       }
 
       const id = `em_${Math.random().toString(36).slice(2, 12)}`;
