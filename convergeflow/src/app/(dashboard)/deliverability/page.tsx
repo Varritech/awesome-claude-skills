@@ -57,6 +57,7 @@ export default function DeliverabilityPage() {
   const [data, setData] = useState<DeliverabilityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [trackingEnabled, setTrackingEnabled] = useState(false);
 
   const load = () => {
     return apiGet<DeliverabilityData>("/api/deliverability")
@@ -74,6 +75,7 @@ export default function DeliverabilityPage() {
       .then((res) => {
         if (cancelled) return;
         setData(res ?? null);
+        setTrackingEnabled(res?.trackingDomainEnabled ?? false);
       })
       .catch((err) => {
         console.error("Failed to load deliverability", err);
@@ -218,7 +220,13 @@ export default function DeliverabilityPage() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-bold font-heading">Tracking Domain</p>
-            <Toggle defaultChecked={trackingDomainEnabled} />
+            <Toggle
+              checked={trackingEnabled}
+              onChange={(checked) => {
+                setTrackingEnabled(checked);
+                // TODO: PATCH /api/deliverability/tracking when real endpoint exists
+              }}
+            />
           </div>
           <p className="text-[12px] text-white/25 leading-relaxed">
             Use a custom domain for tracking links and opens. This improves deliverability
