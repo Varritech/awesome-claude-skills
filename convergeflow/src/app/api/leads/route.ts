@@ -1,5 +1,11 @@
 /**
  * /api/leads - list & import leads.
+ *
+ * GET returns the shape expected by the customers page:
+ * { leads: Lead[], industries: string[] }
+ *
+ * The api-client unwraps the { data: T } envelope, so the page receives the
+ * inner object directly.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -13,6 +19,8 @@ import {
 import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
+
+// ── Internal storage type ────────────────────────────────────────────────────
 
 interface LeadRecord {
   id: string;
@@ -30,6 +38,64 @@ interface LeadRecord {
   updatedAt: string;
   deletedAt?: string | null;
 }
+
+// ── UI type ──────────────────────────────────────────────────────────────────
+
+type Freshness = 'new' | 'warm' | 'cold';
+
+interface Lead {
+  id: string;
+  name: string;
+  company: string;
+  industry: string;
+  location: string;
+  freshness: Freshness;
+  score: number;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function statusToFreshness(status: LeadRecord['status']): Freshness {
+  if (status === 'new') return 'new';
+  if (status === 'contacted' || status === 'replied' || status === 'booked') return 'warm';
+  return 'cold';
+}
+
+/** Deterministic score 60-99 derived from the lead id string. */
+function scoreFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return 60 + (hash % 40);
+}
+
+function toUiLead(r: LeadRecord): Lead {
+  return {
+    id: r.id,
+    name: [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || r.email || r.id,
+    company: r.company ?? '',
+    industry: r.industry ?? '',
+    location: r.location ?? '',
+    freshness: statusToFreshness(r.status),
+    score: scoreFromId(r.id),
+  };
+}
+
+function toUiResponse(records: LeadRecord[]): { leads: Lead[]; industries: string[] } {
+  const leads = records.map(toUiLead);
+  const seen = new Set<string>();
+  const industries: string[] = [];
+  for (const r of records) {
+    if (r.industry && !seen.has(r.industry)) {
+      seen.add(r.industry);
+      industries.push(r.industry);
+    }
+  }
+  return { leads, industries };
+}
+
+// ── Mock seed ────────────────────────────────────────────────────────────────
 
 function mockSeed(userId: string): LeadRecord[] {
   const now = new Date().toISOString();
@@ -83,6 +149,8 @@ function mockSeed(userId: string): LeadRecord[] {
   );
 }
 
+// ── GET ──────────────────────────────────────────────────────────────────────
+
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -113,26 +181,26 @@ export async function GET(req: NextRequest) {
       if (cursorDoc.exists) q = q.startAfter(cursorDoc);
     }
     const snap = await q.get();
-    const leads = snap.docs
+    const records = snap.docs
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt);
-    if (leads.length === 0) {
-      const seed = mockSeed(userId);
-      const filtered = seed.filter(
+    if (records.length === 0) {
+      const seed = mockSeed(userId).filter(
         (l) =>
           (!industry || l.industry === industry) &&
           (!location || l.location === location) &&
           (!status || l.status === status),
       );
-      return NextResponse.json({ data: filtered, nextCursor: null });
+      return NextResponse.json({ data: toUiResponse(seed) });
     }
-    const nextCursor = leads.length === limit ? leads[leads.length - 1]?.id : null;
-    return NextResponse.json({ data: leads, nextCursor });
+    return NextResponse.json({ data: toUiResponse(records) });
   } catch (err) {
     console.warn('[api:leads.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: mockSeed(userId), nextCursor: null });
+    return NextResponse.json({ data: toUiResponse(mockSeed(userId)) });
   }
 }
+
+// ── POST ─────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const auth = await requireUser();

@@ -1,28 +1,18 @@
 /**
  * /api/deliverability - domain health & inbox placement snapshot.
  *
+ * Returns the shape expected by the deliverability page:
+ * { dnsRecords[], blacklistChecks[], inboxProviders[], inboxHealth,
+ *   inboxHealthLabel, trackingDomainEnabled, trackingDomain }
+ *
  * TODO: Aggregate per-domain DNS checks + feed in warmup + bounce stats
- * from the mail transport service (Mailforge / SES). Returns a mocked
- * green/yellow/red summary for now.
+ * from the mail transport service (Mailforge / SES).
  */
 
 import { NextResponse } from 'next/server';
 import { logRequest, requireUser } from '@/lib/api/helpers';
 
 export const dynamic = 'force-dynamic';
-
-type CheckStatus = 'pass' | 'warn' | 'fail';
-
-interface DeliverabilityReport {
-  spf: CheckStatus;
-  dkim: CheckStatus;
-  dmarc: CheckStatus;
-  mx: CheckStatus;
-  inboxPlacement: number;
-  blacklists: Array<{ name: string; listedOn?: string }>;
-  warmupProgress: number;
-  recommendations: string[];
-}
 
 export async function GET() {
   const auth = await requireUser();
@@ -31,19 +21,44 @@ export async function GET() {
 
   logRequest('deliverability.GET', userId);
 
-  const report: DeliverabilityReport = {
-    spf: 'pass',
-    dkim: 'pass',
-    dmarc: 'warn',
-    mx: 'pass',
-    inboxPlacement: 94,
-    blacklists: [],
-    warmupProgress: 72,
-    recommendations: [
-      'Tighten DMARC policy from p=none to p=quarantine after 30 days of clean reports.',
-      'Rotate sending between 2+ inboxes to reduce per-mailbox volume.',
-    ],
-  };
-
-  return NextResponse.json({ data: report });
+  return NextResponse.json({
+    data: {
+      dnsRecords: [
+        {
+          type: 'SPF',
+          value: 'v=spf1 include:mailforge.io ~all',
+          status: 'valid',
+        },
+        {
+          type: 'DKIM',
+          value: 'v=DKIM1; k=rsa; p=...',
+          status: 'valid',
+        },
+        {
+          type: 'DMARC',
+          value: 'v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com',
+          status: 'warning',
+        },
+        {
+          type: 'MX',
+          value: '10 mail.example.com',
+          status: 'valid',
+        },
+      ],
+      blacklistChecks: [
+        { name: 'Spamhaus SBL', status: 'clean' },
+        { name: 'Barracuda', status: 'clean' },
+        { name: 'MXToolbox', status: 'clean' },
+      ],
+      inboxProviders: [
+        { name: 'Gmail', percentage: 94 },
+        { name: 'Outlook', percentage: 89 },
+        { name: 'Yahoo', percentage: 91 },
+      ],
+      inboxHealth: 85,
+      inboxHealthLabel: 'Healthy',
+      trackingDomainEnabled: false,
+      trackingDomain: null,
+    },
+  });
 }

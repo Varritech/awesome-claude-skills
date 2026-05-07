@@ -15,6 +15,58 @@ import { createEmailSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+const PERSONA_LABELS: Record<string, string> = {
+  closer: 'Direct Closer',
+  neighbor: 'Friendly Neighbor',
+  expert: 'Expert Advisor',
+  helper: 'Helpful Guide',
+};
+
+type CampaignStatus = 'active' | 'warming' | 'paused' | 'done' | 'draft';
+
+function emailStatusToCampaign(
+  status: EmailRecord['status'],
+): CampaignStatus {
+  switch (status) {
+    case 'draft':
+      return 'draft';
+    case 'queued':
+    case 'sent':
+    case 'opened':
+      return 'active';
+    case 'replied':
+      return 'done';
+    case 'bounced':
+      return 'paused';
+    default:
+      return 'draft';
+  }
+}
+
+interface EmailSet {
+  id: string;
+  name: string;
+  style: string;
+  status: CampaignStatus;
+  sent: number;
+  total: number;
+  replies: number;
+  interested: number;
+}
+
+function toEmailSet(record: EmailRecord): EmailSet {
+  return {
+    id: record.id,
+    name: record.subject || 'Untitled',
+    style: PERSONA_LABELS[record.persona] ?? record.persona,
+    status: emailStatusToCampaign(record.status),
+    sent: record.sentAt ? 1 : 0,
+    total: 1,
+    replies: record.status === 'replied' ? 1 : 0,
+    interested: record.status === 'replied' ? 1 : 0,
+  };
+}
+
 interface EmailRecord {
   id: string;
   userId: string;
@@ -106,14 +158,14 @@ export async function GET(req: NextRequest) {
       .filter((e) => !e.deletedAt);
     const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
     if (emails.length === 0) {
-      const seed = mockSeed(userId).slice(0, limit);
+      const seed = mockSeed(userId).slice(0, limit).map(toEmailSet);
       return NextResponse.json({ data: seed, nextCursor: null });
     }
-    return NextResponse.json({ data: emails, nextCursor });
+    return NextResponse.json({ data: emails.map(toEmailSet), nextCursor });
   } catch (err) {
     console.warn('[api:emails.GET] falling back to mock seed', err);
     return NextResponse.json({
-      data: mockSeed(userId).slice(0, limit),
+      data: mockSeed(userId).slice(0, limit).map(toEmailSet),
       nextCursor: null,
     });
   }

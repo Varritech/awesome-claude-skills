@@ -28,9 +28,22 @@ export type CreatePersonaInput = z.infer<typeof createPersonaSchema>;
 
 /* Billing */
 
-export const checkoutSchema = z.object({
-  tier: subscriptionTierSchema,
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-});
+/**
+ * Plan-ID aliases sent by the UI (payments page uses planId, not tier).
+ * Both forms are accepted; the checkout route normalises to tier internally.
+ */
+const planIdSchema = z.enum(['starter', 'pro', 'scale']);
+
+export const checkoutSchema = z
+  .object({
+    /** Internal tier name (legacy / server-side callers). */
+    tier: subscriptionTierSchema.optional(),
+    /** UI-facing plan id: "starter" | "pro" | "scale". */
+    planId: planIdSchema.optional(),
+    successUrl: z.string().url().optional(),
+    cancelUrl: z.string().url().optional(),
+  })
+  .refine((d) => d.tier || d.planId, {
+    message: 'Either tier or planId is required',
+  });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

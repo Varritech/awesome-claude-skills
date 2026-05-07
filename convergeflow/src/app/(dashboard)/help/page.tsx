@@ -16,6 +16,8 @@ const contactMethods = [
     description: "Chat with us live",
     action: "Open WhatsApp",
     accent: "bg-green-600",
+    href: "https://wa.me/19175551234",
+    target: "_blank",
   },
   {
     icon: MailIcon,
@@ -23,6 +25,8 @@ const contactMethods = [
     description: "support@convergeflow.io",
     action: "Send Email",
     accent: "bg-cf-orange",
+    href: "mailto:support@convergeflow.io",
+    target: "_self",
   },
   {
     icon: PhoneIcon,
@@ -30,6 +34,8 @@ const contactMethods = [
     description: "15 min with our team",
     action: "Schedule",
     accent: "bg-cf-indigo",
+    href: "https://cal.com/varritech/convergeflow-intro",
+    target: "_blank",
   },
 ];
 
@@ -88,9 +94,9 @@ export default function HelpPage() {
               <p className="text-[12px] text-white/25 mt-1">
                 {method.description}
               </p>
-              <button className="mt-4 px-5 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors font-medium">
+              <a href={method.href} target={method.target} rel="noopener noreferrer" className="mt-4 px-5 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors font-medium">
                 {method.action}
-              </button>
+              </a>
             </Card>
           );
         })}
@@ -139,7 +145,7 @@ export default function HelpPage() {
             OpenClaw gives you AI-powered outreach across every channel - email, SMS, social, and more.
           </p>
         </div>
-        <Button variant="mint" className="shrink-0">
+        <Button variant="mint" className="shrink-0" onClick={() => window.open("https://openclaw.io", "_blank")}>
           Learn More
         </Button>
       </Card>

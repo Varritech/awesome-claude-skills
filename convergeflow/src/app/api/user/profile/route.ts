@@ -16,13 +16,15 @@ import { updateProfileSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+type Tier = 'self_serve' | 'openclaw_dwy' | 'enterprise';
+
 interface UserProfileRecord {
   id: string;
   email?: string;
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
-  tier: 'self_serve' | 'openclaw_dwy' | 'enterprise';
+  tier: Tier;
   company?: string;
   website?: string;
   industry?: string;
@@ -39,11 +41,53 @@ interface UserProfileRecord {
   onboardingCompleted: boolean;
   createdAt: string;
   updatedAt: string;
+  phone?: string;
+  inboxes?: unknown[];
+  preferences?: {
+    emailNotifications?: boolean;
+    autoFollowUp?: boolean;
+    weeklyReport?: boolean;
+  };
 }
 
-function mockProfile(userId: string): UserProfileRecord {
-  const now = new Date().toISOString();
+function planFromTier(tier: Tier) {
+  const plans: Record<Tier, { tier: string; emailLimitLabel: string; price: string }> = {
+    self_serve:    { tier: 'Starter',    emailLimitLabel: '50 emails/day',   price: '$49/mo'   },
+    openclaw_dwy:  { tier: 'Pro',        emailLimitLabel: '500 emails/day',  price: '$149/mo'  },
+    enterprise:    { tier: 'Enterprise', emailLimitLabel: 'Unlimited',       price: '$399/mo'  },
+  };
+  return plans[tier] ?? plans['self_serve'];
+}
+
+function enrichProfile(raw: UserProfileRecord & Record<string, unknown>) {
+  const firstName = raw.firstName ?? '';
+  const lastName  = raw.lastName  ?? '';
+  const fullName  = `${firstName} ${lastName}`.trim();
+  const initials  = fullName
+    .split(' ')
+    .map((n) => n[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return {
+    ...raw,
+    fullName,
+    avatarInitials: initials || '??',
+    phone:        (raw.phone as string | undefined)        ?? '',
+    inboxes:      (raw.inboxes as unknown[] | undefined)   ?? [],
+    preferences:  (raw.preferences as UserProfileRecord['preferences'] | undefined) ?? {
+      emailNotifications: false,
+      autoFollowUp:       false,
+      weeklyReport:       false,
+    },
+    plan: planFromTier(raw.tier ?? 'self_serve'),
+  };
+}
+
+function mockProfile(userId: string) {
+  const now = new Date().toISOString();
+  const raw: UserProfileRecord = {
     id: userId,
     email: 'you@example.com',
     firstName: 'Chris',
@@ -56,6 +100,7 @@ function mockProfile(userId: string): UserProfileRecord {
     createdAt: now,
     updatedAt: now,
   };
+  return enrichProfile(raw as UserProfileRecord & Record<string, unknown>);
 }
 
 export async function GET() {
@@ -70,7 +115,8 @@ export async function GET() {
     if (!doc.exists) {
       return NextResponse.json({ data: mockProfile(userId) });
     }
-    return NextResponse.json({ data: doc.data() });
+    const raw = doc.data() as (UserProfileRecord & Record<string, unknown>);
+    return NextResponse.json({ data: enrichProfile(raw) });
   } catch (err) {
     console.warn('[api:user.profile.GET] falling back to mock', err);
     return NextResponse.json({ data: mockProfile(userId) });
