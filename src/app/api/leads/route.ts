@@ -1,5 +1,11 @@
 /**
  * /api/leads - list & import leads.
+ *
+ * GET returns the shape expected by the customers page:
+ * { leads: Lead[], industries: string[] }
+ *
+ * The api-client unwraps the { data: T } envelope, so the page receives the
+ * inner object directly.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -11,10 +17,10 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
-import * as snov from '@/lib/snov/client';
-import * as aleads from '@/lib/aleads/client';
 
 export const dynamic = 'force-dynamic';
+
+// ── Internal storage type ────────────────────────────────────────────────────
 
 interface LeadRecord {
   id: string;
@@ -28,100 +34,122 @@ interface LeadRecord {
   location?: string;
   status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
   source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
-  score?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
 }
 
-async function fetchExternalLeads(params: {
-  industry?: string;
-  location?: string;
-  limit: number;
-  userId: string;
-}): Promise<LeadRecord[]> {
-  const now = new Date().toISOString();
-  const results: LeadRecord[] = [];
-  const seen = new Set<string>();
+// ── UI type ──────────────────────────────────────────────────────────────────
 
-  const add = (lead: LeadRecord) => {
-    const key = lead.email?.toLowerCase() ?? `${lead.firstName}-${lead.lastName}-${lead.company}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    results.push(lead);
-  };
+type Freshness = 'new' | 'warm' | 'cold';
 
-  await Promise.all([
-    aleads.isConfigured()
-      ? aleads
-          .searchContacts({ industry: params.industry, location: params.location, limit: params.limit })
-          .then((res) => {
-            for (const c of res.data ?? []) {
-              add({
-                id: `ld_al_${c.id}`,
-                userId: params.userId,
-                firstName: c.first_name,
-                lastName: c.last_name,
-                email: c.email,
-                company: c.company,
-                title: c.title,
-                industry: c.industry ?? params.industry,
-                location: c.location ?? params.location,
-                status: 'new',
-                source: 'aleads',
-                score: c.confidence ? Math.round(c.confidence * 100) : 0,
-                createdAt: now,
-                updatedAt: now,
-                deletedAt: null,
-              });
-            }
-          })
-          .catch((err) => console.warn('[api:leads.GET] aleads failed', err))
-      : Promise.resolve(),
-
-    snov.isConfigured()
-      ? snov
-          .searchProspects({
-            industry: params.industry ? [params.industry] : undefined,
-            location: params.location ? [params.location] : undefined,
-            limit: params.limit,
-          })
-          .then((res) => {
-            for (const p of res.data ?? []) {
-              add({
-                id: `ld_sn_${p.id ?? Math.random().toString(36).slice(2, 10)}`,
-                userId: params.userId,
-                firstName: p.firstName,
-                lastName: p.lastName,
-                email: p.email,
-                company: p.currentCompany,
-                title: p.currentTitle,
-                industry: p.industry ?? params.industry,
-                location: p.location ?? params.location,
-                status: 'new',
-                source: 'snov',
-                score: p.emailStatus === 'valid' ? 80 : 40,
-                createdAt: now,
-                updatedAt: now,
-                deletedAt: null,
-              });
-            }
-          })
-          .catch((err) => console.warn('[api:leads.GET] snov failed', err))
-      : Promise.resolve(),
-  ]);
-
-  return results.slice(0, params.limit);
+interface Lead {
+  id: string;
+  name: string;
+  company: string;
+  industry: string;
+  location: string;
+  freshness: Freshness;
+  score: number;
 }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function statusToFreshness(status: LeadRecord['status']): Freshness {
+  if (status === 'new') return 'new';
+  if (status === 'contacted' || status === 'replied' || status === 'booked') return 'warm';
+  return 'cold';
+}
+
+/** Deterministic score 60-99 derived from the lead id string. */
+function scoreFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return 60 + (hash % 40);
+}
+
+function toUiLead(r: LeadRecord): Lead {
+  return {
+    id: r.id,
+    name: [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || r.email || r.id,
+    company: r.company ?? '',
+    industry: r.industry ?? '',
+    location: r.location ?? '',
+    freshness: statusToFreshness(r.status),
+    score: scoreFromId(r.id),
+  };
+}
+
+function toUiResponse(records: LeadRecord[]): { leads: Lead[]; industries: string[] } {
+  const leads = records.map(toUiLead);
+  const seen = new Set<string>();
+  const industries: string[] = [];
+  for (const r of records) {
+    if (r.industry && !seen.has(r.industry)) {
+      seen.add(r.industry);
+      industries.push(r.industry);
+    }
+  }
+  return { leads, industries };
+}
+
+// ── Mock seed ────────────────────────────────────────────────────────────────
 
 function mockSeed(userId: string): LeadRecord[] {
   const now = new Date().toISOString();
-  return [
-    { id: 'ld_demo_1', userId, firstName: 'Alex', lastName: 'Chen', email: 'alex@acme.io', company: 'Acme SaaS', title: 'Head of Growth', industry: 'SaaS', location: 'New York, NY', status: 'contacted', source: 'apollo', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
-    { id: 'ld_demo_2', userId, firstName: 'Jordan', lastName: 'Patel', email: 'jordan@northside.dental', company: 'Northside Dental', title: 'Practice Owner', industry: 'Healthcare', location: 'Austin, TX', status: 'new', source: 'aleads', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
-    { id: 'ld_demo_3', userId, firstName: 'Sam', lastName: 'Ruiz', email: 'sam@hawkcap.com', company: 'Hawk Capital', title: 'Managing Partner', industry: 'Finance', location: 'Miami, FL', status: 'booked', source: 'manual', score: 0, createdAt: now, updatedAt: now, deletedAt: null },
+  const rows: Array<Partial<LeadRecord>> = [
+    {
+      id: 'ld_demo_1',
+      firstName: 'Alex',
+      lastName: 'Chen',
+      email: 'alex@acme.io',
+      company: 'Acme SaaS',
+      title: 'Head of Growth',
+      industry: 'SaaS',
+      location: 'New York, NY',
+      status: 'contacted',
+      source: 'apollo',
+    },
+    {
+      id: 'ld_demo_2',
+      firstName: 'Jordan',
+      lastName: 'Patel',
+      email: 'jordan@northside.dental',
+      company: 'Northside Dental',
+      title: 'Practice Owner',
+      industry: 'Healthcare',
+      location: 'Austin, TX',
+      status: 'new',
+      source: 'aleads',
+    },
+    {
+      id: 'ld_demo_3',
+      firstName: 'Sam',
+      lastName: 'Ruiz',
+      email: 'sam@hawkcap.com',
+      company: 'Hawk Capital',
+      title: 'Managing Partner',
+      industry: 'Finance',
+      location: 'Miami, FL',
+      status: 'booked',
+      source: 'manual',
+    },
   ];
+  return rows.map(
+    (r) =>
+      ({
+        userId,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        ...r,
+      }) as LeadRecord,
+  );
 }
+
+// ── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
@@ -139,61 +167,40 @@ export async function GET(req: NextRequest) {
 
   logRequest('leads.GET', userId, { industry, location, status, limit, cursor });
 
-  // 1. Try Firestore
   try {
-    const snap = await adminDb
+    let q = adminDb
       .collection('leads')
       .where('userId', '==', userId)
-      .limit(200)
-      .get();
-    const firestoreLeads = snap.docs
+      .orderBy('createdAt', 'desc')
+      .limit(limit);
+    if (industry) q = q.where('industry', '==', industry);
+    if (location) q = q.where('location', '==', location);
+    if (status) q = q.where('status', '==', status);
+    if (cursor) {
+      const cursorDoc = await adminDb.collection('leads').doc(cursor).get();
+      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    }
+    const snap = await q.get();
+    const records = snap.docs
       .map((d) => d.data() as LeadRecord)
-      .filter((l) => !l.deletedAt)
-      .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))
-      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
-      .slice(0, limit);
-
-    if (firestoreLeads.length > 0) {
-      const nextCursor = firestoreLeads.length === limit ? firestoreLeads[firestoreLeads.length - 1]?.id : null;
-      return NextResponse.json({ data: firestoreLeads, nextCursor });
+      .filter((l) => !l.deletedAt);
+    if (records.length === 0) {
+      const seed = mockSeed(userId).filter(
+        (l) =>
+          (!industry || l.industry === industry) &&
+          (!location || l.location === location) &&
+          (!status || l.status === status),
+      );
+      return NextResponse.json({ data: toUiResponse(seed) });
     }
+    return NextResponse.json({ data: toUiResponse(records) });
   } catch (err) {
-    console.warn('[api:leads.GET] firestore query failed, trying external', err);
+    console.warn('[api:leads.GET] falling back to mock seed', err);
+    return NextResponse.json({ data: toUiResponse(mockSeed(userId)) });
   }
-
-  // 2. Fetch live from ALeads + Snov, persist to Firestore, return
-  if (snov.isConfigured() || aleads.isConfigured()) {
-    try {
-      const external = await fetchExternalLeads({ industry, location, limit: 20, userId });
-      if (external.length > 0) {
-        // Persist so future requests return from Firestore (no repeat API calls)
-        // Strip undefined values — Firestore rejects docs with undefined fields
-        const strip = (obj: Record<string, unknown>) =>
-          Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
-        const batch = adminDb.batch();
-        for (const rec of external) {
-          batch.set(adminDb.collection('leads').doc(rec.id), strip(rec as unknown as Record<string, unknown>));
-        }
-        await batch.commit();
-        const filtered = external
-          .filter((l) => (!industry || l.industry === industry) && (!location || l.location === location) && (!status || l.status === status))
-          .slice(0, limit);
-        return NextResponse.json({ data: filtered, nextCursor: null });
-      }
-    } catch (err) {
-      console.warn('[api:leads.GET] external fetch failed', err);
-    }
-  }
-
-  // 3. Mock fallback
-  const seed = mockSeed(userId).filter(
-    (l) =>
-      (!industry || l.industry === industry) &&
-      (!location || l.location === location) &&
-      (!status || l.status === status),
-  );
-  return NextResponse.json({ data: seed, nextCursor: null });
 }
+
+// ── POST ─────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const auth = await requireUser();
@@ -219,13 +226,13 @@ export async function POST(req: NextRequest) {
     location: l.location,
     status: 'new',
     source,
-    score: 0,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
   }));
 
   try {
+    // TODO: batch-write in 500-doc chunks once real Firestore is wired.
     for (const rec of inserted) {
       await adminDb.collection('leads').doc(rec.id).set(rec);
     }

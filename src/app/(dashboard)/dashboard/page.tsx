@@ -113,13 +113,6 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // On first dashboard load, auto-draft emails from leads in the background.
-  // The route is idempotent — it exits early if queued/sent emails already exist.
-  useEffect(() => {
-    if (!user) return;
-    fetch("/api/emails/auto-draft", { method: "POST" }).catch(() => {});
-  }, [user]);
-
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -353,9 +346,14 @@ export default function DashboardPage() {
             Book a quick call and we&apos;ll set you up with a bigger plan.
           </p>
         </div>
-        <button className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-heading uppercase tracking-wide shrink-0 hover:opacity-90 transition-opacity">
+        <a
+          href="https://cal.com/varritech/convergeflow-intro"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-heading uppercase tracking-wide shrink-0 hover:opacity-90 transition-opacity"
+        >
           Book a Call
-        </button>
+        </a>
       </Card>
     </>
   );

@@ -57,6 +57,15 @@ export const updateProfileSchema = z.object({
   industry: z.string().max(80).optional(),
   role: z.string().max(80).optional(),
   timezone: z.string().max(60).optional(),
+  preferredStyle: z.string().max(40).optional(),
+  phone: z.string().max(30).optional(),
+  preferences: z
+    .object({
+      emailNotifications: z.boolean().optional(),
+      autoFollowUp: z.boolean().optional(),
+      weeklyReport: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
@@ -69,11 +78,7 @@ export const updateOnboardingSchema = z.object({
     'persona',
     'first_campaign',
     'complete',
-  ]).optional(),
-  completed: z.boolean().optional(),
-  industry: z.string().max(80).optional(),
-  industryOther: z.string().max(120).optional(),
-  persona: z.string().max(80).optional(),
-  onboardingComplete: z.boolean().optional(),
+  ]),
+  completed: z.boolean(),
 });
 export type UpdateOnboardingInput = z.infer<typeof updateOnboardingSchema>;

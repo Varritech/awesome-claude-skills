@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/layout";
-import { apiPost, apiPatch } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 
 type Provider = "gmail" | "yahoo" | "custom" | null;
 
@@ -32,54 +32,34 @@ export default function InboxPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connectOAuth = async (provider: "gmail" | "yahoo") => {
-    if (submitting) return;
+  const handleContinue = async () => {
+    if (!selected || submitting) return;
     setError(null);
     setSubmitting(true);
-    setSelected(provider);
-    try {
-      const data = await apiPost<{ authUrl?: string } | null>("/api/inboxes", { provider });
-      if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      }
-      // No OAuth URL returned (placeholder env) — proceed to next step
-      apiPatch("/api/user/onboarding", { step: "inbox", completed: true }).catch(() => {});
-      router.push("/onboarding/industry");
-    } catch (err) {
-      console.error(err);
-      setError("Could not connect inbox. Please try again.");
-      setSubmitting(false);
-    }
-  };
 
-  const connectCustom = async () => {
-    if (submitting) return;
-    setError(null);
-    setSubmitting(true);
     try {
-      await apiPost("/api/inboxes", {
-        provider: "smtp_imap",
-        email: custom.email,
-        smtp: {
-          host: custom.smtpHost,
-          port: parseInt(custom.smtpPort, 10),
-          user: custom.email,
-          password: custom.password,
-        },
-      });
-      apiPatch("/api/user/onboarding", { step: "inbox", completed: true }).catch(() => {});
-      router.push("/onboarding/industry");
+      if (selected === "gmail" || selected === "yahoo") {
+        const data = await apiPost<{ authUrl?: string } | null>("/api/inboxes", {
+          provider: selected,
+        });
+        // OAuth flow: if backend returns an authUrl, redirect for consent
+        if (data?.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        }
+        router.push("/onboarding/industry");
+      } else {
+        await apiPost("/api/inboxes", {
+          provider: "custom",
+          credentials: custom,
+        });
+        router.push("/onboarding/industry");
+      }
     } catch (err) {
       console.error(err);
       setError("Could not connect inbox. Check your details and try again.");
       setSubmitting(false);
     }
-  };
-
-  const handleContinue = () => {
-    if (selected === "gmail" || selected === "yahoo") connectOAuth(selected);
-    else if (selected === "custom") connectCustom();
   };
 
   const updateCustom = (key: keyof CustomCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +69,7 @@ export default function InboxPage() {
   return (
     <OnboardingLayout currentStep={3}>
       <div className="max-w-[480px] mx-auto">
+        {/* Card */}
         <div className="bg-cf-card rounded-[24px] p-10 text-center animate-[fadeUp_0.5s_ease-out]">
           <h1 className="text-[24px] font-bold tracking-tight mb-2 font-heading">
             Where should we send your emails from?
@@ -99,18 +80,20 @@ export default function InboxPage() {
 
           {/* Provider Cards */}
           <div className="flex flex-col gap-3 mb-6 text-left">
-            {/* Gmail */}
             <button
               type="button"
-              onClick={() => connectOAuth("gmail")}
-              disabled={submitting}
-              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 w-full ${
+              onClick={() => setSelected("gmail")}
+              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 ${
                 selected === "gmail"
                   ? "border-cf-orange bg-[#26262C]"
                   : "border-transparent hover:border-cf-orange/30"
-              } disabled:opacity-50`}
+              }`}
             >
-              <div className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${selected === "gmail" ? "bg-cf-orange/10" : "bg-cf-card"}`}>
+              <div
+                className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${
+                  selected === "gmail" ? "bg-cf-orange/10" : "bg-cf-card"
+                }`}
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
@@ -119,53 +102,49 @@ export default function InboxPage() {
               <div className="flex-1">
                 <p className="text-[15px] font-bold mb-1 font-heading">Connect Gmail</p>
                 <p className="text-[13px] text-white/50 leading-relaxed">
-                  {selected === "gmail" && submitting ? "Opening Google..." : "One click. We'll handle the rest."}
+                  One click. We&apos;ll handle the rest.
                 </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
             </button>
 
-            {/* Yahoo */}
-            <button
-              type="button"
-              onClick={() => connectOAuth("yahoo")}
-              disabled={submitting}
-              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 w-full ${
-                selected === "yahoo"
-                  ? "border-cf-orange bg-[#26262C]"
-                  : "border-transparent hover:border-cf-orange/30"
-              } disabled:opacity-50`}
-            >
-              <div className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${selected === "yahoo" ? "bg-cf-orange/10" : "bg-cf-card"}`}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="16" x="2" y="4" rx="2" />
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-[15px] font-bold mb-1 font-heading">Connect Yahoo</p>
-                <p className="text-[13px] text-white/50 leading-relaxed">
-                  {selected === "yahoo" && submitting ? "Opening Yahoo..." : "Quick and easy."}
-                </p>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                disabled
+                className="flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-not-allowed transition-all duration-150 border-2 border-transparent opacity-50 w-full"
+              >
+                <div className="w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center bg-cf-card">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[15px] font-bold mb-1 font-heading">Connect Yahoo</p>
+                  <p className="text-[13px] text-white/50 leading-relaxed">
+                    Quick and easy.
+                  </p>
+                </div>
+              </button>
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-[6px] bg-white/10 text-white/40 uppercase tracking-wide">
+                Coming Soon
+              </span>
+            </div>
 
-            {/* Other / SMTP */}
             <button
               type="button"
-              onClick={() => setSelected(selected === "custom" ? null : "custom")}
-              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 w-full ${
+              onClick={() => setSelected("custom")}
+              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 ${
                 selected === "custom"
                   ? "border-cf-orange bg-[#26262C]"
                   : "border-transparent hover:border-cf-orange/30"
               }`}
             >
-              <div className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${selected === "custom" ? "bg-cf-orange/10" : "bg-cf-card"}`}>
+              <div
+                className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${
+                  selected === "custom" ? "bg-cf-orange/10" : "bg-cf-card"
+                }`}
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
@@ -173,13 +152,31 @@ export default function InboxPage() {
               </div>
               <div className="flex-1">
                 <p className="text-[15px] font-bold mb-1 font-heading">Other provider</p>
-                <p className="text-[13px] text-white/50 leading-relaxed">Use your own email service.</p>
+                <p className="text-[13px] text-white/50 leading-relaxed">
+                  Use your own email service.
+                </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`mt-1 shrink-0 transition-transform ${selected === "custom" ? "rotate-90" : ""}`}>
-                <path d="M9 18l6-6-6-6" />
-              </svg>
             </button>
           </div>
+
+          {/* Gmail/Yahoo OAuth notice */}
+          {selected === "gmail" && (
+            <div className="mb-6 text-left animate-[fadeUp_0.3s_ease-out]">
+              <div className="bg-[#222228] rounded-[14px] p-5 flex items-start gap-3.5">
+                <div className="w-10 h-10 min-w-[40px] rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h6v6" />
+                    <path d="M10 14 21 3" />
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  </svg>
+                </div>
+                <p className="text-[13px] text-white/50 leading-relaxed">
+                  You&apos;ll be redirected to Google to connect your account. We only ask for permission to send emails on your behalf.
+                </p>
+              </div>
+            </div>
+          )}
+
 
           {/* Custom SMTP fields */}
           {selected === "custom" && (
@@ -188,36 +185,66 @@ export default function InboxPage() {
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">SMTP server</label>
-                    <input type="text" value={custom.smtpHost} onChange={updateCustom("smtpHost")} placeholder="smtp.example.com"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                    <input
+                      type="text"
+                      value={custom.smtpHost}
+                      onChange={updateCustom("smtpHost")}
+                      placeholder="smtp.example.com"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                    />
                   </div>
                   <div className="w-[100px]">
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
-                    <input type="text" value={custom.smtpPort} onChange={updateCustom("smtpPort")} placeholder="587"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                    <input
+                      type="text"
+                      value={custom.smtpPort}
+                      onChange={updateCustom("smtpPort")}
+                      placeholder="587"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                    />
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">IMAP server</label>
-                    <input type="text" value={custom.imapHost} onChange={updateCustom("imapHost")} placeholder="imap.example.com"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                    <input
+                      type="text"
+                      value={custom.imapHost}
+                      onChange={updateCustom("imapHost")}
+                      placeholder="imap.example.com"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                    />
                   </div>
                   <div className="w-[100px]">
                     <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
-                    <input type="text" value={custom.imapPort} onChange={updateCustom("imapPort")} placeholder="993"
-                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                    <input
+                      type="text"
+                      value={custom.imapPort}
+                      onChange={updateCustom("imapPort")}
+                      placeholder="993"
+                      className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Email address</label>
-                  <input type="email" value={custom.email} onChange={updateCustom("email")} placeholder="you@example.com"
-                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                  <input
+                    type="email"
+                    value={custom.email}
+                    onChange={updateCustom("email")}
+                    placeholder="you@example.com"
+                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                  />
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Password</label>
-                  <input type="password" value={custom.password} onChange={updateCustom("password")} placeholder="Your email password"
-                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35" />
+                  <input
+                    type="password"
+                    value={custom.password}
+                    onChange={updateCustom("password")}
+                    placeholder="Your email password"
+                    className="w-full bg-cf-card border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                  />
                 </div>
               </div>
             </div>
@@ -258,23 +285,23 @@ export default function InboxPage() {
             <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>
           )}
 
-          {/* Only show Next button for custom SMTP */}
-          {selected === "custom" && (
-            <button
-              type="button"
-              onClick={handleContinue}
-              disabled={!custom.email || !custom.smtpHost || !custom.password || submitting}
-              className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide mb-4 ${
-                custom.email && custom.smtpHost && custom.password && !submitting
-                  ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
-                  : "opacity-35 cursor-default"
-              }`}
-            >
-              {submitting ? "Connecting..." : "Connect"}
-            </button>
-          )}
-
-          <a href="/onboarding/domain" className="block text-center mt-2 text-[13px] text-white/35 hover:text-white/60 transition-colors">
+          {/* Next Button */}
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!selected || submitting}
+            className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
+              selected && !submitting
+                ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                : "opacity-35 cursor-default"
+            }`}
+          >
+            {submitting ? "Connecting..." : "Next"}
+          </button>
+          <a
+            href="/onboarding/domain"
+            className="block text-center mt-5 text-[13px] text-white/35 hover:text-white/60 transition-colors"
+          >
             Back
           </a>
         </div>

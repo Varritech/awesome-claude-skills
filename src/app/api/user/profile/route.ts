@@ -13,9 +13,10 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { updateProfileSchema } from '@/lib/schemas';
-import { clerkClient } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
+
+type Tier = 'self_serve' | 'openclaw_dwy' | 'enterprise';
 
 interface UserProfileRecord {
   id: string;
@@ -23,7 +24,7 @@ interface UserProfileRecord {
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
-  tier: 'self_serve' | 'openclaw_dwy' | 'enterprise';
+  tier: Tier;
   company?: string;
   website?: string;
   industry?: string;
@@ -40,11 +41,53 @@ interface UserProfileRecord {
   onboardingCompleted: boolean;
   createdAt: string;
   updatedAt: string;
+  phone?: string;
+  inboxes?: unknown[];
+  preferences?: {
+    emailNotifications?: boolean;
+    autoFollowUp?: boolean;
+    weeklyReport?: boolean;
+  };
 }
 
-function mockProfile(userId: string): UserProfileRecord {
-  const now = new Date().toISOString();
+function planFromTier(tier: Tier) {
+  const plans: Record<Tier, { tier: string; emailLimitLabel: string; price: string }> = {
+    self_serve:    { tier: 'Starter',    emailLimitLabel: '50 emails/day',   price: '$49/mo'   },
+    openclaw_dwy:  { tier: 'Pro',        emailLimitLabel: '500 emails/day',  price: '$149/mo'  },
+    enterprise:    { tier: 'Enterprise', emailLimitLabel: 'Unlimited',       price: '$399/mo'  },
+  };
+  return plans[tier] ?? plans['self_serve'];
+}
+
+function enrichProfile(raw: UserProfileRecord & Record<string, unknown>) {
+  const firstName = raw.firstName ?? '';
+  const lastName  = raw.lastName  ?? '';
+  const fullName  = `${firstName} ${lastName}`.trim();
+  const initials  = fullName
+    .split(' ')
+    .map((n) => n[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return {
+    ...raw,
+    fullName,
+    avatarInitials: initials || '??',
+    phone:        (raw.phone as string | undefined)        ?? '',
+    inboxes:      (raw.inboxes as unknown[] | undefined)   ?? [],
+    preferences:  (raw.preferences as UserProfileRecord['preferences'] | undefined) ?? {
+      emailNotifications: false,
+      autoFollowUp:       false,
+      weeklyReport:       false,
+    },
+    plan: planFromTier(raw.tier ?? 'self_serve'),
+  };
+}
+
+function mockProfile(userId: string) {
+  const now = new Date().toISOString();
+  const raw: UserProfileRecord = {
     id: userId,
     email: 'you@example.com',
     firstName: 'Chris',
@@ -57,6 +100,7 @@ function mockProfile(userId: string): UserProfileRecord {
     createdAt: now,
     updatedAt: now,
   };
+  return enrichProfile(raw as UserProfileRecord & Record<string, unknown>);
 }
 
 export async function GET() {
@@ -66,37 +110,17 @@ export async function GET() {
 
   logRequest('user.profile.GET', userId);
 
-  const [doc, inboxSnap, domainSnap] = await Promise.all([
-    adminDb.collection('users').doc(userId).get(),
-    adminDb.collection('inboxes').where('userId', '==', userId).get(),
-    adminDb.collection('domains').where('userId', '==', userId).get(),
-  ]);
-
-  const profile = doc.exists ? doc.data() : mockProfile(userId);
-  const inboxes = inboxSnap.docs.map((d) => d.data());
-  const domains = domainSnap.docs
-    .map((d) => d.data())
-    .map((d) => ({
-      id: d.id,
-      domain: d.domain,
-      status: d.overallStatus === 'green' ? 'verified' : d.overallStatus === 'pending' ? 'pending' : 'failed',
-    }));
-
-  // Backfill: if Firestore says onboarding is done but Clerk metadata doesn't,
-  // update Clerk so the middleware lets them through to the dashboard.
-  if (profile?.onboardingCompleted) {
-    const { sessionClaims } = auth;
-    const meta = sessionClaims?.publicMetadata as Record<string, unknown> | undefined;
-    if (!meta?.onboardingCompleted) {
-      clerkClient.users.updateUserMetadata(userId, {
-        publicMetadata: { onboardingCompleted: true },
-      }).catch((err: unknown) => {
-        console.warn('[api:user.profile.GET] failed to backfill Clerk metadata', err);
-      });
+  try {
+    const doc = await adminDb.collection('users').doc(userId).get();
+    if (!doc.exists) {
+      return NextResponse.json({ data: mockProfile(userId) });
     }
+    const raw = doc.data() as (UserProfileRecord & Record<string, unknown>);
+    return NextResponse.json({ data: enrichProfile(raw) });
+  } catch (err) {
+    console.warn('[api:user.profile.GET] falling back to mock', err);
+    return NextResponse.json({ data: mockProfile(userId) });
   }
-
-  return NextResponse.json({ data: { ...profile, inboxes, domains } });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -110,6 +134,10 @@ export async function PATCH(req: NextRequest) {
   const patch = { ...parsed.data, updatedAt: new Date().toISOString() };
   logRequest('user.profile.PATCH', userId, { patch });
 
-  await adminDb.collection('users').doc(userId).set(patch, { merge: true });
+  try {
+    await adminDb.collection('users').doc(userId).set(patch, { merge: true });
+  } catch (err) {
+    console.warn('[api:user.profile.PATCH] placeholder mode', err);
+  }
   return NextResponse.json({ data: { id: userId, ...patch } });
 }

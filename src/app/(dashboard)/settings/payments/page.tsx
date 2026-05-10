@@ -83,6 +83,7 @@ export default function PaymentsPage() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [paymentMsg, setPaymentMsg] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -216,12 +217,21 @@ export default function PaymentsPage() {
                 Expires {String(paymentMethod.expMonth).padStart(2, "0")}/{paymentMethod.expYear}
               </p>
             </div>
-            <button className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity">
+            <button
+              className="text-[13px] text-cf-orange hover:opacity-80 transition-opacity"
+              onClick={() => {
+                setPaymentMsg("To update your payment method, please contact support@convergeflow.io or use the billing portal link in your Stripe email.");
+                setTimeout(() => setPaymentMsg(""), 5000);
+              }}
+            >
               Update
             </button>
           </div>
         ) : (
           <p className="text-[13px] text-white/40 py-2">No payment method on file.</p>
+        )}
+        {paymentMsg && (
+          <p className="text-[12px] text-cf-orange mt-3">{paymentMsg}</p>
         )}
       </Card>
     </>

@@ -17,41 +17,9 @@ interface Lead {
   score: number;
 }
 
-interface ApiLead {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  company?: string;
-  industry?: string;
-  location?: string;
-  status?: string;
-  score?: number;
-  freshness?: Freshness;
-  name?: string;
-}
-
-interface ApiLeadsResponse {
-  data?: ApiLead[];
-  leads?: ApiLead[];
+interface LeadsResponse {
+  leads?: Lead[];
   industries?: string[];
-}
-
-function statusToFreshness(status?: string): Freshness {
-  if (status === "new") return "new";
-  if (status === "contacted" || status === "replied") return "warm";
-  return "cold";
-}
-
-function normalizeLead(l: ApiLead): Lead {
-  return {
-    id: l.id,
-    name: l.name ?? (`${l.firstName ?? ""} ${l.lastName ?? ""}`.trim() || "Unknown"),
-    company: l.company ?? "",
-    industry: l.industry ?? "",
-    location: l.location ?? "",
-    freshness: l.freshness ?? statusToFreshness(l.status),
-    score: l.score ?? 0,
-  };
 }
 
 const defaultIndustries = [
@@ -77,6 +45,7 @@ export default function CustomersPage() {
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("All");
   const [industries, setIndustries] = useState<string[]>(defaultIndustries);
+  const [addToCampaignOpen, setAddToCampaignOpen] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadLeads = (params: { q?: string; industry?: string }) => {
@@ -88,14 +57,16 @@ export default function CustomersPage() {
       ? `/api/leads/search?${new URLSearchParams({ q: params.q!.trim(), ...(params.industry && params.industry !== "All" ? { industry: params.industry } : {}) }).toString()}`
       : `/api/leads${search.toString() ? `?${search.toString()}` : ""}`;
 
-    apiGet<ApiLeadsResponse | ApiLead[]>(path)
+    apiGet<LeadsResponse | Lead[]>(path)
       .then((res) => {
-        const raw: ApiLead[] = Array.isArray(res)
-          ? res
-          : (res?.data ?? res?.leads ?? []);
-        setLeads(raw.map(normalizeLead));
-        const inds = !Array.isArray(res) ? res?.industries : undefined;
-        if (inds?.length) setIndustries(["All", ...inds]);
+        if (Array.isArray(res)) {
+          setLeads(res);
+        } else {
+          setLeads(res?.leads ?? []);
+          if (res?.industries?.length) {
+            setIndustries(["All", ...res.industries]);
+          }
+        }
       })
       .catch((err) => {
         console.error("Failed to load leads", err);
@@ -123,6 +94,21 @@ export default function CustomersPage() {
     setSelectedLeads((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
+  };
+
+  const handleExport = () => {
+    const selected = leads.filter((l) => selectedLeads.includes(l.id));
+    const rows = [
+      ["Name", "Company", "Industry", "Location", "Score"].join(","),
+      ...selected.map((l) => [l.name, l.company, l.industry, l.location, l.score].join(",")),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "leads.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -190,7 +176,7 @@ export default function CustomersPage() {
       {!loading && leads.length > 0 && (
         <div className="flex flex-col gap-2 mb-5">
           {leads.map((lead) => {
-            const config = freshnessConfig[lead.freshness] ?? freshnessConfig.cold;
+            const config = freshnessConfig[lead.freshness];
             const isSelected = selectedLeads.includes(lead.id);
             return (
               <Card
@@ -254,13 +240,27 @@ export default function CustomersPage() {
           <span className="text-[13px] text-white/50">
             {selectedLeads.length} selected
           </span>
-          <Button variant="primary" size="sm">
+          <Button variant="primary" size="sm" onClick={() => setAddToCampaignOpen(true)}>
             Add to Campaign
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={handleExport}>
             <DownloadIcon size={14} className="mr-1.5" />
             Export
           </Button>
+        </div>
+      )}
+
+      {addToCampaignOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-cf-card rounded-[var(--radius-button)] p-6 max-w-sm w-full">
+            <h3 className="text-[16px] font-bold font-heading mb-2">Add to Campaign</h3>
+            <p className="text-[13px] text-white/40 mb-2">{selectedLeads.length} lead{selectedLeads.length !== 1 ? "s" : ""} selected</p>
+            <p className="text-[13px] text-white/30 mb-5">Go to Emails to create a campaign and add these leads.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setAddToCampaignOpen(false)} className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
+              <a href="/emails" className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold text-center">Go to Emails</a>
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -15,6 +15,58 @@ import { createEmailSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+const PERSONA_LABELS: Record<string, string> = {
+  closer: 'Direct Closer',
+  neighbor: 'Friendly Neighbor',
+  expert: 'Expert Advisor',
+  helper: 'Helpful Guide',
+};
+
+type CampaignStatus = 'active' | 'warming' | 'paused' | 'done' | 'draft';
+
+function emailStatusToCampaign(
+  status: EmailRecord['status'],
+): CampaignStatus {
+  switch (status) {
+    case 'draft':
+      return 'draft';
+    case 'queued':
+    case 'sent':
+    case 'opened':
+      return 'active';
+    case 'replied':
+      return 'done';
+    case 'bounced':
+      return 'paused';
+    default:
+      return 'draft';
+  }
+}
+
+interface EmailSet {
+  id: string;
+  name: string;
+  style: string;
+  status: CampaignStatus;
+  sent: number;
+  total: number;
+  replies: number;
+  interested: number;
+}
+
+function toEmailSet(record: EmailRecord): EmailSet {
+  return {
+    id: record.id,
+    name: record.subject || 'Untitled',
+    style: PERSONA_LABELS[record.persona] ?? record.persona,
+    status: emailStatusToCampaign(record.status),
+    sent: record.sentAt ? 1 : 0,
+    total: 1,
+    replies: record.status === 'replied' ? 1 : 0,
+    interested: record.status === 'replied' ? 1 : 0,
+  };
+}
+
 interface EmailRecord {
   id: string;
   userId: string;
@@ -28,6 +80,52 @@ interface EmailRecord {
   updatedAt: string;
   sentAt?: string | null;
   deletedAt?: string | null;
+}
+
+function mockSeed(userId: string): EmailRecord[] {
+  const base: Array<Partial<EmailRecord>> = [
+    {
+      id: 'em_demo_1',
+      subject: 'Quick question about Acme',
+      status: 'replied',
+      persona: 'closer',
+      sentAt: '2026-04-14T09:01:00.000Z',
+    },
+    {
+      id: 'em_demo_2',
+      subject: 'Saw your launch post',
+      status: 'opened',
+      persona: 'neighbor',
+      sentAt: '2026-04-13T13:22:00.000Z',
+    },
+    {
+      id: 'em_demo_3',
+      subject: 'Deliverability audit - 10 min',
+      status: 'sent',
+      persona: 'expert',
+      sentAt: '2026-04-12T10:05:00.000Z',
+    },
+    {
+      id: 'em_demo_4',
+      subject: 'One-pager checklist',
+      status: 'draft',
+      persona: 'helper',
+      sentAt: null,
+    },
+  ];
+  const now = new Date().toISOString();
+  return base.map(
+    (b) =>
+      ({
+        userId,
+        campaignId: 'cmp_demo_1',
+        body: 'Hey {{firstName}},\n\nQuick one - ...',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        ...b,
+      }) as EmailRecord,
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -44,18 +142,33 @@ export async function GET(req: NextRequest) {
 
   logRequest('emails.GET', userId, { limit, cursor });
 
-  const snap = await adminDb
-    .collection('emails')
-    .where('userId', '==', userId)
-    .limit(200)
-    .get();
-  const emails = snap.docs
-    .map((d) => d.data() as EmailRecord)
-    .filter((e) => !e.deletedAt)
-    .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
-    .slice(0, limit);
-  const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
-  return NextResponse.json({ data: emails, nextCursor });
+  try {
+    let q = adminDb
+      .collection('emails')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(limit);
+    if (cursor) {
+      const cursorDoc = await adminDb.collection('emails').doc(cursor).get();
+      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    }
+    const snap = await q.get();
+    const emails = snap.docs
+      .map((d) => d.data() as EmailRecord)
+      .filter((e) => !e.deletedAt);
+    const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
+    if (emails.length === 0) {
+      const seed = mockSeed(userId).slice(0, limit).map(toEmailSet);
+      return NextResponse.json({ data: seed, nextCursor: null });
+    }
+    return NextResponse.json({ data: emails.map(toEmailSet), nextCursor });
+  } catch (err) {
+    console.warn('[api:emails.GET] falling back to mock seed', err);
+    return NextResponse.json({
+      data: mockSeed(userId).slice(0, limit).map(toEmailSet),
+      nextCursor: null,
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
