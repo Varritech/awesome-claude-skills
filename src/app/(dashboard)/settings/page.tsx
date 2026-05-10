@@ -70,7 +70,7 @@ export default function SettingsPage() {
           fullName: data?.fullName ?? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim(),
           email: data?.email ?? "",
           company: data?.company ?? "",
-          phone: (data as any)?.phone ?? "",
+          phone: (data as unknown as { phone?: string })?.phone ?? "",
         });
       })
       .catch((err) => console.error("Failed to load profile", err))
