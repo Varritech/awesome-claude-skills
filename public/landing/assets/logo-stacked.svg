@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="ConvergeFlow stacked logo with tagline">
+  <g transform="translate(150,10)">
+    <rect width="120" height="120" fill="#050505"></rect>
+    <g fill="#E85002" transform="translate(10,10) scale(0.5)">
+      <polygon points="30,40 78,40 110,100 78,160 30,160 62,100"></polygon>
+      <polygon points="78,40 126,40 158,100 126,160 78,160 110,100"></polygon>
+      <polygon points="126,40 170,40 170,80 150,100 170,120 170,160 126,160 158,100"></polygon>
+    </g>
+  </g>
+  <text x="210" y="180" text-anchor="middle" font-family="&#39;Archivo Black&#39;, Archivo, system-ui, sans-serif" font-style="italic" font-weight="900" font-size="44" letter-spacing="-1" fill="#050505">CONVERGEFLOW</text>
+  <text x="210" y="220" text-anchor="middle" font-family="Chivo, system-ui, sans-serif" font-weight="500" font-size="14" letter-spacing="2" fill="#646464">5 CLICKS TO A BOOKED CALL</text>
+</svg>
