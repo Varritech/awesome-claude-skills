@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="ConvergeFlow logomark monochrome white">
+  <g fill="#F9F9F9">
+    <polygon points="30,40 78,40 110,100 78,160 30,160 62,100"></polygon>
+    <polygon points="78,40 126,40 158,100 126,160 78,160 110,100"></polygon>
+    <polygon points="126,40 170,40 170,80 150,100 170,120 170,160 126,160 158,100"></polygon>
+  </g>
+</svg>
