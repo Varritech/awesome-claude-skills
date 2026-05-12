@@ -175,7 +175,7 @@ export const sendEmailFn = inngest.createFunction(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function personalize(template: string, lead: LeadRecord | null): string {
+export function personalize(template: string, lead: LeadRecord | null): string {
   if (!lead) return template;
   return template
     .replace(/\{\{firstName\}\}/g, lead.firstName ?? '')
@@ -187,7 +187,7 @@ function personalize(template: string, lead: LeadRecord | null): string {
     .replace(/\{\{location\}\}/g, lead.location ?? '');
 }
 
-function bodyToHtml(text: string): string {
+export function bodyToHtml(text: string): string {
   return `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#333">${
     text.split('\n').map((l) => `<p style="margin:0 0 8px">${l}</p>`).join('')
   }</div>`;
