@@ -13,7 +13,24 @@ export type Events = {
       emailId: string;
       inboxId: string;
       userId: string;
-      testRecipient?: string; // override all sends to this address
+      testRecipient?: string;
+    };
+  };
+  'email/reply-received': {
+    data: {
+      emailId: string;
+      leadId: string;
+      campaignId: string;
+      replyText: string;
+      userId: string;
+    };
+  };
+  'email/positive-reply': {
+    data: {
+      emailId: string;
+      leadId: string;
+      campaignId: string;
+      userId: string;
     };
   };
   'campaign/start': {
@@ -23,6 +40,12 @@ export type Events = {
     };
   };
   'campaign/pause': {
+    data: {
+      campaignId: string;
+      userId: string;
+    };
+  };
+  'campaign/generate-sequences': {
     data: {
       campaignId: string;
       userId: string;

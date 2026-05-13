@@ -5,8 +5,21 @@ import { campaignStartFn, campaignPauseFn } from '@/lib/inngest/functions/campai
 import { warmupTickFn } from '@/lib/inngest/functions/warmup-tick';
 import { dailyLeadRefreshFn } from '@/lib/inngest/functions/daily-lead-refresh';
 import { dailyAutoSendFn } from '@/lib/inngest/functions/daily-auto-send';
+import { classifyReplyFn } from '@/lib/inngest/functions/classify-reply';
+import { feedbackLoopFn } from '@/lib/inngest/functions/feedback-loop';
+import { generateSequencesFn } from '@/lib/inngest/functions/generate-sequences';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [sendEmailFn, campaignStartFn, campaignPauseFn, warmupTickFn, dailyLeadRefreshFn, dailyAutoSendFn],
+  functions: [
+    sendEmailFn,
+    campaignStartFn,
+    campaignPauseFn,
+    warmupTickFn,
+    dailyLeadRefreshFn,
+    dailyAutoSendFn,
+    classifyReplyFn,
+    feedbackLoopFn,
+    generateSequencesFn,
+  ],
 });
