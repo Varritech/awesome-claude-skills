@@ -4,6 +4,7 @@
  * On success, sets Clerk publicMetadata.emailVerified = true.
  */
 
+import { timingSafeEqual } from 'crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { adminDb, adminAuth } from '@/lib/firebase/admin';
@@ -50,7 +51,9 @@ export async function POST(req: NextRequest) {
     return jsonError('Verification code has expired. Request a new one.', 400);
   }
 
-  if (record.otp !== code) {
+  const a = Buffer.from(record.otp.padEnd(10));
+  const b = Buffer.from(code.padEnd(10));
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return jsonError('Invalid verification code.', 400);
   }
 
