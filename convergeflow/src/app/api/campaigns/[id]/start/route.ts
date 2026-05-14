@@ -26,7 +26,7 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
     const doc = await adminDb.collection("campaigns").doc(campaignId).get();
     if (!doc.exists) return jsonError("Campaign not found", 404);
     const data = doc.data() as { userId?: string; status?: string };
-    if (data.userId && data.userId !== userId) return jsonError("Forbidden", 403);
+    if (data.userId !== userId) return jsonError("Forbidden", 403);
     if (data.status === "running") return jsonError("Campaign is already running", 409);
 
     await inngest.send({ name: "campaign/start", data: { campaignId, userId } });

@@ -20,6 +20,7 @@ export const emailStatusSchema = z.enum([
   "opened",
   "replied",
   "bounced",
+  "paused",
 ]);
 export type EmailStatus = z.infer<typeof emailStatusSchema>;
 
