@@ -42,13 +42,19 @@ interface DeliverabilityData {
   trackingDomain?: string;
 }
 
-const statusIcons: Record<DnsStatus, { icon: typeof CheckIcon; color: string; bg: string; label: string }> = {
+const statusIcons: Record<
+  DnsStatus,
+  { icon: typeof CheckIcon; color: string; bg: string; label: string }
+> = {
   valid: { icon: CheckIcon, color: "text-cf-green", bg: "bg-cf-green/15", label: "Valid" },
   warning: { icon: AlertIcon, color: "text-cf-amber", bg: "bg-cf-amber/15", label: "Warning" },
   invalid: { icon: XIcon, color: "text-red-400", bg: "bg-red-500/15", label: "Invalid" },
 };
 
-const blackListStatusConfig: Record<BlacklistStatus, { label: string; color: string; dot: string }> = {
+const blackListStatusConfig: Record<
+  BlacklistStatus,
+  { label: string; color: string; dot: string }
+> = {
   clean: { label: "Clean", color: "text-cf-green", dot: "bg-cf-green" },
   listed: { label: "Listed", color: "text-red-400", dot: "bg-red-400" },
 };
@@ -118,16 +124,13 @@ export default function DeliverabilityPage() {
   const inboxProviders = data?.inboxProviders ?? [];
   const inboxHealth = data?.inboxHealth ?? 0;
   const inboxHealthLabel = data?.inboxHealthLabel ?? "Unknown";
-  const trackingDomainEnabled = data?.trackingDomainEnabled ?? false;
   const trackingDomain = data?.trackingDomain;
 
   return (
     <>
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight font-heading">Deliverability</h1>
-        <p className="text-[13px] text-white/25 mt-1">
-          Monitor your email health and DNS setup
-        </p>
+        <p className="text-[13px] text-white/25 mt-1">Monitor your email health and DNS setup</p>
       </div>
 
       {/* DNS Records */}
@@ -173,9 +176,7 @@ export default function DeliverabilityPage() {
                     </p>
                   </div>
                 </div>
-                <span className={`text-[11px] font-medium ${config.color}`}>
-                  {config.label}
-                </span>
+                <span className={`text-[11px] font-medium ${config.color}`}>{config.label}</span>
               </div>
             );
           })}
@@ -205,9 +206,7 @@ export default function DeliverabilityPage() {
                     <div className={`w-2 h-2 rounded-full ${config.dot}`} />
                     <span className="text-[13px] text-white/50">{check.name}</span>
                   </div>
-                  <span className={`text-[11px] font-medium ${config.color}`}>
-                    {config.label}
-                  </span>
+                  <span className={`text-[11px] font-medium ${config.color}`}>{config.label}</span>
                 </div>
               );
             })}
@@ -229,8 +228,8 @@ export default function DeliverabilityPage() {
             />
           </div>
           <p className="text-[12px] text-white/25 leading-relaxed">
-            Use a custom domain for tracking links and opens. This improves deliverability
-            by keeping your brand consistent.
+            Use a custom domain for tracking links and opens. This improves deliverability by
+            keeping your brand consistent.
           </p>
           {trackingDomain && (
             <div className="mt-4 flex items-center gap-2">
@@ -258,8 +257,8 @@ export default function DeliverabilityPage() {
                       provider.percentage >= 90
                         ? "bg-cf-green"
                         : provider.percentage >= 80
-                        ? "bg-cf-amber"
-                        : "bg-red-400"
+                          ? "bg-cf-amber"
+                          : "bg-red-400"
                     }`}
                     style={{ width: `${provider.percentage}%` }}
                   />

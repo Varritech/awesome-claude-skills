@@ -11,6 +11,7 @@ import { inngest } from "../client";
 import { adminDb } from "@/lib/firebase/admin";
 import { sendEmail, type SmtpConfig } from "@/lib/smtp/mailer";
 import { todayQuota } from "@/lib/warmup/scheduler";
+import { resolveMergeTags } from "@/lib/emails/merge-tags";
 
 export const sendEmailFn = inngest.createFunction(
   {
@@ -70,17 +71,14 @@ export const sendEmailFn = inngest.createFunction(
         const tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setUTCHours(8, 0, 0, 0);
-        await adminDb
-          .collection("emails")
-          .doc(emailId)
-          .set(
-            {
-              status: "queued",
-              scheduledAt: tomorrow.toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
+        await adminDb.collection("emails").doc(emailId).set(
+          {
+            status: "queued",
+            scheduledAt: tomorrow.toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       });
       return { skipped: true, reason: "Daily quota reached, requeued for tomorrow" };
     }
@@ -88,17 +86,14 @@ export const sendEmailFn = inngest.createFunction(
     // ── 3. Build SMTP config ──────────────────────────────────────────────────
     if (!inbox.smtpHost || !inbox.smtpPort || !inbox.smtpUser || !inbox.smtpPasswordEncrypted) {
       await step.run("mark-error", async () => {
-        await adminDb
-          .collection("emails")
-          .doc(emailId)
-          .set(
-            {
-              status: "bounced",
-              error: "Inbox SMTP not configured",
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
+        await adminDb.collection("emails").doc(emailId).set(
+          {
+            status: "bounced",
+            error: "Inbox SMTP not configured",
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       });
       throw new Error(`Inbox ${inboxId} has no SMTP credentials`);
     }
@@ -118,9 +113,12 @@ export const sendEmailFn = inngest.createFunction(
         })
       : null;
 
-    // ── 5. Personalize body ───────────────────────────────────────────────────
-    const personalizedBody = personalize(emailDoc.body, lead);
-    const personalizedSubject = personalize(emailDoc.subject, lead);
+    // ── 5. Personalize body (legacy simple tags + full merge tags) ────────────
+    const legacyBody = personalize(emailDoc.body, lead);
+    const legacySubject = personalize(emailDoc.subject, lead);
+    const senderCtx = { name: inbox.displayName ?? inbox.email, company: "" };
+    const personalizedBody = resolveMergeTags(legacyBody, lead ?? {}, senderCtx);
+    const personalizedSubject = resolveMergeTags(legacySubject, lead ?? {}, senderCtx);
     const recipient = testRecipient ?? lead?.email ?? emailDoc.toEmail;
 
     if (!recipient) {

@@ -70,7 +70,7 @@ export default function SettingsPage() {
           fullName: data?.fullName ?? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim(),
           email: data?.email ?? "",
           company: data?.company ?? "",
-          phone: (data as any)?.phone ?? "",
+          phone: ((data as Record<string, unknown>)?.phone as string) ?? "",
         });
       })
       .catch((err) => console.error("Failed to load profile", err))
@@ -149,7 +149,9 @@ export default function SettingsPage() {
             {initials || "??"}
           </div>
           <div>
-            <h3 className="text-[15px] font-bold font-heading">{profile?.fullName ?? (form.fullName || "Your Profile")}</h3>
+            <h3 className="text-[15px] font-bold font-heading">
+              {profile?.fullName ?? (form.fullName || "Your Profile")}
+            </h3>
             <p className="text-[12px] text-white/25">{profile?.email ?? form.email}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -226,7 +228,12 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <p className="text-[13px] font-medium">{inbox.email}</p>
                 <p className="text-[11px] text-white/20">
-                  {inbox.provider} &middot; {inbox.status === "connected" ? "Connected" : inbox.status === "pending" ? "Pending" : "Error"}
+                  {inbox.provider} &middot;{" "}
+                  {inbox.status === "connected"
+                    ? "Connected"
+                    : inbox.status === "pending"
+                      ? "Pending"
+                      : "Error"}
                 </p>
               </div>
               <span
@@ -234,8 +241,8 @@ export default function SettingsPage() {
                   inbox.status === "connected"
                     ? "bg-cf-green"
                     : inbox.status === "pending"
-                    ? "bg-cf-amber"
-                    : "bg-red-400"
+                      ? "bg-cf-amber"
+                      : "bg-red-400"
                 }`}
               />
             </div>
@@ -262,8 +269,24 @@ export default function SettingsPage() {
               />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { setAddingInbox(false); setInboxEmail(""); }} className="flex-1 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
-              <button onClick={() => { setAddingInbox(false); setInboxEmail(""); }} className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold">Connect</button>
+              <button
+                onClick={() => {
+                  setAddingInbox(false);
+                  setInboxEmail("");
+                }}
+                className="flex-1 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setAddingInbox(false);
+                  setInboxEmail("");
+                }}
+                className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold"
+              >
+                Connect
+              </button>
             </div>
           </div>
         )}
@@ -287,7 +310,11 @@ export default function SettingsPage() {
               <div>
                 <p className="text-[13px] font-medium">{domain.domain}</p>
                 <p className="text-[11px] text-white/20">
-                  {domain.status === "verified" ? "Verified" : domain.status === "pending" ? "Pending" : "Failed"}
+                  {domain.status === "verified"
+                    ? "Verified"
+                    : domain.status === "pending"
+                      ? "Pending"
+                      : "Failed"}
                 </p>
               </div>
               <span
@@ -295,11 +322,15 @@ export default function SettingsPage() {
                   domain.status === "verified"
                     ? "bg-cf-green/15 text-cf-green"
                     : domain.status === "pending"
-                    ? "bg-cf-amber/15 text-cf-amber"
-                    : "bg-red-500/15 text-red-400"
+                      ? "bg-cf-amber/15 text-cf-amber"
+                      : "bg-red-500/15 text-red-400"
                 }`}
               >
-                {domain.status === "verified" ? "Verified" : domain.status === "pending" ? "Pending" : "Failed"}
+                {domain.status === "verified"
+                  ? "Verified"
+                  : domain.status === "pending"
+                    ? "Pending"
+                    : "Failed"}
               </span>
             </div>
           ))}
@@ -323,7 +354,9 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[13px] font-medium">Auto-follow up</p>
-              <p className="text-[11px] text-white/20">Send follow-ups automatically after 3 days</p>
+              <p className="text-[11px] text-white/20">
+                Send follow-ups automatically after 3 days
+              </p>
             </div>
             <Toggle
               checked={preferences.autoFollowUp ?? false}
@@ -383,10 +416,24 @@ export default function SettingsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-cf-card rounded-[var(--radius-button)] p-6 max-w-sm w-full">
             <h3 className="text-[16px] font-bold font-heading mb-2">Delete Account?</h3>
-            <p className="text-[13px] text-white/40 mb-5">This permanently deletes all your data and cannot be undone.</p>
+            <p className="text-[13px] text-white/40 mb-5">
+              This permanently deletes all your data and cannot be undone.
+            </p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
-              <button onClick={() => { setConfirmDelete(false); }} className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-red-500 text-white text-[13px] font-bold">Delete Forever</button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                }}
+                className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-red-500 text-white text-[13px] font-bold"
+              >
+                Delete Forever
+              </button>
             </div>
           </div>
         </div>

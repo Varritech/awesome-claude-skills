@@ -40,4 +40,12 @@ export type Events = {
       userId: string;
     };
   };
+  "reply/received": {
+    data: {
+      emailId: string;
+      replyBody: string;
+      leadId?: string;
+      userId: string;
+    };
+  };
 };
