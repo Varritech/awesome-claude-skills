@@ -11,6 +11,7 @@ import { inngest } from "../client";
 import { adminDb } from "@/lib/firebase/admin";
 import { sendEmail, type SmtpConfig } from "@/lib/smtp/mailer";
 import { todayQuota } from "@/lib/warmup/scheduler";
+import { wrapLinks, addTrackingPixel } from "@/lib/deliverability/tracking";
 
 export const sendEmailFn = inngest.createFunction(
   {
@@ -138,11 +139,19 @@ export const sendEmailFn = inngest.createFunction(
 
     // ── 6. Send ───────────────────────────────────────────────────────────────
     const result = await step.run("send-smtp", async () => {
+      let html = bodyToHtml(personalizedBody);
+
+      // Apply tracking if the email record has a trackingDomain
+      if (emailDoc.trackingEnabled && emailDoc.trackingDomain) {
+        html = wrapLinks(html, emailId, emailDoc.trackingDomain);
+        html = addTrackingPixel(html, emailId, emailDoc.trackingDomain);
+      }
+
       return sendEmail(smtpConfig, {
         from: inbox.displayName ? `${inbox.displayName} <${inbox.email}>` : inbox.email,
         to: recipient,
         subject: personalizedSubject,
-        html: bodyToHtml(personalizedBody),
+        html,
         text: personalizedBody,
         headers: {
           "X-Campaign-Id": emailDoc.campaignId ?? "",
@@ -223,6 +232,12 @@ interface EmailRecord {
   sentAt?: string | null;
   messageId?: string;
   inboxId?: string;
+  trackingEnabled?: boolean;
+  trackingDomain?: string;
+  openedAt?: string | null;
+  clickedAt?: string | null;
+  repliedAt?: string | null;
+  bookedAt?: string | null;
 }
 
 interface InboxRecord {
