@@ -11,6 +11,7 @@ import { inngest } from "../client";
 import { adminDb } from "@/lib/firebase/admin";
 import { sendEmail, type SmtpConfig } from "@/lib/smtp/mailer";
 import { todayQuota } from "@/lib/warmup/scheduler";
+import { isEmailSuppressed, isEmailOnDnc } from "@/lib/suppression/check";
 
 export const sendEmailFn = inngest.createFunction(
   {
@@ -70,17 +71,14 @@ export const sendEmailFn = inngest.createFunction(
         const tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setUTCHours(8, 0, 0, 0);
-        await adminDb
-          .collection("emails")
-          .doc(emailId)
-          .set(
-            {
-              status: "queued",
-              scheduledAt: tomorrow.toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
+        await adminDb.collection("emails").doc(emailId).set(
+          {
+            status: "queued",
+            scheduledAt: tomorrow.toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       });
       return { skipped: true, reason: "Daily quota reached, requeued for tomorrow" };
     }
@@ -88,17 +86,14 @@ export const sendEmailFn = inngest.createFunction(
     // ── 3. Build SMTP config ──────────────────────────────────────────────────
     if (!inbox.smtpHost || !inbox.smtpPort || !inbox.smtpUser || !inbox.smtpPasswordEncrypted) {
       await step.run("mark-error", async () => {
-        await adminDb
-          .collection("emails")
-          .doc(emailId)
-          .set(
-            {
-              status: "bounced",
-              error: "Inbox SMTP not configured",
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
+        await adminDb.collection("emails").doc(emailId).set(
+          {
+            status: "bounced",
+            error: "Inbox SMTP not configured",
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       });
       throw new Error(`Inbox ${inboxId} has no SMTP credentials`);
     }
@@ -117,6 +112,35 @@ export const sendEmailFn = inngest.createFunction(
           return snap.exists ? (snap.data() as LeadRecord) : null;
         })
       : null;
+
+    // ── 4b. Check suppression and DNC ────────────────────────────────────────
+    const recipientEmail = (testRecipient ?? lead?.email ?? emailDoc.toEmail) || "";
+    if (recipientEmail && !testRecipient) {
+      const [suppressed, onDnc] = await step.run("check-suppression", async () => {
+        const [s, d] = await Promise.all([
+          isEmailSuppressed(emailDoc.userId, recipientEmail),
+          isEmailOnDnc(recipientEmail),
+        ]);
+        return [s, d];
+      });
+
+      if (suppressed || onDnc) {
+        await step.run("mark-suppressed", async () => {
+          await adminDb
+            .collection("emails")
+            .doc(emailId)
+            .set(
+              {
+                status: "bounced",
+                error: onDnc ? "DNC list" : "Suppressed",
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+        });
+        return { skipped: true, reason: onDnc ? "Email is on DNC list" : "Email is suppressed" };
+      }
+    }
 
     // ── 5. Personalize body ───────────────────────────────────────────────────
     const personalizedBody = personalize(emailDoc.body, lead);

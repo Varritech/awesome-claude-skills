@@ -8,17 +8,13 @@
  * inner object directly.
  */
 
-import { NextResponse, type NextRequest } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
-import {
-  jsonError,
-  logRequest,
-  parseAndValidate,
-  requireUser,
-} from '@/lib/api/helpers';
-import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
+import { NextResponse, type NextRequest } from "next/server";
+import { adminDb } from "@/lib/firebase/admin";
+import { jsonError, logRequest, parseAndValidate, requireUser } from "@/lib/api/helpers";
+import { importLeadsSchema, leadFilterSchema } from "@/lib/schemas";
+import { deduplicateLeads } from "@/lib/leads/dedup";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // ── Internal storage type ────────────────────────────────────────────────────
 
@@ -32,8 +28,9 @@ interface LeadRecord {
   title?: string;
   industry?: string;
   location?: string;
-  status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
-  source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
+  status: "new" | "contacted" | "replied" | "booked" | "unsubscribed" | "bounced" | "flagged";
+  source: "csv" | "apollo" | "aleads" | "snov" | "outscraper" | "manual" | "leadsgorilla";
+  tags: string[];
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -41,7 +38,7 @@ interface LeadRecord {
 
 // ── UI type ──────────────────────────────────────────────────────────────────
 
-type Freshness = 'new' | 'warm' | 'cold';
+type Freshness = "new" | "warm" | "cold";
 
 interface Lead {
   id: string;
@@ -55,10 +52,10 @@ interface Lead {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function statusToFreshness(status: LeadRecord['status']): Freshness {
-  if (status === 'new') return 'new';
-  if (status === 'contacted' || status === 'replied' || status === 'booked') return 'warm';
-  return 'cold';
+function statusToFreshness(status: LeadRecord["status"]): Freshness {
+  if (status === "new") return "new";
+  if (status === "contacted" || status === "replied" || status === "booked") return "warm";
+  return "cold";
 }
 
 /** Deterministic score 60-99 derived from the lead id string. */
@@ -73,10 +70,10 @@ function scoreFromId(id: string): number {
 function toUiLead(r: LeadRecord): Lead {
   return {
     id: r.id,
-    name: [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || r.email || r.id,
-    company: r.company ?? '',
-    industry: r.industry ?? '',
-    location: r.location ?? '',
+    name: [r.firstName, r.lastName].filter(Boolean).join(" ").trim() || r.email || r.id,
+    company: r.company ?? "",
+    industry: r.industry ?? "",
+    location: r.location ?? "",
     freshness: statusToFreshness(r.status),
     score: scoreFromId(r.id),
   };
@@ -101,40 +98,40 @@ function mockSeed(userId: string): LeadRecord[] {
   const now = new Date().toISOString();
   const rows: Array<Partial<LeadRecord>> = [
     {
-      id: 'ld_demo_1',
-      firstName: 'Alex',
-      lastName: 'Chen',
-      email: 'alex@acme.io',
-      company: 'Acme SaaS',
-      title: 'Head of Growth',
-      industry: 'SaaS',
-      location: 'New York, NY',
-      status: 'contacted',
-      source: 'apollo',
+      id: "ld_demo_1",
+      firstName: "Alex",
+      lastName: "Chen",
+      email: "alex@acme.io",
+      company: "Acme SaaS",
+      title: "Head of Growth",
+      industry: "SaaS",
+      location: "New York, NY",
+      status: "contacted",
+      source: "apollo",
     },
     {
-      id: 'ld_demo_2',
-      firstName: 'Jordan',
-      lastName: 'Patel',
-      email: 'jordan@northside.dental',
-      company: 'Northside Dental',
-      title: 'Practice Owner',
-      industry: 'Healthcare',
-      location: 'Austin, TX',
-      status: 'new',
-      source: 'aleads',
+      id: "ld_demo_2",
+      firstName: "Jordan",
+      lastName: "Patel",
+      email: "jordan@northside.dental",
+      company: "Northside Dental",
+      title: "Practice Owner",
+      industry: "Healthcare",
+      location: "Austin, TX",
+      status: "new",
+      source: "aleads",
     },
     {
-      id: 'ld_demo_3',
-      firstName: 'Sam',
-      lastName: 'Ruiz',
-      email: 'sam@hawkcap.com',
-      company: 'Hawk Capital',
-      title: 'Managing Partner',
-      industry: 'Finance',
-      location: 'Miami, FL',
-      status: 'booked',
-      source: 'manual',
+      id: "ld_demo_3",
+      firstName: "Sam",
+      lastName: "Ruiz",
+      email: "sam@hawkcap.com",
+      company: "Hawk Capital",
+      title: "Managing Partner",
+      industry: "Finance",
+      location: "Miami, FL",
+      status: "booked",
+      source: "manual",
     },
   ];
   return rows.map(
@@ -145,7 +142,7 @@ function mockSeed(userId: string): LeadRecord[] {
         updatedAt: now,
         deletedAt: null,
         ...r,
-      }) as LeadRecord,
+      }) as LeadRecord
   );
 }
 
@@ -157,45 +154,41 @@ export async function GET(req: NextRequest) {
   const { userId } = auth;
 
   const url = new URL(req.url);
-  const parsed = leadFilterSchema.safeParse(
-    Object.fromEntries(url.searchParams.entries()),
-  );
+  const parsed = leadFilterSchema.safeParse(Object.fromEntries(url.searchParams.entries()));
   if (!parsed.success) {
-    return jsonError('Invalid filters', 400, parsed.error.flatten());
+    return jsonError("Invalid filters", 400, parsed.error.flatten());
   }
   const { industry, location, status, limit, cursor } = parsed.data;
 
-  logRequest('leads.GET', userId, { industry, location, status, limit, cursor });
+  logRequest("leads.GET", userId, { industry, location, status, limit, cursor });
 
   try {
     let q = adminDb
-      .collection('leads')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
+      .collection("leads")
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
       .limit(limit);
-    if (industry) q = q.where('industry', '==', industry);
-    if (location) q = q.where('location', '==', location);
-    if (status) q = q.where('status', '==', status);
+    if (industry) q = q.where("industry", "==", industry);
+    if (location) q = q.where("location", "==", location);
+    if (status) q = q.where("status", "==", status);
     if (cursor) {
-      const cursorDoc = await adminDb.collection('leads').doc(cursor).get();
+      const cursorDoc = await adminDb.collection("leads").doc(cursor).get();
       if (cursorDoc.exists) q = q.startAfter(cursorDoc);
     }
     const snap = await q.get();
-    const records = snap.docs
-      .map((d) => d.data() as LeadRecord)
-      .filter((l) => !l.deletedAt);
+    const records = snap.docs.map((d) => d.data() as LeadRecord).filter((l) => !l.deletedAt);
     if (records.length === 0) {
       const seed = mockSeed(userId).filter(
         (l) =>
           (!industry || l.industry === industry) &&
           (!location || l.location === location) &&
-          (!status || l.status === status),
+          (!status || l.status === status)
       );
       return NextResponse.json({ data: toUiResponse(seed) });
     }
     return NextResponse.json({ data: toUiResponse(records) });
   } catch (err) {
-    console.warn('[api:leads.GET] falling back to mock seed', err);
+    console.warn("[api:leads.GET] falling back to mock seed", err);
     return NextResponse.json({ data: toUiResponse(mockSeed(userId)) });
   }
 }
@@ -211,10 +204,21 @@ export async function POST(req: NextRequest) {
   if (parsed.response) return parsed.response;
   const { source, leads } = parsed.data;
 
-  logRequest('leads.POST', userId, { source, count: leads.length });
+  logRequest("leads.POST", userId, { source, count: leads.length });
+
+  // Deduplicate before writing
+  let uniqueLeads = leads;
+  let duplicateCount = 0;
+  try {
+    const deduped = await deduplicateLeads(userId, leads);
+    uniqueLeads = deduped.unique;
+    duplicateCount = deduped.duplicates.length;
+  } catch (err) {
+    console.warn("[api:leads.POST] dedup check failed, proceeding without dedup", err);
+  }
 
   const now = new Date().toISOString();
-  const inserted: LeadRecord[] = leads.map((l) => ({
+  const inserted: LeadRecord[] = uniqueLeads.map((l) => ({
     id: `ld_${Math.random().toString(36).slice(2, 12)}`,
     userId,
     firstName: l.firstName,
@@ -224,24 +228,37 @@ export async function POST(req: NextRequest) {
     title: l.title,
     industry: l.industry,
     location: l.location,
-    status: 'new',
+    status: "new",
     source,
+    tags: [],
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
   }));
 
   try {
-    // TODO: batch-write in 500-doc chunks once real Firestore is wired.
-    for (const rec of inserted) {
-      await adminDb.collection('leads').doc(rec.id).set(rec);
+    // Batch-write in 500-doc chunks
+    const CHUNK = 500;
+    for (let i = 0; i < inserted.length; i += CHUNK) {
+      const batch = adminDb.batch();
+      for (const rec of inserted.slice(i, i + CHUNK)) {
+        batch.set(adminDb.collection("leads").doc(rec.id), rec);
+      }
+      await batch.commit();
     }
   } catch (err) {
-    console.warn('[api:leads.POST] placeholder mode', err);
+    console.warn("[api:leads.POST] placeholder mode", err);
   }
 
   return NextResponse.json(
-    { data: { imported: inserted.length, source, leads: inserted } },
-    { status: 201 },
+    {
+      data: {
+        imported: inserted.length,
+        duplicatesSkipped: duplicateCount,
+        source,
+        leads: inserted,
+      },
+    },
+    { status: 201 }
   );
 }
