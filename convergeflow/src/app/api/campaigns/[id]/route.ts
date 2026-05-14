@@ -89,6 +89,10 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   logRequest('campaigns.[id].PATCH', userId, { id, patch: parsed.data });
 
   try {
+    const existing = await adminDb.collection('campaigns').doc(id).get();
+    if (!existing.exists) return jsonError('Campaign not found', 404);
+    const existingData = existing.data() as { userId?: string };
+    if (existingData.userId && existingData.userId !== userId) return jsonError('Forbidden', 403);
     const patch = { ...parsed.data, updatedAt: new Date().toISOString() };
     await adminDb.collection('campaigns').doc(id).set(patch, { merge: true });
     return NextResponse.json({ data: { id, ...patch } });
@@ -110,6 +114,10 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
 
   const deletedAt = new Date().toISOString();
   try {
+    const existing = await adminDb.collection('campaigns').doc(id).get();
+    if (!existing.exists) return jsonError('Campaign not found', 404);
+    const existingData = existing.data() as { userId?: string };
+    if (existingData.userId && existingData.userId !== userId) return jsonError('Forbidden', 403);
     await adminDb
       .collection('campaigns')
       .doc(id)

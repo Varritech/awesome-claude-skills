@@ -159,6 +159,10 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   logRequest('emails.[id].PATCH', userId, { id, patch });
 
   try {
+    const doc = await adminDb.collection('emails').doc(id).get();
+    if (!doc.exists) return jsonError('Email not found', 404);
+    const raw = doc.data() as EmailRecord;
+    if (raw.userId && raw.userId !== userId) return jsonError('Forbidden', 403);
     await adminDb.collection('emails').doc(id).set(patch, { merge: true });
   } catch (err) {
     console.warn('[api:emails.[id].PATCH] placeholder mode', err);
@@ -176,6 +180,10 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
   logRequest('emails.[id].DELETE', userId, { id });
 
   try {
+    const doc = await adminDb.collection('emails').doc(id).get();
+    if (!doc.exists) return jsonError('Email not found', 404);
+    const raw = doc.data() as EmailRecord;
+    if (raw.userId && raw.userId !== userId) return jsonError('Forbidden', 403);
     await adminDb
       .collection('emails')
       .doc(id)
