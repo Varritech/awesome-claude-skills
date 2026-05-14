@@ -59,6 +59,7 @@ export const updateProfileSchema = z.object({
   timezone: z.string().max(60).optional(),
   preferredStyle: z.string().max(40).optional(),
   phone: z.string().max(30).optional(),
+  tourCompleted: z.boolean().optional(),
   preferences: z
     .object({
       emailNotifications: z.boolean().optional(),

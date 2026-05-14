@@ -24,8 +24,15 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@clerk/nextjs", () => ({
-  useUser: () => ({ user: { firstName: "John", lastName: "Roe", imageUrl: null }, isLoaded: true }),
+  useUser: () => ({ user: { firstName: "John", lastName: "Roe", imageUrl: null }, isLoaded: true, isSignedIn: true }),
   useAuth: () => ({ isSignedIn: true }),
+  useClerk: () => ({ signOut: vi.fn() }),
+}));
+
+vi.mock("@/lib/api-client", () => ({
+  apiGet: vi.fn().mockResolvedValue(null),
+  apiPost: vi.fn().mockResolvedValue(null),
+  apiPatch: vi.fn().mockResolvedValue(null),
 }));
 
 import { DashboardLayout, Sidebar, MobileNav } from "./DashboardLayout";

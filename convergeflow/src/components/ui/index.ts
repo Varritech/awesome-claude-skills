@@ -6,3 +6,5 @@ export { Toggle } from "./Toggle";
 export { Avatar, MenuDot } from "./Avatar";
 export { Select } from "./Select";
 export { Skeleton, PageSkeleton } from "./Skeleton";
+export { ProductTour } from "./ProductTour";
+export { SessionTimeout } from "./SessionTimeout";
