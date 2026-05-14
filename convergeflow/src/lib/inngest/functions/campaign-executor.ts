@@ -9,6 +9,7 @@
 
 import { inngest } from "../client";
 import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { todayQuota, randomSendDelay } from "@/lib/warmup/scheduler";
 
 export const campaignStartFn = inngest.createFunction(
@@ -30,10 +31,18 @@ export const campaignStartFn = inngest.createFunction(
       return data;
     });
 
-    // ── 2. Load inbox for this campaign ───────────────────────────────────────
+    // ── 2. Load inbox for this campaign (round-robin rotation) ────────────────
     const inbox = await step.run("load-inbox", async () => {
-      const inboxId = campaign.inboxIds?.[0];
-      if (!inboxId) throw new Error("Campaign has no inbox configured");
+      const inboxIds = campaign.inboxIds ?? [];
+      if (inboxIds.length === 0) throw new Error("Campaign has no inbox configured");
+      const campaignRef = adminDb.collection("campaigns").doc(campaignId);
+      const emailIndex: number = await adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(campaignRef);
+        const current = (snap.data()?.emailIndex ?? 0) as number;
+        tx.set(campaignRef, { emailIndex: FieldValue.increment(1), updatedAt: new Date().toISOString() }, { merge: true });
+        return current;
+      });
+      const inboxId = inboxIds[emailIndex % inboxIds.length]!;
       const snap = await adminDb.collection("inboxes").doc(inboxId).get();
       if (!snap.exists) throw new Error(`Inbox ${inboxId} not found`);
       return { id: inboxId, ...snap.data() } as InboxRecord;
@@ -156,12 +165,64 @@ export const campaignPauseFn = inngest.createFunction(
   }
 );
 
+// ─── Sequence helpers ─────────────────────────────────────────────────────────
+
+interface SequenceStep {
+  delayDays: number;
+  subject: string;
+  body: string;
+}
+
+/**
+ * Bug 3 fix: first step with delayDays > 0 must NOT fire immediately.
+ * If lastSentAt is null (campaign just started), only allow send when delayDays === 0.
+ */
+export function isStepDue(step: SequenceStep, lastSentAt: string | null): boolean {
+  if (!lastSentAt) return step.delayDays === 0;
+  const last = new Date(lastSentAt).getTime();
+  const now = Date.now();
+  return now - last >= step.delayDays * 86_400_000;
+}
+
+/**
+ * Bug 4 fix: errors must NOT silently stop the sequence.
+ * Default to false (keep sending) and log the error.
+ */
+export async function shouldStopSequence(leadId: string, campaignId: string): Promise<boolean> {
+  try {
+    const snap = await adminDb
+      .collection("leadSequenceState")
+      .doc(`${leadId}_${campaignId}`)
+      .get();
+    const data = snap.data();
+    if (!data) return false;
+    return data.replied === true || data.unsubscribed === true || data.bounced === true;
+  } catch (err) {
+    console.error('[shouldStopSequence] error, defaulting to false', err);
+    return false;
+  }
+}
+
+/**
+ * Bug 2 fix: atomic daily send counter using a Firestore transaction.
+ */
+export async function incrementDailySend(userId: string, inboxId: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  await adminDb.runTransaction(async (tx) => {
+    const ref = adminDb.collection('dailySendCounters').doc(`${userId}_${inboxId}_${today}`);
+    const doc = await tx.get(ref);
+    const current = (doc.data()?.count ?? 0) as number;
+    tx.set(ref, { count: current + 1, updatedAt: new Date().toISOString() }, { merge: true });
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CampaignRecord {
   id: string;
   userId: string;
   inboxIds?: string[];
+  emailIndex?: number;
   targetLeadCount?: number;
   persona?: string;
   emailSubject?: string;
