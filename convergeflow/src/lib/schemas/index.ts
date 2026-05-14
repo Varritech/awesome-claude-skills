@@ -6,13 +6,14 @@
  * legacy imports from `@/lib/schemas` working.
  */
 
-import { z } from 'zod';
-import { subscriptionTierSchema } from './user';
+import { z } from "zod";
+import { subscriptionTierSchema } from "./user";
 
-export * from './user';
-export * from './campaign';
-export * from './lead';
-export * from './domain';
+export * from "./user";
+export * from "./campaign";
+export * from "./lead";
+export * from "./domain";
+export * from "./sequence";
 
 /* Personas (custom user-defined personas, separate from the persona preset enum) */
 
@@ -20,9 +21,7 @@ export const createPersonaSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(500).optional(),
   systemPrompt: z.string().min(1).max(4000),
-  tone: z
-    .enum(['direct', 'warm', 'expert', 'friendly', 'irreverent'])
-    .default('direct'),
+  tone: z.enum(["direct", "warm", "expert", "friendly", "irreverent"]).default("direct"),
 });
 export type CreatePersonaInput = z.infer<typeof createPersonaSchema>;
 

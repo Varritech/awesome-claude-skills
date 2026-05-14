@@ -1,39 +1,56 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const personaSchema = z.enum(['closer', 'neighbor', 'expert', 'helper']);
+export const personaSchema = z.enum(["closer", "neighbor", "expert", "helper"]);
 export type Persona = z.infer<typeof personaSchema>;
 
 export const campaignStatusSchema = z.enum([
-  'draft',
-  'scheduled',
-  'running',
-  'paused',
-  'completed',
-  'archived',
+  "draft",
+  "scheduled",
+  "running",
+  "paused",
+  "completed",
+  "archived",
 ]);
 export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
 
 export const emailStatusSchema = z.enum([
-  'draft',
-  'queued',
-  'sent',
-  'opened',
-  'replied',
-  'bounced',
+  "draft",
+  "queued",
+  "paused",
+  "sent",
+  "opened",
+  "replied",
+  "bounced",
 ]);
 export type EmailStatus = z.infer<typeof emailStatusSchema>;
+
+export const abVariantSchema = z.object({
+  label: z.string().min(1).max(20),
+  subjectSuffix: z.string().max(100).default(""),
+  bodySuffix: z.string().max(2000).default(""),
+  weight: z.number().int().positive().default(50),
+});
+export type AbVariant = z.infer<typeof abVariantSchema>;
 
 export const campaignSchema = z.object({
   id: z.string().min(1),
   userId: z.string().min(1),
   name: z.string().min(1).max(120),
   description: z.string().max(1000).optional(),
-  status: campaignStatusSchema.default('draft'),
-  persona: personaSchema.default('closer'),
+  status: campaignStatusSchema.default("draft"),
+  persona: personaSchema.default("closer"),
   targetLeadCount: z.number().int().nonnegative().optional(),
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).default([]),
   scheduledAt: z.string().datetime().nullable().optional(),
+  /** ID of the multi-step sequence attached to this campaign */
+  sequenceId: z.string().optional(),
+  /** Round-robin inbox counter: incremented atomically per email sent */
+  emailIndex: z.number().int().nonnegative().default(0),
+  /** A/B test variants. When set, each lead is assigned a variant on send. */
+  abVariants: z.array(abVariantSchema).optional(),
+  /** What to do when a lead replies: 'stop' pauses remaining queued emails */
+  replyAction: z.enum(["stop", "continue"]).default("stop"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -42,11 +59,14 @@ export type Campaign = z.infer<typeof campaignSchema>;
 export const createCampaignSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(1000).optional(),
-  persona: personaSchema.default('closer'),
+  persona: personaSchema.default("closer"),
   targetLeadCount: z.number().int().positive().max(10_000).optional(),
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional(),
+  sequenceId: z.string().optional(),
+  abVariants: z.array(abVariantSchema).optional(),
+  replyAction: z.enum(["stop", "continue"]).default("stop"),
 });
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 
@@ -56,6 +76,9 @@ export const updateCampaignSchema = z.object({
   status: campaignStatusSchema.optional(),
   persona: personaSchema.optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
+  sequenceId: z.string().optional(),
+  abVariants: z.array(abVariantSchema).optional(),
+  replyAction: z.enum(["stop", "continue"]).optional(),
 });
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
 
@@ -64,13 +87,19 @@ export const emailSchema = z.object({
   campaignId: z.string().optional(),
   leadId: z.string().optional(),
   userId: z.string().min(1),
-  subject: z.string().max(200).default(''),
-  body: z.string().max(20_000).default(''),
-  persona: personaSchema.default('closer'),
-  status: emailStatusSchema.default('draft'),
+  subject: z.string().max(200).default(""),
+  body: z.string().max(20_000).default(""),
+  persona: personaSchema.default("closer"),
+  status: emailStatusSchema.default("draft"),
   sentAt: z.string().datetime().nullable().optional(),
   openedAt: z.string().datetime().nullable().optional(),
   repliedAt: z.string().datetime().nullable().optional(),
+  /** A/B variant label assigned to this email */
+  abVariant: z.string().optional(),
+  /** Sequence step index this email belongs to */
+  sequenceStep: z.number().int().nonnegative().optional(),
+  /** The scheduled send time (ISO string) */
+  scheduledAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -79,9 +108,9 @@ export type Email = z.infer<typeof emailSchema>;
 export const createEmailSchema = z.object({
   campaignId: z.string().optional(),
   leadId: z.string().optional(),
-  subject: z.string().max(200).default(''),
-  body: z.string().max(20_000).default(''),
-  persona: personaSchema.default('closer'),
+  subject: z.string().max(200).default(""),
+  body: z.string().max(20_000).default(""),
+  persona: personaSchema.default("closer"),
 });
 export type CreateEmailInput = z.infer<typeof createEmailSchema>;
 
@@ -89,6 +118,7 @@ export const updateEmailSchema = z.object({
   subject: z.string().max(200).optional(),
   body: z.string().max(20_000).optional(),
   status: emailStatusSchema.optional(),
+  scheduledAt: z.string().datetime().nullable().optional(),
 });
 export type UpdateEmailInput = z.infer<typeof updateEmailSchema>;
 
@@ -113,7 +143,7 @@ export const templateSchema = z.object({
   id: z.string().min(1),
   userId: z.string().min(1),
   name: z.string().min(1).max(120),
-  persona: personaSchema.default('closer'),
+  persona: personaSchema.default("closer"),
   subject: z.string().max(200),
   body: z.string().max(20_000),
   tags: z.array(z.string()).default([]),
