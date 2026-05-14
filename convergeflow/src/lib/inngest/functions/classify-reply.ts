@@ -53,6 +53,29 @@ export const classifyReplyFn = inngest.createFunction(
       });
     }
 
+    // ── 4. Set replied flag on leadSequenceState ─────────────────────────────
+    const campaignId: string | undefined = event.data.campaignId;
+    if (leadId && campaignId) {
+      await step.run("set-replied-flag", async () => {
+        await adminDb
+          .collection("leadSequenceState")
+          .doc(`${leadId}_${campaignId}`)
+          .set({ replied: true, repliedAt: new Date().toISOString() }, { merge: true });
+      });
+    }
+
+    // ── 5. Atomically advance lastStepSent ───────────────────────────────────
+    if (leadId && campaignId) {
+      await step.run("advance-step-atomic", async () => {
+        await adminDb.runTransaction(async (tx) => {
+          const ref = adminDb.collection("leadSequenceState").doc(`${leadId}_${campaignId}`);
+          const doc = await tx.get(ref);
+          const current = doc.data()?.lastStepSent ?? 0;
+          tx.set(ref, { lastStepSent: current + 1, updatedAt: new Date().toISOString() }, { merge: true });
+        });
+      });
+    }
+
     return { emailId, category, leadId };
   }
 );

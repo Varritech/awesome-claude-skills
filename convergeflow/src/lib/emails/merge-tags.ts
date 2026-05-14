@@ -35,6 +35,11 @@ export type MergeTag = (typeof ALL_TAGS)[number];
  * @param sender   - The sender name + company.
  * @param extra    - Optional extra values (e.g. customSubdomain).
  */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
+
 export function resolveMergeTags(
   template: string,
   lead: Partial<Lead>,
@@ -48,16 +53,16 @@ export function resolveMergeTags(
   });
 
   const replacements: Record<MergeTag, string> = {
-    "{{firstName}}": lead.firstName ?? "",
-    "{{lastName}}": lead.lastName ?? "",
-    "{{company}}": lead.company ?? "",
-    "{{title}}": lead.title ?? "",
-    "{{industry}}": lead.industry ?? "",
-    "{{location}}": lead.location ?? "",
-    "{{senderName}}": sender.name,
-    "{{senderCompany}}": sender.company,
-    "{{currentDate}}": currentDate,
-    "{{customSubdomain}}": extra?.customSubdomain ?? "",
+    "{{firstName}}": escapeHtml(lead.firstName ?? ""),
+    "{{lastName}}": escapeHtml(lead.lastName ?? ""),
+    "{{company}}": escapeHtml(lead.company ?? ""),
+    "{{title}}": escapeHtml(lead.title ?? ""),
+    "{{industry}}": escapeHtml(lead.industry ?? ""),
+    "{{location}}": escapeHtml(lead.location ?? ""),
+    "{{senderName}}": escapeHtml(sender.name),
+    "{{senderCompany}}": escapeHtml(sender.company),
+    "{{currentDate}}": escapeHtml(currentDate),
+    "{{customSubdomain}}": escapeHtml(extra?.customSubdomain ?? ""),
   };
 
   let result = template;
