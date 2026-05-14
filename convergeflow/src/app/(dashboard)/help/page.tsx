@@ -49,6 +49,11 @@ const categoryIcons: Record<ArticleCategory, string> = {
   troubleshooting: "🔧",
 };
 
+function sanitizeHtml(html: string): string {
+  // Allow only safe inline/block tags, strip everything else
+  return html.replace(/<(?!\/?(?:b|strong|i|em|code|pre|ul|ol|li|p|h[1-6]|br|a|span)\b)[^>]*>/gi, '');
+}
+
 function applyInline(text: string): string {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
 }
@@ -126,7 +131,7 @@ export default function HelpPage() {
           </h1>
         </div>
         <Card className="mb-5">
-          <article dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedArticle.content) }} />
+          <article dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(selectedArticle.content)) }} />
         </Card>
         <div className="flex flex-wrap gap-2">
           {selectedArticle.tags.map((tag) => (
