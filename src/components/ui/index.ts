@@ -9,3 +9,4 @@ export { Skeleton, PageSkeleton } from "./Skeleton";
 export { HelpTooltip } from "./HelpTooltip";
 export { ContextualHelp } from "./ContextualHelp";
 export { FeedbackWidget } from "./FeedbackWidget";
+export { NotificationBell } from "./NotificationBell";

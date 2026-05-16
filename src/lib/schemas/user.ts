@@ -46,6 +46,7 @@ export const userProfileSchema = z.object({
     .default('profile'),
   onboardingCompleted: z.boolean().default(false),
   preferredStyle: z.string().optional(),
+  calendlyUrl: z.string().url().optional(),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
@@ -59,6 +60,7 @@ export const updateProfileSchema = z.object({
   timezone: z.string().max(60).optional(),
   preferredStyle: z.string().max(40).optional(),
   phone: z.string().max(30).optional(),
+  calendlyUrl: z.string().url().optional(),
   preferences: z
     .object({
       emailNotifications: z.boolean().optional(),

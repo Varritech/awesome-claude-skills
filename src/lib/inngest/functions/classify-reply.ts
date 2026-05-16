@@ -1,192 +1,81 @@
 /**
- * Inngest function: email/reply-received
+ * Inngest function: reply/received
  *
- * Triggered when a new inbound reply is detected for a campaign email.
- * Classifies the reply and routes accordingly:
- *   positive      → flag for user, pause sequence, dashboard notification
- *   soft_negative → move lead to Farm stage, re-touch in 30 days
- *   hard_negative → suppress lead permanently
- *   ooo           → pause sequence, resume after detected return date
+ * Triggered when an incoming reply is detected.
+ * Runs AI classification, updates the email record with replyCategory,
+ * and fires lead status updates for do_not_contact / booked categories.
  */
 
-import { inngest } from '../client';
-import { adminDb } from '@/lib/firebase/admin';
-import { classifyReply } from '@/lib/ai/reply-classifier';
+import { inngest } from "../client";
+import { adminDb } from "@/lib/firebase/admin";
+import { classifyReplyWithAI } from "@/lib/replies/ai-classifier";
+import { ollamaClient } from "@/lib/ollama/client";
 
 export const classifyReplyFn = inngest.createFunction(
   {
-    id: 'classify-reply',
-    name: 'Classify Inbound Reply',
-    retries: 3,
-    triggers: [{ event: 'email/reply-received' }],
+    id: "classify-reply",
+    name: "Classify Reply",
+    retries: 2,
+    triggers: [{ event: "reply/received" }],
   },
   async ({ event, step }) => {
-    const { emailId, leadId, campaignId, replyText, userId } = event.data as {
-      emailId: string;
-      leadId: string;
-      campaignId: string;
-      replyText: string;
-      userId: string;
-    };
+    const { emailId, replyBody, leadId } = event.data;
 
-    // ── 1. Classify ──────────────────────────────────────────────────────────
-    const classification = await step.run('classify', async () => {
-      return classifyReply(replyText);
+    // ── 1. Classify the reply ────────────────────────────────────────────────
+    const category = await step.run("classify", async () => {
+      return classifyReplyWithAI(replyBody, ollamaClient);
     });
 
-    const { category } = classification;
-    const now = new Date().toISOString();
-
-    // ── 2. Update email record ────────────────────────────────────────────────
-    await step.run('update-email', async () => {
-      await adminDb.collection('emails').doc(emailId).set(
+    // ── 2. Update email record with replyCategory ────────────────────────────
+    await step.run("update-email", async () => {
+      await adminDb.collection("emails").doc(emailId).set(
         {
           replyCategory: category,
-          repliedAt: now,
-          status: 'replied',
-          updatedAt: now,
+          status: "replied",
+          repliedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
         { merge: true }
       );
     });
 
-    // ── 3. Route by category ──────────────────────────────────────────────────
-    if (category === 'positive') {
-      await step.run('handle-positive', async () => {
-        const batch = adminDb.batch();
-
-        // Flag lead as interested
-        batch.set(
-          adminDb.collection('leads').doc(leadId),
-          { status: 'replied', replyCategory: 'positive', updatedAt: now },
-          { merge: true }
-        );
-
-        // Pause the campaign sequence for this lead
-        const queued = await adminDb
-          .collection('emails')
-          .where('leadId', '==', leadId)
-          .where('campaignId', '==', campaignId)
-          .where('status', '==', 'queued')
-          .get();
-
-        queued.docs.forEach((d) =>
-          batch.set(d.ref, { status: 'paused', updatedAt: now }, { merge: true })
-        );
-
-        // Create inbox notification
-        batch.set(adminDb.collection('notifications').doc(), {
-          userId,
-          type: 'positive_reply',
-          emailId,
-          leadId,
-          campaignId,
-          preview: replyText.slice(0, 200),
-          read: false,
-          createdAt: now,
-        });
-
-        await batch.commit();
-      });
-
-      // Fire feedback loop — winning email context to RAG store
-      await step.sendEvent('trigger-feedback-loop', {
-        name: 'email/positive-reply',
-        data: { emailId, leadId, campaignId, userId },
-      });
-    }
-
-    if (category === 'soft_negative') {
-      await step.run('handle-soft-negative', async () => {
-        // Move to Farm — re-touch in 30 days
-        const farmDate = new Date();
-        farmDate.setDate(farmDate.getDate() + 30);
-
-        await adminDb.collection('leads').doc(leadId).set(
+    // ── 3. Update lead status for actionable categories ───────────────────────
+    if (leadId && (category === "do_not_contact" || category === "booked")) {
+      await step.run("update-lead-status", async () => {
+        const newStatus = category === "booked" ? "booked" : "unsubscribed";
+        await adminDb.collection("leads").doc(leadId).set(
           {
-            status: 'farm',
-            replyCategory: 'soft_negative',
-            farmReactivateAt: farmDate.toISOString(),
-            updatedAt: now,
+            status: newStatus,
+            updatedAt: new Date().toISOString(),
           },
           { merge: true }
         );
-
-        // Pause remaining queued emails for this lead in this campaign
-        const queued = await adminDb
-          .collection('emails')
-          .where('leadId', '==', leadId)
-          .where('campaignId', '==', campaignId)
-          .where('status', '==', 'queued')
-          .get();
-
-        const batch = adminDb.batch();
-        queued.docs.forEach((d) =>
-          batch.set(d.ref, { status: 'paused', updatedAt: now }, { merge: true })
-        );
-        await batch.commit();
       });
     }
 
-    if (category === 'hard_negative') {
-      await step.run('handle-hard-negative', async () => {
-        const batch = adminDb.batch();
-
-        // Suppress lead permanently
-        batch.set(
-          adminDb.collection('leads').doc(leadId),
-          { status: 'unsubscribed', replyCategory: 'hard_negative', suppressedAt: now, updatedAt: now },
-          { merge: true }
-        );
-
-        // Cancel all remaining queued emails
-        const queued = await adminDb
-          .collection('emails')
-          .where('leadId', '==', leadId)
-          .where('status', '==', 'queued')
-          .get();
-
-        queued.docs.forEach((d) =>
-          batch.set(d.ref, { status: 'cancelled', updatedAt: now }, { merge: true })
-        );
-
-        await batch.commit();
+    // ── 4. Set replied flag on leadSequenceState ─────────────────────────────
+    const campaignId: string | undefined = event.data.campaignId;
+    if (leadId && campaignId) {
+      await step.run("set-replied-flag", async () => {
+        await adminDb
+          .collection("leadSequenceState")
+          .doc(`${leadId}_${campaignId}`)
+          .set({ replied: true, repliedAt: new Date().toISOString() }, { merge: true });
       });
     }
 
-    if (category === 'ooo') {
-      await step.run('handle-ooo', async () => {
-        // Detect return date from reply text (basic pattern match)
-        const returnMatch = replyText.match(/return(?:ing)?\s+(?:on\s+)?([A-Za-z]+\s+\d+)/i);
-        const resumeDate = returnMatch
-          ? new Date(returnMatch[1] + ' ' + new Date().getFullYear())
-          : new Date(Date.now() + 7 * 86_400_000); // default: 7 days
-
-        // Pause queued emails until resume date
-        const queued = await adminDb
-          .collection('emails')
-          .where('leadId', '==', leadId)
-          .where('campaignId', '==', campaignId)
-          .where('status', '==', 'queued')
-          .get();
-
-        const batch = adminDb.batch();
-        queued.docs.forEach((d) =>
-          batch.set(
-            d.ref,
-            {
-              status: 'queued',
-              scheduledAt: resumeDate.toISOString(),
-              ooo: true,
-              updatedAt: now,
-            },
-            { merge: true }
-          )
-        );
-        await batch.commit();
+    // ── 5. Atomically advance lastStepSent ───────────────────────────────────
+    if (leadId && campaignId) {
+      await step.run("advance-step-atomic", async () => {
+        await adminDb.runTransaction(async (tx) => {
+          const ref = adminDb.collection("leadSequenceState").doc(`${leadId}_${campaignId}`);
+          const doc = await tx.get(ref);
+          const current = doc.data()?.lastStepSent ?? 0;
+          tx.set(ref, { lastStepSent: current + 1, updatedAt: new Date().toISOString() }, { merge: true });
+        });
       });
     }
 
-    return { emailId, leadId, category, confidence: classification.confidence };
+    return { emailId, category, leadId };
   }
 );
