@@ -10,6 +10,7 @@
 import { inngest } from '../client';
 import { adminDb } from '@/lib/firebase/admin';
 import { todayQuota, randomSendDelay } from '@/lib/warmup/scheduler';
+import { addSuppression } from '@/lib/suppression/check';
 
 export const campaignStartFn = inngest.createFunction(
   {
@@ -40,7 +41,7 @@ export const campaignStartFn = inngest.createFunction(
     });
 
     // ── 3. Load leads not yet contacted ───────────────────────────────────────
-    const leads = await step.run('load-leads', async () => {
+    const allLeads = await step.run('load-leads', async () => {
       const snap = await adminDb
         .collection('leads')
         .where('userId', '==', userId)
@@ -49,6 +50,54 @@ export const campaignStartFn = inngest.createFunction(
         .get();
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LeadRecord);
     });
+
+    // ── 3b. Apply verification policy ────────────────────────────────────────
+    const verificationPolicy = (
+      campaign as CampaignRecord & {
+        verificationPolicy?: { onInvalid: 'skip' | 'suppress' | 'flag' };
+      }
+    ).verificationPolicy;
+    const leads: LeadRecord[] = [];
+
+    if (verificationPolicy) {
+      const now = new Date().toISOString();
+      const batch = adminDb.batch();
+      let hasBatchOps = false;
+
+      for (const lead of allLeads) {
+        const isVerified = (lead as LeadRecord & { verified?: boolean }).verified;
+
+        if (isVerified === false) {
+          switch (verificationPolicy.onInvalid) {
+            case 'skip':
+              // Don't include in leads to contact
+              break;
+            case 'suppress':
+              if (lead.email) {
+                await addSuppression(userId, lead.email, 'bounced');
+              }
+              break;
+            case 'flag':
+              batch.set(
+                adminDb.collection('leads').doc(lead.id),
+                { status: 'flagged', updatedAt: now },
+                { merge: true },
+              );
+              hasBatchOps = true;
+              break;
+          }
+          if (verificationPolicy.onInvalid !== 'flag') continue;
+        }
+
+        leads.push(lead);
+      }
+
+      if (hasBatchOps) {
+        await batch.commit();
+      }
+    } else {
+      leads.push(...allLeads);
+    }
 
     if (leads.length === 0) {
       return { skipped: true, reason: 'No new leads to contact' };

@@ -20,8 +20,14 @@ export const emailStatusSchema = z.enum([
   'opened',
   'replied',
   'bounced',
+  'paused',
 ]);
 export type EmailStatus = z.infer<typeof emailStatusSchema>;
+
+export const verificationPolicySchema = z.object({
+  onInvalid: z.enum(['skip', 'suppress', 'flag']).default('skip'),
+});
+export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
 
 export const campaignSchema = z.object({
   id: z.string().min(1),
@@ -33,6 +39,7 @@ export const campaignSchema = z.object({
   targetLeadCount: z.number().int().nonnegative().optional(),
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).default([]),
+  verificationPolicy: verificationPolicySchema.optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
