@@ -61,6 +61,7 @@ export const updateProfileSchema = z.object({
   preferredStyle: z.string().max(40).optional(),
   phone: z.string().max(30).optional(),
   calendlyUrl: z.string().url().optional(),
+  tourCompleted: z.boolean().optional(),
   preferences: z
     .object({
       emailNotifications: z.boolean().optional(),
