@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingLayout } from "@/components/layout";
 import { apiPost } from "@/lib/api-client";
+import { HelpTooltip } from "@/components/ui";
 
 type Provider = "gmail" | "yahoo" | "custom" | null;
 
@@ -194,7 +195,13 @@ export default function InboxPage() {
                     />
                   </div>
                   <div className="w-[100px]">
-                    <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <label className="text-[11px] font-medium text-white/35">Port</label>
+                      <HelpTooltip
+                        content="Use 587 for TLS/STARTTLS or 465 for SSL."
+                        position="top"
+                      />
+                    </div>
                     <input
                       type="text"
                       value={custom.smtpPort}
@@ -216,7 +223,10 @@ export default function InboxPage() {
                     />
                   </div>
                   <div className="w-[100px]">
-                    <label className="text-[11px] font-medium text-white/35 mb-1.5 block">Port</label>
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <label className="text-[11px] font-medium text-white/35">Port</label>
+                      <HelpTooltip content="Standard IMAP SSL port is 993." position="top" />
+                    </div>
                     <input
                       type="text"
                       value={custom.imapPort}

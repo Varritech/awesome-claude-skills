@@ -6,6 +6,7 @@ import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
 import { apiPost, apiPatch } from "@/lib/api-client";
+import { HelpTooltip } from "@/components/ui";
 
 type DomainOption = "own" | "convergeflow" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
@@ -307,9 +308,15 @@ export default function DomainPage() {
 
               {selected === "own" && (
                 <div className="animate-[fadeUp_0.3s_ease-out]">
-                  <label className="text-[11px] font-medium text-white/35 mb-1.5 block">
-                    Your website domain
-                  </label>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <label className="text-[11px] font-medium text-white/35">
+                      Your website domain
+                    </label>
+                    <HelpTooltip
+                      content="Enter just the root domain, e.g. acme.com — no https:// or www."
+                      position="right"
+                    />
+                  </div>
                   <input
                     type="text"
                     value={domainInput}

@@ -6,3 +6,6 @@ export { Toggle } from "./Toggle";
 export { Avatar, MenuDot } from "./Avatar";
 export { Select } from "./Select";
 export { Skeleton, PageSkeleton } from "./Skeleton";
+export { HelpTooltip } from "./HelpTooltip";
+export { ContextualHelp } from "./ContextualHelp";
+export { FeedbackWidget } from "./FeedbackWidget";
