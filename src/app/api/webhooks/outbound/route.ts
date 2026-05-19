@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
 const outboundWebhookSchema = z.object({
   eventType: z.enum(['sent', 'opened', 'replied', 'bounced']),
   emailId: z.string().min(1),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(req: NextRequest) {

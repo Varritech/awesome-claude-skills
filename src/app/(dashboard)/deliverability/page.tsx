@@ -336,7 +336,7 @@ export default function DeliverabilityPage() {
                 }}
                 labelStyle={{ color: "rgba(255,255,255,0.5)" }}
                 itemStyle={{ color: "#F59E0B" }}
-                formatter={(v: number) => [`${v}%`, "Bounce rate"]}
+                formatter={(v) => [`${v ?? 0}%`, "Bounce rate"]}
               />
               <Line
                 type="monotone"

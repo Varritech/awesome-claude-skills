@@ -29,8 +29,8 @@ export async function GET() {
     .get();
 
   // Fetch campaign names in parallel (deduplicated)
-  const campaignIds = [...new Set(snap.docs.map((d) => d.data().campaignId).filter(Boolean))];
-  const leadIds = [...new Set(snap.docs.map((d) => d.data().leadId).filter(Boolean))];
+  const campaignIds = Array.from(new Set(snap.docs.map((d) => d.data().campaignId).filter(Boolean)));
+  const leadIds = Array.from(new Set(snap.docs.map((d) => d.data().leadId).filter(Boolean)));
 
   const [campaignDocs, leadDocs] = await Promise.all([
     campaignIds.length > 0
