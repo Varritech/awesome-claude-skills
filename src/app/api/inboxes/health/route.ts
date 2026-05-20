@@ -29,7 +29,7 @@ interface EmailStats {
   lastSentAt?: string;
 }
 
-export interface InboxHealth {
+interface InboxHealth {
   id: string;
   email: string;
   displayName?: string;

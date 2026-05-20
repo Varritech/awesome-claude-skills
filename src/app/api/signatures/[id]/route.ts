@@ -13,7 +13,7 @@ import {
   handleError,
 } from '@/lib/api/helpers';
 import { assertOwnership } from '@/lib/security/data-isolation';
-import type { SignatureRecord } from '../route';
+import type { SignatureRecord } from '@/lib/signatures/types';
 
 export const dynamic = 'force-dynamic';
 

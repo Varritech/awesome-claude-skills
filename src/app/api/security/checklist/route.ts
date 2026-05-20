@@ -8,7 +8,7 @@ import { requireUser, logRequest } from '@/lib/api/helpers';
 
 export const dynamic = 'force-dynamic';
 
-export interface ChecklistItem {
+interface ChecklistItem {
   id: string;
   label: string;
   description: string;
