@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
       : emails;
 
     // Collect unique lead and campaign IDs for batch fetch
-    const leadIds = [
-      ...new Set(filtered.map((e: Record<string, unknown>) => e.leadId).filter(Boolean)),
-    ] as string[];
-    const campaignIds = [
-      ...new Set(filtered.map((e: Record<string, unknown>) => e.campaignId).filter(Boolean)),
-    ] as string[];
+    const leadIds = Array.from(
+      new Set(filtered.map((e: Record<string, unknown>) => e.leadId).filter(Boolean)),
+    ) as string[];
+    const campaignIds = Array.from(
+      new Set(filtered.map((e: Record<string, unknown>) => e.campaignId).filter(Boolean)),
+    ) as string[];
 
     // Batch fetch leads
     const leadsMap: Record<string, Record<string, unknown>> = {};

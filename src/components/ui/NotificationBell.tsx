@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiGet, apiPatch } from "@/lib/api-client";
-import type { Notification } from "@/app/api/notifications/route";
+import type { Notification } from "@/lib/notifications/types";
 
 function BellIcon({ size = 20, className = "" }: { size?: number; className?: string }) {
   return (

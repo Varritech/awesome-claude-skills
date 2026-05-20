@@ -8,19 +8,10 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser, jsonError, logRequest } from "@/lib/api/helpers";
-
+import type { Notification } from "@/lib/notifications/types";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export interface Notification {
-  id: string;
-  type: "reply" | "bounce" | "booking";
-  message: string;
-  leadName: string;
-  campaignName: string;
-  createdAt: string;
-  read: boolean;
-}
 
 export async function GET() {
   const auth = await requireUser();

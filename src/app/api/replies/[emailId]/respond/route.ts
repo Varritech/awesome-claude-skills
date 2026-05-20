@@ -139,7 +139,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
  *
  * Generates an AI draft reply based on the original email + lead context.
  */
-export async function GET(req: NextRequest, ctx: RouteCtx) {
+export async function GET(_req: NextRequest, ctx: RouteCtx) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
   const { userId } = auth;

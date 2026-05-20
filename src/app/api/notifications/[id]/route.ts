@@ -16,7 +16,7 @@ interface RouteCtx {
   params: { id: string };
 }
 
-export async function PATCH(req: NextRequest, ctx: RouteCtx) {
+export async function PATCH(_req: NextRequest, ctx: RouteCtx) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
   const { userId } = auth;
