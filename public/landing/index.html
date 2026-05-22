@@ -640,7 +640,7 @@
 <!-- ============ NAV ============ -->
 <nav class="nav" data-screen-label="Nav">
   <div class="nav-inner">
-    <a class="brand" href="#">
+    <a class="brand" href="/">
       <img class="logotype" src="/landing/assets/logo-horizontal.svg" alt="ConvergeFlow">
     </a>
     <div class="nav-links">
@@ -650,8 +650,8 @@
       <a href="#help">Help</a>
     </div>
     <div class="nav-cta">
-      <a class="btn btn-link" href="#">Log in</a>
-      <a class="btn btn-primary btn-sm" href="#">Start free
+      <a class="btn btn-link" href="/login">Log in</a>
+      <a class="btn btn-primary btn-sm" href="/onboarding/signup">Start free
         <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
       </a>
     </div>
@@ -666,10 +666,10 @@
       <h1>Get more jobs<br>without sitting at<br>your <span class="accent">inbox all day.</span></h1>
       <p class="hero-sub">ConvergeFlow finds local customers, sends emails that sound like you, and tells you who's ready to book — so you can stop chasing leads and get back to the work.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#">Start free
+        <a class="btn btn-primary btn-lg" href="/onboarding/signup">Start free
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
         </a>
-        <a class="btn btn-ghost btn-lg" href="#">See how it works</a>
+        <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
         <span class="meta">No credit card · 14-day trial</span>
       </div>
       <div class="hero-proof">
@@ -1282,7 +1282,7 @@
 </section>
 
 <!-- ============ COMPARISON ============ -->
-<section class="compare" data-screen-label="05 Comparison">
+<section class="compare" id="pricing" data-screen-label="05 Comparison">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -1351,7 +1351,7 @@
         <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span><div><b>Nothing to install</b> <span>add to home screen if you want a shortcut</span></div></li>
       </ul>
       <div class="mobile-store">
-        <a class="btn btn-primary" href="#">Try it on your phone
+        <a class="btn btn-primary" href="/onboarding/signup">Try it on your phone
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
         </a>
       </div>
@@ -1493,10 +1493,10 @@
       <h2 class="h-display">Get your<br>next job<br><span class="accent">this week.</span></h2>
       <p class="sub">Setup takes 15 minutes. We do the writing, the sending, and the sorting. You just answer the people who want to book.</p>
       <div class="final-actions">
-        <a class="btn btn-primary btn-lg" href="#">Start free
+        <a class="btn btn-primary btn-lg" href="/onboarding/signup">Start free
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
         </a>
-        <a class="btn btn-ghost btn-lg" href="#">Book a quick call</a>
+        <a class="btn btn-ghost btn-lg" href="/login">Book a quick call</a>
       </div>
       <div class="final-bullets">
         <div class="item">
@@ -1525,11 +1525,11 @@
 </section>
 
 <!-- ============ FOOTER ============ -->
-<footer data-screen-label="09 Footer">
+<footer id="help" data-screen-label="09 Footer">
   <div class="wrap">
     <div class="foot-top">
       <div class="foot-brand">
-        <a class="brand" href="#"><img class="logotype" src="/landing/assets/logo-horizontal.svg" alt="ConvergeFlow"></a>
+        <a class="brand" href="/"><img class="logotype" src="/landing/assets/logo-horizontal.svg" alt="ConvergeFlow"></a>
         <p>Cold email built for trade pros. Get more jobs without sitting at your inbox all day.</p>
         <div class="foot-sub">
           <input type="email" placeholder="your@email.com">
@@ -1540,46 +1540,46 @@
       <div class="foot-col">
         <h6>Product</h6>
         <ul>
-          <li><a href="#">How it works</a></li>
-          <li><a href="#">Find Customers</a></li>
-          <li><a href="#">Email Styles</a></li>
-          <li><a href="#">Inbox Health</a></li>
-          <li><a href="#">Smart Replies</a></li>
-          <li><a href="#">Pricing</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="/onboarding/signup">Find Customers</a></li>
+          <li><a href="/onboarding/signup">Email Styles</a></li>
+          <li><a href="/onboarding/signup">Inbox Health</a></li>
+          <li><a href="/onboarding/signup">Smart Replies</a></li>
+          <li><a href="#pricing">Pricing</a></li>
         </ul>
       </div>
       <div class="foot-col">
         <h6>For trades</h6>
         <ul>
-          <li><a href="#">Roofing</a></li>
-          <li><a href="#">Gutters</a></li>
-          <li><a href="#">Solar</a></li>
-          <li><a href="#">HVAC</a></li>
-          <li><a href="#">Real estate</a></li>
-          <li><a href="#">Contractors</a></li>
-          <li><a href="#">Other trades <span class="new">New</span></a></li>
+          <li><a href="/onboarding/signup">Roofing</a></li>
+          <li><a href="/onboarding/signup">Gutters</a></li>
+          <li><a href="/onboarding/signup">Solar</a></li>
+          <li><a href="/onboarding/signup">HVAC</a></li>
+          <li><a href="/onboarding/signup">Real estate</a></li>
+          <li><a href="/onboarding/signup">Contractors</a></li>
+          <li><a href="/onboarding/signup">Other trades <span class="new">New</span></a></li>
         </ul>
       </div>
       <div class="foot-col">
         <h6>Resources</h6>
         <ul>
-          <li><a href="#">Help center</a></li>
-          <li><a href="#">Setup guides</a></li>
-          <li><a href="#">Email templates</a></li>
-          <li><a href="#">Customer stories</a></li>
-          <li><a href="#">ROI calculator</a></li>
-          <li><a href="#">Affiliate program</a></li>
+          <li><a href="/help">Help center</a></li>
+          <li><a href="/help">Setup guides</a></li>
+          <li><a href="/onboarding/signup">Email templates</a></li>
+          <li><a href="/onboarding/signup">Customer stories</a></li>
+          <li><a href="/onboarding/signup">ROI calculator</a></li>
+          <li><a href="/onboarding/signup">Affiliate program</a></li>
         </ul>
       </div>
       <div class="foot-col">
         <h6>Company</h6>
         <ul>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Contact</a></li>
-          <li><a href="#">Book a demo</a></li>
-          <li><a href="#">Privacy</a></li>
-          <li><a href="#">Terms</a></li>
-          <li><a href="#">Security</a></li>
+          <li><a href="/onboarding/signup">About</a></li>
+          <li><a href="mailto:support@convergeflow.io">Contact</a></li>
+          <li><a href="/login">Book a demo</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/terms">Terms</a></li>
+          <li><a href="/security">Security</a></li>
         </ul>
       </div>
     </div>
