@@ -17,6 +17,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
+import { deduplicateLeads } from '@/lib/leads/dedup';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,9 @@ interface LeadRecord {
   title?: string;
   industry?: string;
   location?: string;
-  status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
-  source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
+  status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced' | 'flagged';
+  source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual' | 'leadsgorilla';
+  tags: string[];
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -141,6 +143,7 @@ function mockSeed(userId: string): LeadRecord[] {
     (r) =>
       ({
         userId,
+        tags: [],
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -163,9 +166,9 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     return jsonError('Invalid filters', 400, parsed.error.flatten());
   }
-  const { industry, location, status, limit, cursor } = parsed.data;
+  const { industry, location, status, tags, limit, cursor } = parsed.data;
 
-  logRequest('leads.GET', userId, { industry, location, status, limit, cursor });
+  logRequest('leads.GET', userId, { industry, location, status, tags, limit, cursor });
 
   try {
     let q = adminDb
@@ -176,6 +179,10 @@ export async function GET(req: NextRequest) {
     if (industry) q = q.where('industry', '==', industry);
     if (location) q = q.where('location', '==', location);
     if (status) q = q.where('status', '==', status);
+    if (tags) {
+      const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
+      if (tagList.length > 0) q = q.where('tags', 'array-contains-any', tagList);
+    }
     if (cursor) {
       const cursorDoc = await adminDb.collection('leads').doc(cursor).get();
       if (cursorDoc.exists) q = q.startAfter(cursorDoc);
@@ -185,11 +192,13 @@ export async function GET(req: NextRequest) {
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt);
     if (records.length === 0) {
+      const tagList = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
       const seed = mockSeed(userId).filter(
         (l) =>
           (!industry || l.industry === industry) &&
           (!location || l.location === location) &&
-          (!status || l.status === status),
+          (!status || l.status === status) &&
+          (tagList.length === 0 || tagList.some((t) => l.tags.includes(t))),
       );
       return NextResponse.json({ data: toUiResponse(seed) });
     }
@@ -213,8 +222,19 @@ export async function POST(req: NextRequest) {
 
   logRequest('leads.POST', userId, { source, count: leads.length });
 
+  // Deduplicate before writing
+  let uniqueLeads = leads;
+  let duplicateCount = 0;
+  try {
+    const deduped = await deduplicateLeads(userId, leads);
+    uniqueLeads = deduped.unique;
+    duplicateCount = deduped.duplicates.length;
+  } catch (err) {
+    console.warn('[api:leads.POST] dedup check failed, proceeding without dedup', err);
+  }
+
   const now = new Date().toISOString();
-  const inserted: LeadRecord[] = leads.map((l) => ({
+  const inserted: LeadRecord[] = uniqueLeads.map((l) => ({
     id: `ld_${Math.random().toString(36).slice(2, 12)}`,
     userId,
     firstName: l.firstName,
@@ -226,22 +246,35 @@ export async function POST(req: NextRequest) {
     location: l.location,
     status: 'new',
     source,
+    tags: [],
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
   }));
 
   try {
-    // TODO: batch-write in 500-doc chunks once real Firestore is wired.
-    for (const rec of inserted) {
-      await adminDb.collection('leads').doc(rec.id).set(rec);
+    // Batch-write in 500-doc chunks
+    const CHUNK = 500;
+    for (let i = 0; i < inserted.length; i += CHUNK) {
+      const batch = adminDb.batch();
+      for (const rec of inserted.slice(i, i + CHUNK)) {
+        batch.set(adminDb.collection('leads').doc(rec.id), rec);
+      }
+      await batch.commit();
     }
   } catch (err) {
     console.warn('[api:leads.POST] placeholder mode', err);
   }
 
   return NextResponse.json(
-    { data: { imported: inserted.length, source, leads: inserted } },
+    {
+      data: {
+        imported: inserted.length,
+        duplicatesSkipped: duplicateCount,
+        source,
+        leads: inserted,
+      },
+    },
     { status: 201 },
   );
 }
