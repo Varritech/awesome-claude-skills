@@ -39,9 +39,6 @@ function InboxIcon({ size = 18, className = "" }: { size?: number; className?: s
     </svg>
   );
 }
-=======
-import { SessionTimeout } from "@/components/ui";
->>>>>>> be81c20 (feat(onboarding+security): email verify, tour, skip mode, OAuth refresh, signatures, routing, domain reputation, audit log, session timeout, CSP)
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
