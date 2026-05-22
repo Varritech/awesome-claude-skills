@@ -73,9 +73,10 @@ async function generateEmail(
   const tokens = buildTokens(prospect, campaign);
   const ragChunks = await retrieveForEmail(emailNumber, {
     industry: prospect.industry ?? campaign.niche,
+    personaId: campaign.personaId,
   });
 
-  const prompt = buildEmailPrompt({ emailNumber, ragChunks, tokens, prospect, campaign, variant });
+  const prompt = buildEmailPrompt({ emailNumber, ragChunks, tokens, prospect, campaign, variant, personaId: campaign.personaId });
   const raw = await callGLM(prompt);
   const { subject, body } = parseEmailResponse(raw);
 

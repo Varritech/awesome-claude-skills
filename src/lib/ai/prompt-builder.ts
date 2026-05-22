@@ -3,8 +3,28 @@
  * Combines: framework rules (RAG), email template, prospect context, campaign context.
  */
 
+import type { KnowledgeChunk } from '@/lib/rag/knowledge-base';
 import type { RetrievalResult } from '@/lib/rag/retriever';
 import type { PersonalizationTokens, CampaignContext, ProspectContext } from './personalization';
+
+/** Maps built-in persona IDs to their exclusive framework source. */
+export const PERSONA_FRAMEWORK_MAP: Record<string, KnowledgeChunk['framework']> = {
+  closer:   'andy_elliott',
+  neighbor: 'belfort',
+  expert:   'hormozi',
+  helper:   'sam_ovens',
+};
+
+const PERSONA_TONE_INSTRUCTIONS: Record<string, string> = {
+  closer:
+    'Andy Elliott style: 3-part structure — acknowledge their work, specific case study result, one low-friction CTA. Max 6 sentences. Confidence without arrogance. Subject lines spark curiosity.',
+  neighbor:
+    'Jordan Belfort Straight Line style: rapport-first tone. Email 1 = zero ask, build conscious + unconscious trust. Short, confident, never desperate. Warm but not sycophantic.',
+  expert:
+    'Hormozi style: value-before-ask. Deposit goodwill before opening the valve. Broad sends, ROI logic, repeat the ask without apology. Embed CTAs inside value content.',
+  helper:
+    'Sam Ovens Consulting Accelerator style: Hunt → Advance → Farm → Close funnel. Lead with a generous offer — give a small win for free. 15-minute call as the only conversion goal. Never pressure.',
+};
 
 export interface EmailPromptInput {
   emailNumber: 1 | 2 | 3 | 4 | 5;
@@ -13,6 +33,7 @@ export interface EmailPromptInput {
   prospect: ProspectContext;
   campaign: CampaignContext;
   variant?: 'A' | 'B'; // for A/B subject line testing
+  personaId?: string;  // maps to a framework via PERSONA_FRAMEWORK_MAP
 }
 
 const EMAIL_OBJECTIVES: Record<number, string> = {
@@ -47,7 +68,7 @@ const SUBJECT_LINE_GUIDES: Record<number, { A: string; B: string }> = {
 };
 
 export function buildEmailPrompt(input: EmailPromptInput): string {
-  const { emailNumber, ragChunks, tokens, campaign, variant = 'A' } = input;
+  const { emailNumber, ragChunks, tokens, campaign, variant = 'A', personaId } = input;
 
   const frameworkRules = ragChunks
     .filter((r) => r.chunk.type === 'rule')
@@ -62,6 +83,11 @@ export function buildEmailPrompt(input: EmailPromptInput): string {
     .join('\n\n---\n\n');
 
   const subjectTemplate = SUBJECT_LINE_GUIDES[emailNumber]?.[variant] ?? '';
+
+  const personaToneSection =
+    personaId && PERSONA_TONE_INSTRUCTIONS[personaId]
+      ? `\nPERSONA TONE (follow exclusively — overrides generic tone guidance):\n${PERSONA_TONE_INSTRUCTIONS[personaId]}\n`
+      : '';
 
   return `You are an expert cold email writer for ConvergeFlow, an outbound email platform.
 Generate Email ${emailNumber} of 5 in a Straight Line cold sequence.
@@ -83,7 +109,7 @@ CAMPAIGN CONTEXT:
 - Case study result: ${tokens.case_study_result}
 - Outcome metric: ${tokens.outcome_metric}
 
-FRAMEWORK RULES (follow strictly):
+${personaToneSection}FRAMEWORK RULES (follow strictly):
 ${frameworkRules}
 
 REFERENCE EXAMPLES:

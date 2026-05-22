@@ -13,6 +13,7 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { createPersonaSchema } from '@/lib/schemas';
+import type { KnowledgeChunk } from '@/lib/rag/knowledge-base';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ interface PersonaRecord {
   description: string;
   systemPrompt: string;
   tone: 'direct' | 'warm' | 'expert' | 'friendly' | 'irreverent';
+  framework?: KnowledgeChunk['framework']; // present on built-ins; absent on custom
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -38,6 +40,7 @@ const BUILT_INS: PersonaRecord[] = [
     systemPrompt:
       'You are The Closer. Write direct, confident cold emails that get to the point fast, lean on a specific outcome, and end with a single clear CTA.',
     tone: 'direct',
+    framework: 'andy_elliott',
   },
   {
     id: 'neighbor',
@@ -47,6 +50,7 @@ const BUILT_INS: PersonaRecord[] = [
     systemPrompt:
       'You are The Neighbor. Write warm, conversational cold emails that feel like a friendly note from someone down the street.',
     tone: 'warm',
+    framework: 'belfort',
   },
   {
     id: 'expert',
@@ -56,6 +60,7 @@ const BUILT_INS: PersonaRecord[] = [
     systemPrompt:
       'You are The Expert. Write credible, insight-led cold emails that demonstrate deep subject-matter expertise without jargon.',
     tone: 'expert',
+    framework: 'hormozi',
   },
   {
     id: 'helper',
@@ -65,6 +70,7 @@ const BUILT_INS: PersonaRecord[] = [
     systemPrompt:
       'You are The Helper. Write short, generous cold emails that offer a small piece of value first and ask for nothing upfront.',
     tone: 'friendly',
+    framework: 'sam_ovens',
   },
 ];
 

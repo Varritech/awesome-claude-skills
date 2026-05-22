@@ -25,6 +25,7 @@ export interface CampaignContext {
   niche: string;          // e.g. "lead gen agency targeting roofers"
   offer: string;          // e.g. "outbound cold email system"
   calendarLink?: string;
+  personaId?: string;     // built-in persona: closer | neighbor | expert | helper
 }
 
 export interface PersonalizationTokens {

@@ -9,6 +9,7 @@
 
 import { KNOWLEDGE_BASE, type KnowledgeChunk } from './knowledge-base';
 import { embed, embedBatch, cosineSimilarity } from './embeddings';
+import { PERSONA_FRAMEWORK_MAP } from '@/lib/ai/prompt-builder';
 
 interface IndexedChunk {
   chunk: KnowledgeChunk;
@@ -87,7 +88,7 @@ export async function retrieve(
  */
 export async function retrieveForEmail(
   emailNumber: 1 | 2 | 3 | 4 | 5,
-  context: { industry: string; niche?: string }
+  context: { industry: string; niche?: string; personaId?: string }
 ): Promise<RetrievalResult[]> {
   const queryMap: Record<number, string> = {
     1: 'rapport building no ask trust email 1 cold outreach',
@@ -98,5 +99,12 @@ export async function retrieveForEmail(
   };
 
   const query = `${queryMap[emailNumber]} ${context.industry} ${context.niche ?? ''}`;
-  return retrieve(query, { topK: 8, industry: context.industry });
+
+  const framework = context.personaId ? PERSONA_FRAMEWORK_MAP[context.personaId] : undefined;
+
+  return retrieve(query, {
+    topK: 8,
+    industry: context.industry,
+    ...(framework ? { frameworks: [framework] } : {}),
+  });
 }
