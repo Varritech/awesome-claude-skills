@@ -26,6 +26,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@clerk/nextjs", () => ({
   useUser: () => ({ user: { firstName: "John", lastName: "Roe", imageUrl: null }, isLoaded: true }),
   useAuth: () => ({ isSignedIn: true }),
+  useClerk: () => ({ signOut: vi.fn() }),
 }));
 
 import { DashboardLayout, Sidebar, MobileNav } from "./DashboardLayout";

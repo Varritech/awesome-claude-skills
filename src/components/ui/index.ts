@@ -10,3 +10,5 @@ export { HelpTooltip } from "./HelpTooltip";
 export { ContextualHelp } from "./ContextualHelp";
 export { FeedbackWidget } from "./FeedbackWidget";
 export { NotificationBell } from "./NotificationBell";
+export { ProductTour } from "./ProductTour";
+export { SessionTimeout } from "./SessionTimeout";
