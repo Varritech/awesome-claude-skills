@@ -34,6 +34,8 @@ export const campaignSchema = z.object({
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).default([]),
   scheduledAt: z.string().datetime().nullable().optional(),
+  trackingDomain: z.string().optional(),
+  trackingEnabled: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -47,6 +49,8 @@ export const createCampaignSchema = z.object({
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional(),
+  trackingDomain: z.string().optional(),
+  trackingEnabled: z.boolean().optional(),
 });
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 
