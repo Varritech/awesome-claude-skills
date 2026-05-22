@@ -8,6 +8,9 @@ import { dailyAutoSendFn } from '@/lib/inngest/functions/daily-auto-send';
 import { classifyReplyFn } from '@/lib/inngest/functions/classify-reply';
 import { feedbackLoopFn } from '@/lib/inngest/functions/feedback-loop';
 import { generateSequencesFn } from '@/lib/inngest/functions/generate-sequences';
+import { sequenceTickFn } from '@/lib/inngest/functions/sequence-tick';
+import { campaignSchedulerFn } from '@/lib/inngest/functions/campaign-scheduler';
+import { bounceMonitorFn } from '@/lib/inngest/functions/bounce-monitor';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -21,5 +24,8 @@ export const { GET, POST, PUT } = serve({
     classifyReplyFn,
     feedbackLoopFn,
     generateSequencesFn,
+    sequenceTickFn,
+    campaignSchedulerFn,
+    bounceMonitorFn,
   ],
 });

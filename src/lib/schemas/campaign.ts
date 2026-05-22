@@ -16,18 +16,21 @@ export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
 export const emailStatusSchema = z.enum([
   'draft',
   'queued',
+  'paused',
   'sent',
   'opened',
   'replied',
   'bounced',
-  'paused',
 ]);
 export type EmailStatus = z.infer<typeof emailStatusSchema>;
 
-export const verificationPolicySchema = z.object({
-  onInvalid: z.enum(['skip', 'suppress', 'flag']).default('skip'),
+export const abVariantSchema = z.object({
+  label: z.string().min(1).max(20),
+  subjectSuffix: z.string().max(100).default(''),
+  bodySuffix: z.string().max(2000).default(''),
+  weight: z.number().int().positive().default(50),
 });
-export type VerificationPolicy = z.infer<typeof verificationPolicySchema>;
+export type AbVariant = z.infer<typeof abVariantSchema>;
 
 export const campaignSchema = z.object({
   id: z.string().min(1),
@@ -39,10 +42,15 @@ export const campaignSchema = z.object({
   targetLeadCount: z.number().int().nonnegative().optional(),
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).default([]),
-  verificationPolicy: verificationPolicySchema.optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
-  trackingDomain: z.string().optional(),
-  trackingEnabled: z.boolean().default(false),
+  /** ID of the multi-step sequence attached to this campaign */
+  sequenceId: z.string().optional(),
+  /** Round-robin inbox counter: incremented atomically per email sent */
+  emailIndex: z.number().int().nonnegative().default(0),
+  /** A/B test variants. When set, each lead is assigned a variant on send. */
+  abVariants: z.array(abVariantSchema).optional(),
+  /** What to do when a lead replies: 'stop' pauses remaining queued emails */
+  replyAction: z.enum(['stop', 'continue']).default('stop'),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -56,8 +64,9 @@ export const createCampaignSchema = z.object({
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional(),
-  trackingDomain: z.string().optional(),
-  trackingEnabled: z.boolean().optional(),
+  sequenceId: z.string().optional(),
+  abVariants: z.array(abVariantSchema).optional(),
+  replyAction: z.enum(['stop', 'continue']).default('stop'),
 });
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 
@@ -67,6 +76,9 @@ export const updateCampaignSchema = z.object({
   status: campaignStatusSchema.optional(),
   persona: personaSchema.optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
+  sequenceId: z.string().optional(),
+  abVariants: z.array(abVariantSchema).optional(),
+  replyAction: z.enum(['stop', 'continue']).optional(),
 });
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
 
@@ -82,6 +94,12 @@ export const emailSchema = z.object({
   sentAt: z.string().datetime().nullable().optional(),
   openedAt: z.string().datetime().nullable().optional(),
   repliedAt: z.string().datetime().nullable().optional(),
+  /** A/B variant label assigned to this email */
+  abVariant: z.string().optional(),
+  /** Sequence step index this email belongs to */
+  sequenceStep: z.number().int().nonnegative().optional(),
+  /** The scheduled send time (ISO string) */
+  scheduledAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -100,6 +118,7 @@ export const updateEmailSchema = z.object({
   subject: z.string().max(200).optional(),
   body: z.string().max(20_000).optional(),
   status: emailStatusSchema.optional(),
+  scheduledAt: z.string().datetime().nullable().optional(),
 });
 export type UpdateEmailInput = z.infer<typeof updateEmailSchema>;
 
