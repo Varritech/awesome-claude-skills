@@ -2,7 +2,6 @@
 
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
-export default function SSOCallbackPage() {
+export default function SignUpSSOCallback() {
   return <AuthenticateWithRedirectCallback />;
 }
-
