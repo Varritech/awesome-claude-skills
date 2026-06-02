@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { chat } from '@/lib/ollama/client';
 import { logRequest, requireUser } from '@/lib/api/helpers';
+import { next8amUtc } from '@/lib/emails/schedule';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,17 +30,6 @@ const PERSONA_SYSTEM: Record<Persona, string> = {
   helper:
     'You write generous cold emails that offer a small piece of value upfront and ask for nothing immediately.',
 };
-
-function next8amUtc(): string {
-  const now = new Date();
-  const candidate = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8, 0, 0, 0),
-  );
-  if (candidate <= now) {
-    candidate.setUTCDate(candidate.getUTCDate() + 1);
-  }
-  return candidate.toISOString();
-}
 
 function buildPrompt(persona: Persona, lead: Record<string, unknown>): string {
   const firstName = (lead.firstName as string) ?? 'there';

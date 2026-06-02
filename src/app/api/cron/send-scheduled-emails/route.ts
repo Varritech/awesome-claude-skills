@@ -13,18 +13,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { inngest } from '@/lib/inngest/client';
+import { buildSendEvents, type QueuedEmail } from '@/lib/emails/send-scheduled';
 
 export const dynamic = 'force-dynamic';
 
 const BATCH_LIMIT = 500;
-
-interface QueuedEmailDoc {
-  id: string;
-  userId: string;
-  inboxId?: string;
-  status: string;
-  scheduledFor?: string | null;
-}
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -45,38 +38,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ data: { fired: 0, skippedNoInbox: 0 } });
     }
 
-    const events: Array<{ name: 'email/send'; data: { emailId: string; inboxId: string; userId: string } }> = [];
-    const userInboxCache = new Map<string, string | null>();
-    let skippedNoInbox = 0;
+    const queued: QueuedEmail[] = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<QueuedEmail, 'id'>),
+    }));
 
-    for (const doc of snap.docs) {
-      const data = doc.data() as QueuedEmailDoc;
-      let inboxId = data.inboxId ?? null;
-
-      if (!inboxId) {
-        // Resolve inbox once per user — auto-draft does not currently set inboxId
-        if (!userInboxCache.has(data.userId)) {
-          const inboxSnap = await adminDb
-            .collection('inboxes')
-            .where('userId', '==', data.userId)
-            .where('status', 'in', ['warming', 'active'])
-            .limit(1)
-            .get();
-          userInboxCache.set(data.userId, inboxSnap.empty ? null : inboxSnap.docs[0].id);
-        }
-        inboxId = userInboxCache.get(data.userId) ?? null;
-      }
-
-      if (!inboxId) {
-        skippedNoInbox++;
-        continue;
-      }
-
-      events.push({
-        name: 'email/send',
-        data: { emailId: doc.id, inboxId, userId: data.userId },
-      });
-    }
+    const { events, skippedNoInbox } = await buildSendEvents(queued, async (userId) => {
+      const inboxSnap = await adminDb
+        .collection('inboxes')
+        .where('userId', '==', userId)
+        .where('status', 'in', ['warming', 'active'])
+        .limit(1)
+        .get();
+      return inboxSnap.empty ? null : inboxSnap.docs[0].id;
+    });
 
     if (events.length > 0) {
       await inngest.send(events);
