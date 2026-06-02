@@ -107,7 +107,7 @@ export const generateSequencesFn = inngest.createFunction(
               variant: email.variant,
               plainText: true,
               status: email.variant === 'A' ? 'queued' : 'ab_variant',
-              scheduledAt: sendAt.toISOString(),
+              scheduledFor: sendAt.toISOString(),
               createdAt: now,
               updatedAt: now,
               sentAt: null,

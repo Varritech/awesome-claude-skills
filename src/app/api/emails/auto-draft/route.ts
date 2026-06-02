@@ -79,12 +79,15 @@ export async function POST() {
 
   logRequest('emails.auto-draft.POST', userId, {});
 
-  // Idempotency: skip if user already has queued or sent emails
+  const scheduledFor = next8amUtc();
+
+  // Per-window idempotency: skip if user already has drafts queued for this same send window
   try {
     const existingSnap = await adminDb
       .collection('emails')
       .where('userId', '==', userId)
-      .where('status', 'in', ['queued', 'sent', 'opened', 'replied'])
+      .where('status', '==', 'queued')
+      .where('scheduledFor', '==', scheduledFor)
       .limit(1)
       .get();
     if (!existingSnap.empty) {
@@ -104,7 +107,21 @@ export async function POST() {
     // fall through to default
   }
 
-  // Fetch up to 10 leads
+  // Resolve active inbox so the cron sender can fire email/send events
+  let inboxId: string | null = null;
+  try {
+    const inboxSnap = await adminDb
+      .collection('inboxes')
+      .where('userId', '==', userId)
+      .where('status', 'in', ['warming', 'active'])
+      .limit(1)
+      .get();
+    if (!inboxSnap.empty) inboxId = inboxSnap.docs[0].id;
+  } catch {
+    // No inbox — cron sender will skip until one is connected
+  }
+
+  // Fetch up to 10 leads that have not already been drafted to
   const leadsSnap = await adminDb
     .collection('leads')
     .where('userId', '==', userId)
@@ -115,8 +132,6 @@ export async function POST() {
   if (leads.length === 0) {
     return NextResponse.json({ drafted: 0, skipped: 0, alreadyDrafted: false });
   }
-
-  const scheduledFor = next8amUtc();
   const now = new Date().toISOString();
   let drafted = 0;
   let skipped = 0;
@@ -144,6 +159,7 @@ export async function POST() {
         id,
         userId,
         leadId: lead.id,
+        inboxId,
         campaignId: null,
         subject,
         body,

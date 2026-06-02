@@ -72,7 +72,7 @@ export const sendEmailFn = inngest.createFunction(
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setUTCHours(8, 0, 0, 0);
         await adminDb.collection('emails').doc(emailId).set(
-          { status: 'queued', scheduledAt: tomorrow.toISOString(), updatedAt: new Date().toISOString() },
+          { status: 'queued', scheduledFor: tomorrow.toISOString(), updatedAt: new Date().toISOString() },
           { merge: true },
         );
       });

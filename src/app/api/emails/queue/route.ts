@@ -18,7 +18,7 @@ interface RawEmail {
   leadId?: string;
   subject: string;
   status: "queued" | "paused";
-  scheduledAt?: string | null;
+  scheduledFor?: string | null;
   inboxId?: string;
 }
 

@@ -13,7 +13,7 @@ interface QueuedEmail {
   campaignId: string;
   campaignName: string;
   subject: string;
-  scheduledAt?: string | null;
+  scheduledFor?: string | null;
   status: QueuedEmailStatus;
   inboxId?: string;
 }
@@ -163,7 +163,7 @@ export default function QueuePage() {
                     </td>
                     {/* Scheduled at */}
                     <td className="px-4 py-3 text-white/45 whitespace-nowrap">
-                      {formatScheduledAt(email.scheduledAt)}
+                      {formatScheduledAt(email.scheduledFor)}
                     </td>
                     {/* Status badge */}
                     <td className="px-4 py-3">
