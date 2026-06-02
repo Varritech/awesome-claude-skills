@@ -111,12 +111,38 @@ export async function GET() {
   logRequest('user.profile.GET', userId);
 
   try {
-    const doc = await adminDb.collection('users').doc(userId).get();
-    if (!doc.exists) {
-      return NextResponse.json({ data: mockProfile(userId) });
+    // Read profile and onboarding docs together. The legacy onboarding flow
+    // only ever wrote the `onboarding/{userId}` doc, so users completed before
+    // the mirror fix have no `onboardingCompleted` flag on their user doc and
+    // would otherwise be looped back through onboarding forever.
+    const [userDoc, onboardingDoc] = await Promise.all([
+      adminDb.collection('users').doc(userId).get(),
+      adminDb.collection('onboarding').doc(userId).get(),
+    ]);
+
+    const onboardingData = onboardingDoc.exists
+      ? (onboardingDoc.data() as { completed?: boolean; step?: string })
+      : undefined;
+    const onboardingCompletedDerived =
+      onboardingData?.completed === true || onboardingData?.step === 'complete';
+
+    if (!userDoc.exists) {
+      // Without a user doc we still trust the onboarding doc as the source of
+      // truth for completion status so returning users do not get re-onboarded.
+      const profile = mockProfile(userId);
+      return NextResponse.json({
+        data: {
+          ...profile,
+          onboardingCompleted: profile.onboardingCompleted || onboardingCompletedDerived,
+        },
+      });
     }
-    const raw = doc.data() as (UserProfileRecord & Record<string, unknown>);
-    return NextResponse.json({ data: enrichProfile(raw) });
+    const raw = userDoc.data() as UserProfileRecord & Record<string, unknown>;
+    const merged: UserProfileRecord & Record<string, unknown> = {
+      ...raw,
+      onboardingCompleted: raw.onboardingCompleted === true || onboardingCompletedDerived,
+    };
+    return NextResponse.json({ data: enrichProfile(merged) });
   } catch (err) {
     console.warn('[api:user.profile.GET] falling back to mock', err);
     return NextResponse.json({ data: mockProfile(userId) });

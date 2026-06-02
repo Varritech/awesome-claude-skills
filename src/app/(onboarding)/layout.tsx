@@ -1,7 +1,9 @@
+import OnboardingGuard from "./OnboardingGuard";
+
 export default function OnboardingGroupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <OnboardingGuard>{children}</OnboardingGuard>;
 }

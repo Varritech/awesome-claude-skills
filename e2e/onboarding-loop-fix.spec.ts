@@ -107,4 +107,34 @@ test.describe("Onboarding loop fix", () => {
     await page.waitForURL(/\/onboarding\/path/, { timeout: 8000 });
     expect(page.url()).toMatch(/\/onboarding\/path/);
   });
+
+  test("legacy onboarded user (only onboarding doc set, no users doc flag) is routed to /dashboard", async ({ page }) => {
+    // Simulate the pre-fix data shape: Clerk metadata still false, users doc
+    // missing the flag, but onboarding doc says completed. /api/user/profile
+    // must derive completion from the onboarding doc and bounce the user out.
+    await mockClerkSignedIn(page, false);
+
+    await page.route("**/api/user/profile**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            id: "user_fake_loop",
+            firstName: "Loop",
+            lastName: "User",
+            email: "loop@example.com",
+            // derived true at the server layer
+            onboardingCompleted: true,
+            onboardingStep: "complete",
+            tier: "self_serve",
+          },
+        }),
+      });
+    });
+
+    await page.goto("/onboarding");
+    await page.waitForURL(/\/dashboard/, { timeout: 8000 });
+    expect(page.url()).toMatch(/\/dashboard/);
+  });
 });
