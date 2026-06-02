@@ -91,14 +91,6 @@ export async function PATCH(req: NextRequest) {
     patch = { ...patch, persona, step: 'leads', 'stepsCompleted.persona': true };
   } else if (onboardingComplete) {
     patch = { ...patch, step: 'complete', completed: true };
-    // Mark onboarding done in Clerk publicMetadata so middleware can gate the dashboard
-    try {
-      await clerkClient.users.updateUserMetadata(userId, {
-        publicMetadata: { onboardingCompleted: true },
-      });
-    } catch (err) {
-      console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
-    }
   } else if (step !== undefined && completed !== undefined) {
     // 'persona' is the last user-facing step — completing it finishes onboarding
     const isLastStep = step === 'persona' && completed;
@@ -113,18 +105,37 @@ export async function PATCH(req: NextRequest) {
       completed: nextStep === 'complete',
       [`stepsCompleted.${step}`]: completed,
     };
-    if (isLastStep) {
-      try {
-        await clerkClient.users.updateUserMetadata(userId, {
-          publicMetadata: { onboardingCompleted: true },
-        });
-      } catch (err) {
-        console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
-      }
-    }
   }
 
+  const justCompleted = patch.completed === true;
+
   await adminDb.collection('onboarding').doc(userId).set(patch, { merge: true });
+
+  // Mirror completion to the canonical user profile doc and Clerk so /onboarding
+  // (which reads /api/user/profile) and middleware (which reads Clerk metadata)
+  // both see the user as onboarded on the very next request. Without this,
+  // returning users get bounced back into the flow on every login.
+  if (justCompleted) {
+    try {
+      await adminDb.collection('users').doc(userId).set(
+        {
+          onboardingCompleted: true,
+          onboardingStep: 'complete',
+          updatedAt: patch.updatedAt,
+        },
+        { merge: true },
+      );
+    } catch (err) {
+      console.warn('[api:user.onboarding.PATCH] failed to mirror to users doc', err);
+    }
+    try {
+      await clerkClient.users.updateUserMetadata(userId, {
+        publicMetadata: { onboardingCompleted: true },
+      });
+    } catch (err) {
+      console.warn('[api:user.onboarding.PATCH] failed to update Clerk metadata', err);
+    }
+  }
 
   return NextResponse.json({ data: patch });
 }

@@ -29,6 +29,22 @@ const isProtectedRoute = createRouteMatcher([
   '/onboarding(.*)',
 ]);
 
+/**
+ * Onboarding routes that an already-onboarded user should never see again.
+ * `/onboarding/signup` stays accessible because sign-up is the entry point for
+ * brand-new sessions (and Clerk reuses it for post-signup redirects).
+ */
+const isOnboardingRoute = createRouteMatcher([
+  '/onboarding',
+  '/onboarding/path(.*)',
+  '/onboarding/industry(.*)',
+  '/onboarding/style(.*)',
+  '/onboarding/domain(.*)',
+  '/onboarding/inbox(.*)',
+  '/onboarding/openclaw(.*)',
+  '/onboarding/verify-email(.*)',
+]);
+
 export default clerkMiddleware((auth, req) => {
   // Explicit public routes always pass through.
   if (isPublicRoute(req)) {
@@ -46,6 +62,16 @@ export default clerkMiddleware((auth, req) => {
   const iat = sessionClaims?.iat as number | undefined;
   if (iat && Date.now() / 1000 - iat > 1800) {
     return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // Already-onboarded users should never land back in onboarding. The PATCH
+  // /api/user/onboarding handler writes `publicMetadata.onboardingCompleted`
+  // so the source of truth lives in the Clerk session claims here.
+  const publicMetadata = (sessionClaims?.public_metadata ?? sessionClaims?.publicMetadata) as
+    | { onboardingCompleted?: boolean }
+    | undefined;
+  if (publicMetadata?.onboardingCompleted && isOnboardingRoute(req)) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
   return NextResponse.next();
