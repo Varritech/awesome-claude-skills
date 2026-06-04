@@ -150,8 +150,33 @@ export async function POST(req: NextRequest) {
   if (!resolvedSmtp.encryptedPassword && domainId && mailforge.isConfigured()) {
     try {
       const domainSnap = await adminDb.collection('domains').doc(domainId).get();
-      const domainDoc = domainSnap.exists ? (domainSnap.data() as { mailforgeDomainId?: string; domain?: string }) : null;
+      const domainDoc = domainSnap.exists
+        ? (domainSnap.data() as {
+            mailforgeDomainId?: string;
+            domain?: string;
+            overallStatus?: string;
+            userId?: string;
+          })
+        : null;
       const mfDomainId = domainDoc?.mailforgeDomainId;
+
+      // Ownership + verification gates before Mailforge spends a mailbox slot.
+      if (domainDoc?.userId && domainDoc.userId !== userId) {
+        return NextResponse.json(
+          { error: 'Domain does not belong to this user' },
+          { status: 403 },
+        );
+      }
+      if (mfDomainId && domainDoc?.overallStatus !== 'green') {
+        return NextResponse.json(
+          {
+            error:
+              'Domain DNS is not verified yet. Add the SPF/DKIM/DMARC/MX records and wait for the verification to turn green before connecting an inbox.',
+            overallStatus: domainDoc?.overallStatus ?? 'pending',
+          },
+          { status: 409 },
+        );
+      }
 
       if (mfDomainId) {
         const [mailbox] = await mailforge.purchaseMailboxes([mfDomainId], 1);

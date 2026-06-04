@@ -115,6 +115,7 @@ export default function DomainPage() {
   const [error, setError] = useState<string | null>(null);
   const [domainId, setDomainId] = useState<string | null>(null);
   const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>(fallbackDnsRecords);
+  const [verifyingNow, setVerifyingNow] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -452,18 +453,64 @@ export default function DomainPage() {
               <div className="flex flex-col gap-3 mt-5">
                 <button
                   type="button"
-                  onClick={() => router.push("/onboarding/inbox")}
-                  className="w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                  onClick={async () => {
+                    if (!domainId || verifyingNow) return;
+                    setVerifyingNow(true);
+                    try {
+                      const data = await apiPost<DomainVerifyData>(
+                        `/api/domains/${domainId}/verify`,
+                        {},
+                      );
+                      if (data) {
+                        setDnsRecords((prev) =>
+                          prev.map((r) => {
+                            const key = r.name.toLowerCase() as
+                              | "spf"
+                              | "dkim"
+                              | "dmarc"
+                              | "mx";
+                            const statusMap: Record<string, string | undefined> = {
+                              spf: data.spfStatus,
+                              dkim: data.dkimStatus,
+                              dmarc: data.dmarcStatus,
+                              mx: data.mxStatus,
+                            };
+                            return { ...r, status: mapApiStatus(statusMap[key]) };
+                          }),
+                        );
+                      }
+                    } catch (err) {
+                      console.error("Manual verify failed", err);
+                    } finally {
+                      setVerifyingNow(false);
+                    }
+                  }}
+                  disabled={!domainId || verifyingNow}
+                  className="w-full bg-cf-card text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-2 border-white/10 cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide hover:border-white/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {allValid ? "Verified - Continue" : "Verify & Continue"}
+                  {verifyingNow ? "Checking..." : "Verify now"}
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push("/onboarding/inbox")}
-                  className="text-center text-[13px] text-white/35 hover:text-white/60 transition-colors"
+                  disabled={!allValid}
+                  className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none transition-all duration-150 font-heading uppercase tracking-wide ${
+                    allValid
+                      ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                      : "opacity-35 cursor-not-allowed"
+                  }`}
                 >
-                  Skip for now
+                  {allValid
+                    ? "Verified - Continue"
+                    : "Waiting on DNS verification"}
                 </button>
+                {!allValid && (
+                  <p className="text-[11px] text-white/35 text-center leading-relaxed">
+                    DNS changes can take a few minutes to propagate. We auto-check
+                    every 4 seconds; you can also click <strong>Verify now</strong>{" "}
+                    after updating your DNS host.
+                  </p>
+                )}
               </div>
             </div>
           )}
