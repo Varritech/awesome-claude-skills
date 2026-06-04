@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
+  jsonError,
   logRequest,
   parseAndValidate,
   requireUser,
 } from '@/lib/api/helpers';
 import { connectInboxSchema } from '@/lib/schemas';
 import * as mailforge from '@/lib/mailforge/client';
-import { encryptPassword } from '@/lib/smtp/mailer';
+import { encryptPassword, verifySmtp } from '@/lib/smtp/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,20 +103,51 @@ export async function POST(req: NextRequest) {
 
   logRequest('inboxes.POST', userId, { provider, email });
 
-  if (smtp?.password) {
-    console.info('[api:inboxes.POST] smtp password received (not persisted plaintext)');
-  }
-
   const now = new Date().toISOString();
   const id = `ib_${Math.random().toString(36).slice(2, 12)}`;
 
-  // If a Mailforge domain is linked and API is configured, provision a mailbox.
   let mailforgeMailboxId: string | undefined;
   let resolvedSmtp: { host?: string; port?: number; user?: string; encryptedPassword?: string } = {};
   let resolvedEmail = email ?? '';
+  let smtpVerified = false;
 
+  // ── Path 1: user supplied their own SMTP credentials (provider=smtp_imap or BYO) ──
+  // Encrypt + persist immediately so the sender has what it needs.
+  if (smtp?.host && smtp?.port && smtp?.user && smtp?.password) {
+    if (!process.env.SMTP_ENCRYPTION_KEY) {
+      return jsonError('SMTP_ENCRYPTION_KEY not configured on server; cannot accept SMTP credentials', 500);
+    }
+    try {
+      resolvedSmtp = {
+        host: smtp.host,
+        port: smtp.port,
+        user: smtp.user,
+        encryptedPassword: encryptPassword(smtp.password),
+      };
+      resolvedEmail = email ?? smtp.user;
+      // Verify the SMTP credentials before we mark the inbox connected
+      try {
+        smtpVerified = await verifySmtp({
+          host: smtp.host,
+          port: smtp.port,
+          user: smtp.user,
+          encryptedPassword: resolvedSmtp.encryptedPassword!,
+        });
+      } catch (vErr) {
+        console.warn('[api:inboxes.POST] smtp verify threw', vErr);
+      }
+      if (!smtpVerified) {
+        return jsonError('SMTP credentials failed verification. Check host/port/user/password.', 400);
+      }
+    } catch (encErr) {
+      console.error('[api:inboxes.POST] smtp password encryption failed', encErr);
+      return jsonError('Failed to encrypt SMTP password', 500);
+    }
+  }
+
+  // ── Path 2: Mailforge-provisioned mailbox (domainId provided + Mailforge configured) ──
   const { domainId } = parsed.data;
-  if (domainId && mailforge.isConfigured()) {
+  if (!resolvedSmtp.encryptedPassword && domainId && mailforge.isConfigured()) {
     try {
       const domainSnap = await adminDb.collection('domains').doc(domainId).get();
       const domainDoc = domainSnap.exists ? (domainSnap.data() as { mailforgeDomainId?: string; domain?: string }) : null;
@@ -146,16 +178,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // SMTP creds present (own or Mailforge-provisioned) → kick off warmup immediately.
+  const hasSmtp = Boolean(resolvedSmtp.encryptedPassword);
   const record: InboxRecord = {
     id,
     userId,
     provider,
     email: resolvedEmail,
     ...(displayName ? { displayName } : {}),
-    status: 'connecting',
+    status: hasSmtp ? 'warming' : 'connecting',
     warmupEnabled: true,
     dailySendLimit: 50,
-    warmupStartDate: null,
+    warmupStartDate: hasSmtp ? now : null,
     ...(domainId ? { domainId } : {}),
     ...(mailforgeMailboxId ? { mailforgeMailboxId } : {}),
     ...(resolvedSmtp.host ? { smtpHost: resolvedSmtp.host } : {}),
