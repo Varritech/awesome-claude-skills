@@ -2,7 +2,8 @@
  * Mailforge API client.
  *
  * Base URL: https://api.mailforge.ai/public
- * Auth: X-API-Key header (generated in Mailforge Settings → API)
+ * Auth: `Authorization: <raw key>` header (no Bearer prefix, no X-API-Key).
+ * Key generated in Mailforge Settings → API.
  *
  * Mailforge is a domain + mailbox provisioning service — it purchases and
  * manages domains on behalf of the workspace, and provisions mailboxes on
@@ -32,7 +33,8 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey(),
+      Authorization: apiKey(),
+      'X-Source': 'convergeflow',
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
