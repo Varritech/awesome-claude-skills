@@ -1,9 +1,10 @@
 /**
  * /api/emails/auto-draft
  *
- * POST — idempotent. Fetches up to 10 leads for the user, drafts one email
- * per lead using the persona saved during onboarding, and writes each as an
- * email record with status "queued" and scheduledFor set to the next 8 AM UTC.
+ * POST — idempotent. Fetches the first 20 active leads for the user (matching
+ * the order shown on /customers), drafts one email per lead using the persona
+ * saved during onboarding, and writes each as an email record with status
+ * "queued" and scheduledFor set to the next 8 AM UTC.
  *
  * Returns { drafted: number, skipped: number } — safe to call on every
  * dashboard mount; exits early when queued/sent emails already exist.
@@ -14,6 +15,9 @@ import { adminDb } from '@/lib/firebase/admin';
 import { chat } from '@/lib/ollama/client';
 import { logRequest, requireUser } from '@/lib/api/helpers';
 import { next8amUtc } from '@/lib/emails/schedule';
+import { fetchUserLeads, type FetchedLead } from '@/lib/leads/fetch';
+
+const QUEUE_BATCH_SIZE = 20;
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -50,16 +54,7 @@ function buildPrompt(persona: Persona, lead: Record<string, unknown>): string {
     .join('\n');
 }
 
-interface LeadDoc {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  company?: string;
-  title?: string;
-  industry?: string;
-  email?: string;
-  status: string;
-}
+type LeadDoc = FetchedLead;
 
 
 export async function POST() {
@@ -111,14 +106,18 @@ export async function POST() {
     // No inbox — cron sender will skip until one is connected
   }
 
-  // Fetch up to 10 leads that have not already been drafted to
-  const leadsSnap = await adminDb
-    .collection('leads')
-    .where('userId', '==', userId)
-    .where('status', '==', 'new')
-    .limit(10)
-    .get();
-  const leads = leadsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as LeadDoc));
+  // Pull the same first-N leads the /customers page shows. fetchUserLeads
+  // orders by createdAt desc and filters out soft-deleted rows so the queued
+  // outreach matches what the user sees in the UI.
+  let leads: LeadDoc[] = [];
+  try {
+    leads = await fetchUserLeads(userId, {
+      limit: QUEUE_BATCH_SIZE,
+      status: 'new',
+    });
+  } catch (err) {
+    console.warn('[auto-draft] lead fetch failed', err);
+  }
   if (leads.length === 0) {
     return NextResponse.json({ drafted: 0, skipped: 0, alreadyDrafted: false });
   }
