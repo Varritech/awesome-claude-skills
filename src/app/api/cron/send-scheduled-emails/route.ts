@@ -2,28 +2,56 @@
  * GET /api/cron/send-scheduled-emails
  *
  * Called every 15 minutes by Vercel Cron (see vercel.json).
- * Finds emails with status="queued" and scheduledFor<=now, then fires one
- * email/send Inngest event per email. The send-email function handles SMTP,
- * warmup quota, and any tomorrow-requeue logic.
+ * Finds queued emails whose scheduledFor <= now, then dispatches each via SMTP
+ * inline. No external broker dependency. Per-inbox throttling is enforced by
+ * sleeping 1 second between sends with the same inboxId.
  *
- * Each batch is capped at 500 to stay well under Inngest event-batch limits.
- * Secured by CRON_SECRET header (set in Vercel env).
+ * Secured by CRON_SECRET header (set in Vercel env). When CRON_SECRET is unset,
+ * the route is open (useful for local + preview testing).
+ *
+ * Vercel serverless functions have a 60s default budget on hobby and 300s on
+ * pro plans. With a 1s throttle that bounds per-tick throughput to ~60-300
+ * sends per inbox group; the next tick (15 min later) picks up the remainder.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
-import { inngest } from '@/lib/inngest/client';
-import { buildSendEvents, type QueuedEmail } from '@/lib/emails/send-scheduled';
+import { dispatchEmail, type DispatchOutcome } from '@/lib/emails/dispatch';
+import { resolveInboxForEmails, type QueuedEmail } from '@/lib/emails/resolve-inbox';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // seconds — needs Vercel Pro
 
 const BATCH_LIMIT = 500;
+const PER_INBOX_DELAY_MS = 1_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface SummaryCounts {
+  sent: number;
+  bounced: number;
+  requeued: number;
+  skipped: number;
+  errored: number;
+  skippedNoInbox: number;
+}
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '');
   if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const counts: SummaryCounts = {
+    sent: 0,
+    bounced: 0,
+    requeued: 0,
+    skipped: 0,
+    errored: 0,
+    skippedNoInbox: 0,
+  };
 
   try {
     const nowIso = new Date().toISOString();
@@ -35,7 +63,7 @@ export async function GET(req: NextRequest) {
       .get();
 
     if (snap.empty) {
-      return NextResponse.json({ data: { fired: 0, skippedNoInbox: 0 } });
+      return NextResponse.json({ data: { ...counts, total: 0 } });
     }
 
     const queued: QueuedEmail[] = snap.docs.map((doc) => ({
@@ -43,24 +71,63 @@ export async function GET(req: NextRequest) {
       ...(doc.data() as Omit<QueuedEmail, 'id'>),
     }));
 
-    const { events, skippedNoInbox } = await buildSendEvents(queued, async (userId) => {
-      const inboxSnap = await adminDb
-        .collection('inboxes')
-        .where('userId', '==', userId)
-        .where('status', 'in', ['warming', 'active'])
-        .limit(1)
-        .get();
-      return inboxSnap.empty ? null : inboxSnap.docs[0].id;
-    });
+    // Best-effort: for emails missing inboxId, resolve and persist the user's
+    // active inbox so the dispatcher has what it needs. resolveInboxForEmails
+    // mutates each email in place and writes the inboxId back to Firestore.
+    const { skippedNoInbox } = await resolveInboxForEmails(adminDb, queued);
+    counts.skippedNoInbox = skippedNoInbox;
 
-    if (events.length > 0) {
-      await inngest.send(events);
+    // Group by inboxId so we can serialize sends within a single inbox group
+    // (per-inbox throttle) while parallelizing across groups.
+    const groups = new Map<string, QueuedEmail[]>();
+    for (const e of queued) {
+      if (!e.inboxId) continue; // resolveInboxForEmails already counted these as skipped
+      const list = groups.get(e.inboxId) ?? [];
+      list.push(e);
+      groups.set(e.inboxId, list);
     }
 
-    console.info(`[cron:send-scheduled-emails] fired ${events.length} email/send events, skipped ${skippedNoInbox}`);
-    return NextResponse.json({ data: { fired: events.length, skippedNoInbox } });
+    await Promise.all(
+      Array.from(groups.values()).map(async (group) => {
+        for (let i = 0; i < group.length; i++) {
+          const email = group[i]!;
+          try {
+            const outcome = await dispatchEmail(adminDb, email.id);
+            tally(counts, outcome);
+          } catch (err) {
+            console.error(`[cron:send-scheduled-emails] dispatch threw for ${email.id}`, err);
+            counts.errored++;
+          }
+          if (i < group.length - 1) {
+            await sleep(PER_INBOX_DELAY_MS);
+          }
+        }
+      }),
+    );
+
+    console.info(
+      `[cron:send-scheduled-emails] sent=${counts.sent} bounced=${counts.bounced} requeued=${counts.requeued} skipped=${counts.skipped} errored=${counts.errored} skippedNoInbox=${counts.skippedNoInbox}`,
+    );
+    return NextResponse.json({ data: { ...counts, total: queued.length } });
   } catch (err) {
     console.error('[cron:send-scheduled-emails]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+function tally(counts: SummaryCounts, outcome: DispatchOutcome): void {
+  switch (outcome.kind) {
+    case 'sent':
+      counts.sent++;
+      break;
+    case 'bounced':
+      counts.bounced++;
+      break;
+    case 'requeued':
+      counts.requeued++;
+      break;
+    case 'skipped':
+      counts.skipped++;
+      break;
   }
 }
