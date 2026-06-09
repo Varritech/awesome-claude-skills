@@ -62,11 +62,24 @@ function buildPrompt(persona: Persona, lead: Record<string, unknown>): string {
     .join('\n');
 }
 
+export interface DraftOptions {
+  /**
+   * ISO timestamp to stamp on each queued email. Defaults to the next
+   * 08:00 UTC strictly in the future (useful when the dashboard fires
+   * this any time of day and we want to batch into the morning send).
+   *
+   * The daily cron passes `new Date().toISOString()` so its drafts are
+   * picked up by the next 15-min send tick immediately after it runs.
+   */
+  scheduledFor?: string;
+}
+
 export async function draftEmailsForUser(
   db: Firestore,
   userId: string,
+  options: DraftOptions = {},
 ): Promise<DraftResult> {
-  const scheduledFor = next8amUtc();
+  const scheduledFor = options.scheduledFor ?? next8amUtc();
 
   const existingSnap = await db
     .collection('emails')

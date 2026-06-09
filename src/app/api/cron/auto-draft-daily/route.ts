@@ -63,6 +63,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ data: { ...tally, total: 0 } });
     }
 
+    // The cron fires at 08:00 UTC and we want its drafts to be picked up
+    // by the same morning's send sweep, not deferred to next-day. Stamping
+    // scheduledFor with "now" lets the */15 send cron grab them within
+    // the next 15 minutes.
+    const scheduledFor = new Date().toISOString();
+
     for (const doc of snap.docs) {
       tally.usersConsidered++;
       const userId = doc.id;
@@ -70,7 +76,9 @@ export async function GET(req: NextRequest) {
       if (data.onboardingCompleted !== true) continue;
 
       try {
-        const result: DraftResult = await draftEmailsForUser(adminDb, userId);
+        const result: DraftResult = await draftEmailsForUser(adminDb, userId, {
+          scheduledFor,
+        });
         tally.drafted += result.drafted;
         tally.skipped += result.skipped;
         if (result.alreadyDrafted) tally.alreadyDrafted++;
