@@ -32,25 +32,6 @@ interface InboxRecord {
   updatedAt: string;
 }
 
-function mockSeed(userId: string): InboxRecord[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: 'ib_demo_1',
-      userId,
-      provider: 'gmail',
-      email: 'chris@reach.convergeflow.io',
-      displayName: 'Chris @ ConvergeFlow',
-      status: 'active',
-      warmupEnabled: true,
-      dailySendLimit: 50,
-      warmupStartDate: now,
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-}
-
 function buildGmailAuthUrl(inboxId: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://convergeflow-push.vercel.app';
   const params = new URLSearchParams({
@@ -82,13 +63,10 @@ export async function GET() {
       .where('userId', '==', userId)
       .get();
     const inboxes = snap.docs.map((d) => d.data() as InboxRecord);
-    if (inboxes.length === 0) {
-      return NextResponse.json({ data: mockSeed(userId) });
-    }
     return NextResponse.json({ data: inboxes });
   } catch (err) {
-    console.warn('[api:inboxes.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: mockSeed(userId) });
+    console.error('[api:inboxes.GET] firestore error', err);
+    return jsonError('Failed to load inboxes', 500);
   }
 }
 
@@ -228,7 +206,8 @@ export async function POST(req: NextRequest) {
   try {
     await adminDb.collection('inboxes').doc(id).set(record);
   } catch (err) {
-    console.warn('[api:inboxes.POST] firestore write failed (placeholder mode)', err);
+    console.error('[api:inboxes.POST] firestore write failed', err);
+    return jsonError('Failed to save inbox', 500);
   }
 
   let authUrl: string | null = null;

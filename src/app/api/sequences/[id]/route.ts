@@ -47,11 +47,7 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
 
   try {
     const patch = { ...parsed.data, updatedAt: new Date().toISOString() };
-    try {
-      await adminDb.collection("sequences").doc(id).set(patch, { merge: true });
-    } catch (err) {
-      console.warn("[api:sequences.[id].PUT] Firestore write skipped (placeholder)", err);
-    }
+    await adminDb.collection("sequences").doc(id).set(patch, { merge: true });
     return NextResponse.json({ data: { id, ...patch } });
   } catch (err) {
     console.error("[api:sequences.[id].PUT] error", err);
@@ -73,8 +69,9 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
       .collection("sequences")
       .doc(id)
       .set({ deletedAt, updatedAt: deletedAt }, { merge: true });
+    return NextResponse.json({ data: { id, deletedAt } });
   } catch (err) {
-    console.warn("[api:sequences.[id].DELETE] placeholder mode", err);
+    console.error("[api:sequences.[id].DELETE] firestore error", err);
+    return jsonError("Failed to delete sequence");
   }
-  return NextResponse.json({ data: { id, deletedAt } });
 }

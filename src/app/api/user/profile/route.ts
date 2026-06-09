@@ -8,6 +8,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
+  jsonError,
   logRequest,
   parseAndValidate,
   requireUser,
@@ -85,22 +86,16 @@ function enrichProfile(raw: UserProfileRecord & Record<string, unknown>) {
   };
 }
 
-function mockProfile(userId: string) {
+function emptyProfile(userId: string): UserProfileRecord {
   const now = new Date().toISOString();
-  const raw: UserProfileRecord = {
+  return {
     id: userId,
-    email: 'you@example.com',
-    firstName: 'Chris',
-    lastName: 'Varriale',
     tier: 'self_serve',
-    company: 'Varritech',
-    timezone: 'America/New_York',
-    onboardingStep: 'domain',
+    onboardingStep: 'profile',
     onboardingCompleted: false,
     createdAt: now,
     updatedAt: now,
   };
-  return enrichProfile(raw as UserProfileRecord & Record<string, unknown>);
 }
 
 export async function GET() {
@@ -127,14 +122,12 @@ export async function GET() {
       onboardingData?.completed === true || onboardingData?.step === 'complete';
 
     if (!userDoc.exists) {
-      // Without a user doc we still trust the onboarding doc as the source of
-      // truth for completion status so returning users do not get re-onboarded.
-      const profile = mockProfile(userId);
+      const empty = emptyProfile(userId);
       return NextResponse.json({
-        data: {
-          ...profile,
-          onboardingCompleted: profile.onboardingCompleted || onboardingCompletedDerived,
-        },
+        data: enrichProfile({
+          ...empty,
+          onboardingCompleted: onboardingCompletedDerived,
+        } as UserProfileRecord & Record<string, unknown>),
       });
     }
     const raw = userDoc.data() as UserProfileRecord & Record<string, unknown>;
@@ -144,8 +137,8 @@ export async function GET() {
     };
     return NextResponse.json({ data: enrichProfile(merged) });
   } catch (err) {
-    console.warn('[api:user.profile.GET] falling back to mock', err);
-    return NextResponse.json({ data: mockProfile(userId) });
+    console.error('[api:user.profile.GET] firestore error', err);
+    return jsonError('Failed to load profile', 500);
   }
 }
 
@@ -162,8 +155,9 @@ export async function PATCH(req: NextRequest) {
 
   try {
     await adminDb.collection('users').doc(userId).set(patch, { merge: true });
+    return NextResponse.json({ data: { id: userId, ...patch } });
   } catch (err) {
-    console.warn('[api:user.profile.PATCH] placeholder mode', err);
+    console.error('[api:user.profile.PATCH] firestore error', err);
+    return jsonError('Failed to update profile', 500);
   }
-  return NextResponse.json({ data: { id: userId, ...patch } });
 }

@@ -97,61 +97,6 @@ function toUiResponse(records: LeadRecord[]): { leads: Lead[]; industries: strin
   return { leads, industries };
 }
 
-// ── Mock seed ────────────────────────────────────────────────────────────────
-
-function mockSeed(userId: string): LeadRecord[] {
-  const now = new Date().toISOString();
-  const rows: Array<Partial<LeadRecord>> = [
-    {
-      id: 'ld_demo_1',
-      firstName: 'Alex',
-      lastName: 'Chen',
-      email: 'alex@acme.io',
-      company: 'Acme SaaS',
-      title: 'Head of Growth',
-      industry: 'SaaS',
-      location: 'New York, NY',
-      status: 'contacted',
-      source: 'apollo',
-    },
-    {
-      id: 'ld_demo_2',
-      firstName: 'Jordan',
-      lastName: 'Patel',
-      email: 'jordan@northside.dental',
-      company: 'Northside Dental',
-      title: 'Practice Owner',
-      industry: 'Healthcare',
-      location: 'Austin, TX',
-      status: 'new',
-      source: 'aleads',
-    },
-    {
-      id: 'ld_demo_3',
-      firstName: 'Sam',
-      lastName: 'Ruiz',
-      email: 'sam@hawkcap.com',
-      company: 'Hawk Capital',
-      title: 'Managing Partner',
-      industry: 'Finance',
-      location: 'Miami, FL',
-      status: 'booked',
-      source: 'manual',
-    },
-  ];
-  return rows.map(
-    (r) =>
-      ({
-        userId,
-        tags: [],
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        ...r,
-      }) as LeadRecord,
-  );
-}
-
 // ── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -191,21 +136,10 @@ export async function GET(req: NextRequest) {
     const records = snap.docs
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt);
-    if (records.length === 0) {
-      const tagList = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
-      const seed = mockSeed(userId).filter(
-        (l) =>
-          (!industry || l.industry === industry) &&
-          (!location || l.location === location) &&
-          (!status || l.status === status) &&
-          (tagList.length === 0 || tagList.some((t) => l.tags.includes(t))),
-      );
-      return NextResponse.json({ data: toUiResponse(seed) });
-    }
     return NextResponse.json({ data: toUiResponse(records) });
   } catch (err) {
-    console.warn('[api:leads.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: toUiResponse(mockSeed(userId)) });
+    console.error('[api:leads.GET] firestore error', err);
+    return jsonError('Failed to load leads', 500);
   }
 }
 
@@ -253,7 +187,6 @@ export async function POST(req: NextRequest) {
   }));
 
   try {
-    // Batch-write in 500-doc chunks
     const CHUNK = 500;
     for (let i = 0; i < inserted.length; i += CHUNK) {
       const batch = adminDb.batch();
@@ -262,19 +195,19 @@ export async function POST(req: NextRequest) {
       }
       await batch.commit();
     }
-  } catch (err) {
-    console.warn('[api:leads.POST] placeholder mode', err);
-  }
-
-  return NextResponse.json(
-    {
-      data: {
-        imported: inserted.length,
-        duplicatesSkipped: duplicateCount,
-        source,
-        leads: inserted,
+    return NextResponse.json(
+      {
+        data: {
+          imported: inserted.length,
+          duplicatesSkipped: duplicateCount,
+          source,
+          leads: inserted,
+        },
       },
-    },
-    { status: 201 },
-  );
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error('[api:leads.POST] firestore error', err);
+    return jsonError('Failed to import leads', 500);
+  }
 }

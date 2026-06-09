@@ -1,7 +1,9 @@
 /**
  * /api/campaigns/[id] - fetch, update, soft-delete a single campaign.
  *
- * TODO: Enforce ownership on every read/write via Firestore rules too.
+ * Ownership is enforced in code by comparing `data.userId` to the caller's
+ * `userId`. Firestore security rules should mirror this. No mock fallbacks:
+ * missing docs return 404, Firestore errors return 500.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -18,38 +20,6 @@ export const dynamic = 'force-dynamic';
 
 interface RouteCtx {
   params: { id: string };
-}
-
-function mockCampaign(userId: string, id: string) {
-  return {
-    id,
-    userId,
-    name: 'Q2 SaaS founders',
-    description: '50 B2B SaaS founders in NYC',
-    status: 'running' as const,
-    persona: 'closer' as const,
-    targetLeadCount: 50,
-    sentCount: 42,
-    repliedCount: 7,
-    bookedCount: 3,
-    createdAt: '2026-03-28T14:12:00.000Z',
-    updatedAt: '2026-04-14T09:02:00.000Z',
-    deletedAt: null,
-    emails: [
-      {
-        id: 'em_demo_1',
-        subject: 'Quick question about {{company}}',
-        status: 'sent',
-        sentAt: '2026-04-14T09:01:00.000Z',
-      },
-      {
-        id: 'em_demo_2',
-        subject: 'Following up',
-        status: 'queued',
-        sentAt: null,
-      },
-    ],
-  };
 }
 
 export async function GET(_req: NextRequest, ctx: RouteCtx) {
@@ -69,11 +39,18 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
     if (data.userId && data.userId !== userId) {
       return jsonError('Forbidden', 403);
     }
-    // TODO: join email list from `emails` collection filtered by campaignId.
-    return NextResponse.json({ data: { ...data, emails: [] } });
+
+    const emailsSnap = await adminDb
+      .collection('emails')
+      .where('userId', '==', userId)
+      .where('campaignId', '==', id)
+      .get();
+    const emails = emailsSnap.docs.map((d) => d.data());
+
+    return NextResponse.json({ data: { ...data, emails } });
   } catch (err) {
-    console.warn('[api:campaigns.[id].GET] falling back to mock', err);
-    return NextResponse.json({ data: mockCampaign(userId, id) });
+    console.error('[api:campaigns.[id].GET] firestore error', err);
+    return jsonError('Failed to load campaign', 500);
   }
 }
 
@@ -97,10 +74,8 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
     await adminDb.collection('campaigns').doc(id).set(patch, { merge: true });
     return NextResponse.json({ data: { id, ...patch } });
   } catch (err) {
-    console.warn('[api:campaigns.[id].PATCH] placeholder mode', err);
-    return NextResponse.json({
-      data: { id, ...parsed.data, updatedAt: new Date().toISOString() },
-    });
+    console.error('[api:campaigns.[id].PATCH] firestore error', err);
+    return jsonError('Failed to update campaign', 500);
   }
 }
 
@@ -122,8 +97,9 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
       .collection('campaigns')
       .doc(id)
       .set({ deletedAt, updatedAt: deletedAt }, { merge: true });
+    return NextResponse.json({ data: { id, deletedAt } });
   } catch (err) {
-    console.warn('[api:campaigns.[id].DELETE] placeholder mode', err);
+    console.error('[api:campaigns.[id].DELETE] firestore error', err);
+    return jsonError('Failed to delete campaign', 500);
   }
-  return NextResponse.json({ data: { id, deletedAt } });
 }

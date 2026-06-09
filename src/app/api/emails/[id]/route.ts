@@ -105,25 +105,6 @@ function toEmailCampaignDetail(record: EmailRecord) {
   };
 }
 
-function mockEmail(userId: string, id: string) {
-  const record: EmailRecord = {
-    id,
-    userId,
-    campaignId: 'cmp_demo_1',
-    leadId: 'ld_demo_1',
-    subject: 'Quick question about Acme',
-    body:
-      'Hey Alex,\n\nQuick one - we just helped 3 SaaS teams book 20+ calls in 30 days without hiring.\n\nWorth a 15-min chat Thursday?\n\n- Chris',
-    persona: 'closer',
-    status: 'sent',
-    createdAt: '2026-04-14T09:00:00.000Z',
-    updatedAt: '2026-04-14T09:01:00.000Z',
-    sentAt: '2026-04-14T09:01:00.000Z',
-    deletedAt: null,
-  };
-  return toEmailCampaignDetail(record);
-}
-
 export async function GET(_req: NextRequest, ctx: RouteCtx) {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -141,8 +122,8 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
     }
     return NextResponse.json({ data: toEmailCampaignDetail(raw) });
   } catch (err) {
-    console.warn('[api:emails.[id].GET] falling back to mock', err);
-    return NextResponse.json({ data: mockEmail(userId, id) });
+    console.error('[api:emails.[id].GET] firestore error', err);
+    return jsonError('Failed to load email', 500);
   }
 }
 
@@ -164,10 +145,11 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
     const raw = doc.data() as EmailRecord;
     if (raw.userId && raw.userId !== userId) return jsonError('Forbidden', 403);
     await adminDb.collection('emails').doc(id).set(patch, { merge: true });
+    return NextResponse.json({ data: { id, ...patch } });
   } catch (err) {
-    console.warn('[api:emails.[id].PATCH] placeholder mode', err);
+    console.error('[api:emails.[id].PATCH] firestore error', err);
+    return jsonError('Failed to update email', 500);
   }
-  return NextResponse.json({ data: { id, ...patch } });
 }
 
 export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
@@ -188,8 +170,9 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
       .collection('emails')
       .doc(id)
       .set({ deletedAt, updatedAt: deletedAt }, { merge: true });
+    return NextResponse.json({ data: { id, deletedAt } });
   } catch (err) {
-    console.warn('[api:emails.[id].DELETE] placeholder mode', err);
+    console.error('[api:emails.[id].DELETE] firestore error', err);
+    return jsonError('Failed to delete email', 500);
   }
-  return NextResponse.json({ data: { id, deletedAt } });
 }

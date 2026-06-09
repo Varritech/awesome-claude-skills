@@ -41,12 +41,12 @@ const STEP_ORDER: Step[] = [
   'complete',
 ];
 
-function mockState(userId: string): OnboardingState {
+function initialState(userId: string): OnboardingState {
   return {
     userId,
-    step: 'domain',
+    step: 'profile',
     completed: false,
-    stepsCompleted: { profile: true },
+    stepsCompleted: {},
     updatedAt: new Date().toISOString(),
   };
 }
@@ -60,7 +60,7 @@ export async function GET() {
 
   const doc = await adminDb.collection('onboarding').doc(userId).get();
   if (!doc.exists) {
-    return NextResponse.json({ data: mockState(userId) });
+    return NextResponse.json({ data: initialState(userId) });
   }
   return NextResponse.json({ data: doc.data() });
 }

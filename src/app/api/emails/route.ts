@@ -7,6 +7,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
+  jsonError,
   logRequest,
   parseAndValidate,
   requireUser,
@@ -28,52 +29,6 @@ interface EmailRecord {
   updatedAt: string;
   sentAt?: string | null;
   deletedAt?: string | null;
-}
-
-function mockSeed(userId: string): EmailRecord[] {
-  const base: Array<Partial<EmailRecord>> = [
-    {
-      id: 'em_demo_1',
-      subject: 'Quick question about Acme',
-      status: 'replied',
-      persona: 'closer',
-      sentAt: '2026-04-14T09:01:00.000Z',
-    },
-    {
-      id: 'em_demo_2',
-      subject: 'Saw your launch post',
-      status: 'opened',
-      persona: 'neighbor',
-      sentAt: '2026-04-13T13:22:00.000Z',
-    },
-    {
-      id: 'em_demo_3',
-      subject: 'Deliverability audit - 10 min',
-      status: 'sent',
-      persona: 'expert',
-      sentAt: '2026-04-12T10:05:00.000Z',
-    },
-    {
-      id: 'em_demo_4',
-      subject: 'One-pager checklist',
-      status: 'draft',
-      persona: 'helper',
-      sentAt: null,
-    },
-  ];
-  const now = new Date().toISOString();
-  return base.map(
-    (b) =>
-      ({
-        userId,
-        campaignId: 'cmp_demo_1',
-        body: 'Hey {{firstName}},\n\nQuick one - ...',
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        ...b,
-      }) as EmailRecord,
-  );
 }
 
 export async function GET(req: NextRequest) {
@@ -105,17 +60,10 @@ export async function GET(req: NextRequest) {
       .map((d) => d.data() as EmailRecord)
       .filter((e) => !e.deletedAt);
     const nextCursor = emails.length === limit ? emails[emails.length - 1]?.id : null;
-    if (emails.length === 0) {
-      const seed = mockSeed(userId).slice(0, limit);
-      return NextResponse.json({ data: seed, nextCursor: null });
-    }
     return NextResponse.json({ data: emails, nextCursor });
   } catch (err) {
-    console.warn('[api:emails.GET] falling back to mock seed', err);
-    return NextResponse.json({
-      data: mockSeed(userId).slice(0, limit),
-      nextCursor: null,
-    });
+    console.error('[api:emails.GET] firestore error', err);
+    return jsonError('Failed to load emails', 500);
   }
 }
 
@@ -148,8 +96,9 @@ export async function POST(req: NextRequest) {
 
   try {
     await adminDb.collection('emails').doc(id).set(record);
+    return NextResponse.json({ data: record }, { status: 201 });
   } catch (err) {
-    console.warn('[api:emails.POST] placeholder mode', err);
+    console.error('[api:emails.POST] firestore error', err);
+    return jsonError('Failed to create email', 500);
   }
-  return NextResponse.json({ data: record }, { status: 201 });
 }

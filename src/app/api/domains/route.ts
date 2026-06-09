@@ -45,27 +45,6 @@ interface DomainRecord {
   verifiedAt?: string | null;
 }
 
-function mockSeed(userId: string): DomainRecord[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: 'dom_demo_1',
-      userId,
-      domain: 'reach.convergeflow.io',
-      purpose: 'sending',
-      mailforgeDomainId: 'mf_abc123',
-      spfStatus: 'green',
-      dkimStatus: 'green',
-      dmarcStatus: 'yellow',
-      mxStatus: 'green',
-      overallStatus: 'yellow',
-      createdAt: now,
-      updatedAt: now,
-      verifiedAt: now,
-    },
-  ];
-}
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Fetch DNS records from Mailforge, retrying up to maxAttempts times to wait
@@ -122,9 +101,6 @@ export async function GET() {
     .where('userId', '==', userId)
     .get();
   const domains = snap.docs.map((d) => d.data() as DomainRecord);
-  if (domains.length === 0) {
-    return NextResponse.json({ data: mockSeed(userId) });
-  }
   return NextResponse.json({ data: domains });
 }
 

@@ -1,8 +1,9 @@
 /**
  * /api/campaigns - list & create campaigns.
  *
- * TODO: Replace mock seed data with real Firestore reads once the Firebase
- * admin credentials are configured. All reads are scoped by `userId`.
+ * All reads/writes are scoped by `userId`. No mock fallback: empty Firestore
+ * returns `{ data: [] }` and the UI renders its empty state. Firestore errors
+ * propagate as 500 so the operator can see them.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -33,40 +34,6 @@ interface CampaignRecord {
   deletedAt?: string | null;
 }
 
-function mockSeed(userId: string): CampaignRecord[] {
-  return [
-    {
-      id: 'cmp_demo_1',
-      userId,
-      name: 'Q2 SaaS founders',
-      description: '50 B2B SaaS founders in NYC',
-      status: 'running',
-      persona: 'closer',
-      targetLeadCount: 50,
-      sentCount: 42,
-      repliedCount: 7,
-      bookedCount: 3,
-      createdAt: '2026-03-28T14:12:00.000Z',
-      updatedAt: '2026-04-14T09:02:00.000Z',
-      deletedAt: null,
-    },
-    {
-      id: 'cmp_demo_2',
-      userId,
-      name: 'Local dentists - Texas',
-      status: 'draft',
-      persona: 'neighbor',
-      targetLeadCount: 120,
-      sentCount: 0,
-      repliedCount: 0,
-      bookedCount: 0,
-      createdAt: '2026-04-10T18:44:00.000Z',
-      updatedAt: '2026-04-10T18:44:00.000Z',
-      deletedAt: null,
-    },
-  ];
-}
-
 export async function GET() {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -75,26 +42,19 @@ export async function GET() {
   logRequest('campaigns.GET', userId);
 
   try {
-    // TODO: Real query once Firestore is wired.
     const snap = await adminDb
       .collection('campaigns')
       .where('userId', '==', userId)
       .get();
 
-    let campaigns: CampaignRecord[] = snap.docs
+    const campaigns: CampaignRecord[] = snap.docs
       .map((d) => d.data() as CampaignRecord)
       .filter((c) => !c.deletedAt);
 
-    if (campaigns.length === 0) {
-      campaigns = mockSeed(userId);
-    }
-
     return NextResponse.json({ data: campaigns });
   } catch (err) {
-    // Placeholder mode: Firestore isn't configured yet - return seed data
-    // so the UI has something to render in dev / preview.
-    console.warn('[api:campaigns.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: mockSeed(userId) });
+    console.error('[api:campaigns.GET] firestore error', err);
+    return jsonError('Failed to load campaigns', 500);
   }
 }
 
@@ -127,12 +87,7 @@ export async function POST(req: NextRequest) {
       deletedAt: null,
     };
 
-    // TODO: persist domainId / inboxIds / scheduledAt in sub-collections once schema finalised.
-    try {
-      await adminDb.collection('campaigns').doc(id).set(record);
-    } catch (err) {
-      console.warn('[api:campaigns.POST] Firestore write skipped (placeholder mode)', err);
-    }
+    await adminDb.collection('campaigns').doc(id).set(record);
 
     return NextResponse.json({ data: record }, { status: 201 });
   } catch (err) {

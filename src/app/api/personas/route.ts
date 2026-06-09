@@ -8,6 +8,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import {
+  jsonError,
   logRequest,
   parseAndValidate,
   requireUser,
@@ -123,9 +124,9 @@ export async function POST(req: NextRequest) {
 
   try {
     await adminDb.collection('personas').doc(id).set(record);
+    return NextResponse.json({ data: record }, { status: 201 });
   } catch (err) {
-    console.warn('[api:personas.POST] placeholder mode', err);
+    console.error('[api:personas.POST] firestore error', err);
+    return jsonError('Failed to create persona', 500);
   }
-
-  return NextResponse.json({ data: record }, { status: 201 });
 }
