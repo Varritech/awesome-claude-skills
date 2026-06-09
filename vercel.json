@@ -7,6 +7,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/auto-draft-daily",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/cron/send-scheduled-emails",
       "schedule": "*/15 * * * *"
     }

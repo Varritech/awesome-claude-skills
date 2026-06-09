@@ -1,61 +1,21 @@
 /**
  * /api/emails/auto-draft
  *
- * POST — idempotent. Fetches the first 20 active leads for the user (matching
- * the order shown on /customers), drafts one email per lead using the persona
- * saved during onboarding, and writes each as an email record with status
- * "queued" and scheduledFor set to the next 8 AM UTC.
+ * POST — idempotent per send window. Drafts up to 20 outreach emails for the
+ * caller, queuing each for the next 8 AM UTC window. The drafting logic lives
+ * in `lib/emails/draft-for-user` so the daily cron uses the same code path.
  *
- * Returns { drafted: number, skipped: number } — safe to call on every
- * dashboard mount; exits early when queued/sent emails already exist.
+ * Safe to call on every dashboard mount; the helper exits early when drafts
+ * for the same window already exist.
  */
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
-import { chat } from '@/lib/ollama/client';
 import { logRequest, requireUser } from '@/lib/api/helpers';
-import { next8amUtc } from '@/lib/emails/schedule';
-import { fetchUserLeads, type FetchedLead } from '@/lib/leads/fetch';
-
-const QUEUE_BATCH_SIZE = 20;
+import { draftEmailsForUser } from '@/lib/emails/draft-for-user';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-type Persona = 'closer' | 'neighbor' | 'expert' | 'helper';
-
-const PERSONA_SYSTEM: Record<Persona, string> = {
-  closer:
-    'You write direct, confident cold emails. Lead with a specific outcome. End with one clear CTA. No fluff.',
-  neighbor:
-    'You write warm, conversational cold emails. Sound like a friendly peer, not a salesperson.',
-  expert:
-    'You write insight-led cold emails that show deep expertise without jargon. Concise and credible.',
-  helper:
-    'You write generous cold emails that offer a small piece of value upfront and ask for nothing immediately.',
-};
-
-function buildPrompt(persona: Persona, lead: Record<string, unknown>): string {
-  const firstName = (lead.firstName as string) ?? 'there';
-  const company = (lead.company as string) ?? 'your company';
-  const title = (lead.title as string) ?? '';
-  const industry = (lead.industry as string) ?? '';
-
-  return [
-    PERSONA_SYSTEM[persona],
-    '',
-    `Write a cold outreach email to ${firstName}${title ? `, ${title}` : ''}${company ? ` at ${company}` : ''}.`,
-    industry ? `Industry: ${industry}.` : '',
-    '',
-    'Return ONLY valid JSON with two keys: "subject" (string, ≤60 chars) and "body" (string, plain text, 3-5 short paragraphs, use {{firstName}} as the greeting placeholder).',
-    'No markdown. No explanation. Just the JSON object.',
-  ]
-    .filter((l) => l !== null)
-    .join('\n');
-}
-
-type LeadDoc = FetchedLead;
-
 
 export async function POST() {
   const auth = await requireUser();
@@ -64,115 +24,6 @@ export async function POST() {
 
   logRequest('emails.auto-draft.POST', userId, {});
 
-  const scheduledFor = next8amUtc();
-
-  // Per-window idempotency: skip if user already has drafts queued for this same send window
-  try {
-    const existingSnap = await adminDb
-      .collection('emails')
-      .where('userId', '==', userId)
-      .where('status', '==', 'queued')
-      .where('scheduledFor', '==', scheduledFor)
-      .limit(1)
-      .get();
-    if (!existingSnap.empty) {
-      return NextResponse.json({ drafted: 0, skipped: 0, alreadyDrafted: true });
-    }
-  } catch {
-    // Firestore unavailable — continue with mock path
-  }
-
-  // Fetch user's saved persona from users doc (set during onboarding as preferredStyle)
-  let persona: Persona = 'neighbor';
-  try {
-    const userDoc = await adminDb.collection('users').doc(userId).get();
-    const saved = userDoc.data()?.preferredStyle as string | undefined;
-    if (saved && saved in PERSONA_SYSTEM) persona = saved as Persona;
-  } catch {
-    // fall through to default
-  }
-
-  // Resolve active inbox so the cron sender can fire email/send events
-  let inboxId: string | null = null;
-  try {
-    const inboxSnap = await adminDb
-      .collection('inboxes')
-      .where('userId', '==', userId)
-      .where('status', 'in', ['warming', 'active'])
-      .limit(1)
-      .get();
-    if (!inboxSnap.empty) inboxId = inboxSnap.docs[0].id;
-  } catch {
-    // No inbox — cron sender will skip until one is connected
-  }
-
-  // Pull the same first-N leads the /customers page shows. fetchUserLeads
-  // orders by createdAt desc and filters out soft-deleted rows so the queued
-  // outreach matches what the user sees in the UI.
-  let leads: LeadDoc[] = [];
-  try {
-    leads = await fetchUserLeads(userId, {
-      limit: QUEUE_BATCH_SIZE,
-      status: 'new',
-    });
-  } catch (err) {
-    console.warn('[auto-draft] lead fetch failed', err);
-  }
-  if (leads.length === 0) {
-    return NextResponse.json({ drafted: 0, skipped: 0, alreadyDrafted: false });
-  }
-  const now = new Date().toISOString();
-  let drafted = 0;
-  let skipped = 0;
-
-  for (const lead of leads) {
-    try {
-      const company = lead.company ?? 'your company';
-      let subject = `Quick question — ${company}`;
-      let body = `Hi {{firstName}},\n\nI came across ${company} and wanted to reach out.\n\nWould you be open to a quick 15-minute call this week?\n\nBest,`;
-
-      try {
-        const prompt = buildPrompt(persona, lead as unknown as Record<string, unknown>);
-        const raw = await chat([{ role: 'user', content: prompt }]);
-        const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed.subject) subject = String(parsed.subject).slice(0, 60);
-        if (parsed.body) body = String(parsed.body);
-      } catch {
-        // Ollama unavailable or parse failed — use template fallback above
-        console.warn('[auto-draft] AI generation failed for lead', lead.id, '— using template');
-      }
-
-      const id = `em_${Math.random().toString(36).slice(2, 12)}`;
-      const record = {
-        id,
-        userId,
-        leadId: lead.id,
-        inboxId,
-        campaignId: null,
-        subject,
-        body,
-        persona,
-        status: 'queued',
-        scheduledFor,
-        createdAt: now,
-        updatedAt: now,
-        sentAt: null,
-        deletedAt: null,
-      };
-
-      try {
-        await adminDb.collection('emails').doc(id).set(record);
-      } catch {
-        // Firestore write failed — record still counted so UI shows something
-      }
-
-      drafted++;
-    } catch (err) {
-      console.warn('[auto-draft] skipped lead', lead.id, err);
-      skipped++;
-    }
-  }
-
-  return NextResponse.json({ drafted, skipped, alreadyDrafted: false });
+  const result = await draftEmailsForUser(adminDb, userId);
+  return NextResponse.json(result);
 }
