@@ -50,11 +50,65 @@ function overall(statuses: DnsStatus[]): DnsStatus {
   return 'yellow';
 }
 
-async function checkTxt(host: string, expected: string): Promise<{ status: DnsStatus; found: string[] }> {
+/**
+ * Extract a meaningful match signature from an expected TXT record value so
+ * we can detect the right record on the host without requiring byte-for-byte
+ * equality. Each protocol has a specific token that must be present:
+ *
+ *   SPF   → `include:<sender>` (e.g. `include:_spf.mailforge.com`)
+ *   DKIM  → the full `p=<key>` payload after the prefix (non-empty)
+ *   DMARC → `v=DMARC1` plus `p=` policy
+ *
+ * Falling back to substring of the raw expected value silently passes any
+ * record that shares a generic prefix (e.g. Google SPF passing the Mailforge
+ * SPF check). The previous implementation did exactly that.
+ */
+function extractMatchSignature(record: 'spf' | 'dkim' | 'dmarc', expected: string): string | null {
+  if (record === 'spf') {
+    const m = expected.match(/include:[^\s"]+/);
+    return m ? m[0] : null;
+  }
+  if (record === 'dkim') {
+    const m = expected.match(/p=([A-Za-z0-9+/=]{16,})/);
+    return m ? `p=${m[1]}` : null;
+  }
+  if (record === 'dmarc') {
+    return 'v=DMARC1';
+  }
+  return null;
+}
+
+async function checkTxt(
+  host: string,
+  expected: string,
+  record: 'spf' | 'dkim' | 'dmarc',
+): Promise<{ status: DnsStatus; found: string[] }> {
   try {
     const records = await dns.resolveTxt(host);
     const flat = records.map((r) => r.join('')).filter(Boolean);
-    const matched = flat.some((r) => r.includes(expected) || expected.includes(r.slice(0, 20)));
+
+    // For DKIM, a placeholder expected value (`v=DKIM1; k=rsa; p=` with no key)
+    // means we don't know the real public key yet — treat as red, never green.
+    if (record === 'dkim') {
+      const sig = extractMatchSignature('dkim', expected);
+      if (!sig) return { status: 'red', found: flat };
+      // Require the published record to also contain a non-trivial `p=<key>`
+      const matched = flat.some((r) => {
+        const m = r.match(/p=([A-Za-z0-9+/=]{16,})/);
+        if (!m) return false;
+        return r.includes(sig) || sig.includes(`p=${m[1]}`);
+      });
+      return { status: matched ? 'green' : 'red', found: flat };
+    }
+
+    const sig = extractMatchSignature(record, expected);
+    if (!sig) {
+      // No reliable signature → fall back to exact substring match only
+      const matched = flat.some((r) => r.includes(expected));
+      return { status: matched ? 'green' : 'red', found: flat };
+    }
+
+    const matched = flat.some((r) => r.includes(sig));
     return { status: matched ? 'green' : 'red', found: flat };
   } catch {
     return { status: 'red', found: [] };
@@ -142,9 +196,9 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
   const mxExpected = 'mailforge.com';
 
   const [spfResult, dkimResult, dmarcResult, mxResult] = await Promise.all([
-    checkTxt(spfHost, spfExpected),
-    checkTxt(dkimHost, dkimExpected),
-    checkTxt(dmarcHost, dmarcExpected),
+    checkTxt(spfHost, spfExpected, 'spf'),
+    checkTxt(dkimHost, dkimExpected, 'dkim'),
+    checkTxt(dmarcHost, dmarcExpected, 'dmarc'),
     checkMx(domain, mxExpected),
   ]);
 

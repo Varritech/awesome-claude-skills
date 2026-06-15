@@ -1,92 +1,178 @@
 /**
- * Unit tests for DNS verification logic extracted from verify/route.ts.
+ * Unit tests for DNS verification logic in verify/route.ts.
  *
- * BUG DOCUMENTED: checkTxt uses:
+ * The previous implementation used:
  *   flat.some((r) => r.includes(expected) || expected.includes(r.slice(0, 20)))
+ * which silently passed unrelated records that shared a generic 20-char prefix
+ * (e.g. a Google SPF record passing a Mailforge SPF check because both start
+ * with `v=spf1 include:_spf.`). It also marked empty DKIM placeholders green.
  *
- * The second condition — expected.includes(r.slice(0, 20)) — means any record
- * whose first 20 chars appear anywhere in the expected string will pass.
- * For example, a record "v=DKIM1; k=rsa; p=AB" passes against expected
- * "v=DKIM1; k=rsa; p=ABCDEF..." because r.slice(0,20) = "v=DKIM1; k=rsa; p=AB"
- * and that substring IS in expected. But it also means a completely different
- * TXT record could accidentally match if its first 20 chars happen to appear
- * in the expected string. These tests document both the working behavior and
- * the fragile edge case.
+ * The fixed implementation matches per-protocol signatures: SPF requires the
+ * full `include:<sender>` token, DKIM requires a real `p=<key>` with at least
+ * 16 base64 characters, and DMARC just needs the `v=DMARC1` marker.
  */
 
 import { describe, it, expect } from "vitest";
 
-// Re-implement the logic verbatim from verify/route.ts for isolated testing
-function checkTxtLogic(records: string[][], expected: string): "green" | "red" {
+type Record = "spf" | "dkim" | "dmarc";
+
+function extractMatchSignature(record: Record, expected: string): string | null {
+  if (record === "spf") {
+    const m = expected.match(/include:[^\s"]+/);
+    return m ? m[0] : null;
+  }
+  if (record === "dkim") {
+    const m = expected.match(/p=([A-Za-z0-9+/=]{16,})/);
+    return m ? `p=${m[1]}` : null;
+  }
+  if (record === "dmarc") {
+    return "v=DMARC1";
+  }
+  return null;
+}
+
+function checkTxtLogic(
+  records: string[][],
+  expected: string,
+  record: Record,
+): "green" | "red" {
   const flat = records.map((r) => r.join("")).filter(Boolean);
-  const matched = flat.some((r) => r.includes(expected) || expected.includes(r.slice(0, 20)));
+
+  if (record === "dkim") {
+    const sig = extractMatchSignature("dkim", expected);
+    if (!sig) return "red";
+    const matched = flat.some((r) => {
+      const m = r.match(/p=([A-Za-z0-9+/=]{16,})/);
+      if (!m) return false;
+      return r.includes(sig) || sig.includes(`p=${m[1]}`);
+    });
+    return matched ? "green" : "red";
+  }
+
+  const sig = extractMatchSignature(record, expected);
+  if (!sig) {
+    const matched = flat.some((r) => r.includes(expected));
+    return matched ? "green" : "red";
+  }
+  const matched = flat.some((r) => r.includes(sig));
   return matched ? "green" : "red";
 }
 
 function overallLogic(
-  statuses: Array<"pending" | "red" | "yellow" | "green">
+  statuses: Array<"pending" | "red" | "yellow" | "green">,
 ): "pending" | "red" | "yellow" | "green" {
   if (statuses.every((s) => s === "green")) return "green";
   if (statuses.includes("red")) return "red";
   return "yellow";
 }
 
-describe("checkTxt logic (extracted from verify/route.ts)", () => {
-  it("returns green when TXT record contains expected value", () => {
+describe("SPF verification", () => {
+  it("returns green when SPF record exactly contains include:_spf.mailforge.com", () => {
     expect(
       checkTxtLogic(
         [["v=spf1 include:_spf.mailforge.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com"
-      )
+        "v=spf1 include:_spf.mailforge.com ~all",
+        "spf",
+      ),
     ).toBe("green");
   });
 
-  it("returns red when no TXT record matches", () => {
+  it("returns red when SPF points to a different sender (Google instead of Mailforge)", () => {
+    // This is the false-positive the old code allowed. The fix must reject it.
     expect(
-      checkTxtLogic([["v=spf1 include:other.com ~all"]], "v=spf1 include:_spf.mailforge.com")
+      checkTxtLogic(
+        [["v=spf1 include:_spf.google.com ~all"]],
+        "v=spf1 include:_spf.mailforge.com ~all",
+        "spf",
+      ),
     ).toBe("red");
   });
 
-  it("returns red when record list is empty", () => {
-    expect(checkTxtLogic([], "v=spf1 include:_spf.mailforge.com")).toBe("red");
-  });
-
-  it("handles multi-chunk TXT records (array of strings joined)", () => {
+  it("returns green for SPF that includes Mailforge plus other senders", () => {
     expect(
       checkTxtLogic(
-        [["v=spf1 ", "include:_spf.mailforge.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com"
-      )
+        [["v=spf1 include:_spf.google.com include:_spf.mailforge.com ~all"]],
+        "v=spf1 include:_spf.mailforge.com ~all",
+        "spf",
+      ),
     ).toBe("green");
   });
 
-  /**
-   * BUG: The reverse check `expected.includes(r.slice(0, 20))` can produce
-   * false positives. A short or generic TXT record whose first 20 chars match
-   * a substring of the expected value passes even if it's a different record.
-   *
-   * Example: expected = "v=DKIM1; k=rsa; p=ABCD..."
-   *          record    = "v=DKIM1; k=rsa; p=" (empty DKIM — should be red)
-   *          r.slice(0, 20) = "v=DKIM1; k=rsa; p=" → expected.includes that → GREEN (wrong!)
-   */
-  it("BUG: empty DKIM record (p= with no key) passes reverse-includes check", () => {
-    const emptyDkim = "v=DKIM1; k=rsa; p=";
-    const expected = "v=DKIM1; k=rsa; p=ABCDEF1234567890abcdef";
-    // r.slice(0,20) = "v=DKIM1; k=rsa; p=" which IS in expected → false positive
-    const result = checkTxtLogic([[emptyDkim]], expected);
-    // This test documents the bug: result is 'green' when it should be 'red'
-    expect(result).toBe("green"); // WRONG — remove this when bug is fixed
+  it("returns red when no SPF record present at all", () => {
+    expect(
+      checkTxtLogic([], "v=spf1 include:_spf.mailforge.com ~all", "spf"),
+    ).toBe("red");
   });
 
-  it("CORRECT behavior (post-fix): empty DKIM p= should return red", () => {
-    // When fixed, the check should require r.includes(expected) only (not the reverse)
-    // Document expected post-fix behavior:
-    const emptyDkim = "v=DKIM1; k=rsa; p=";
-    const expected = "v=DKIM1; k=rsa; p=ABCDEF1234567890abcdef";
-    // Strict forward-only check:
-    const flat = [emptyDkim];
-    const strictResult = flat.some((r) => r.includes(expected));
-    expect(strictResult).toBe(false); // correct: empty DKIM should be red
+  it("handles multi-chunk TXT records (joined before match)", () => {
+    expect(
+      checkTxtLogic(
+        [["v=spf1 ", "include:_spf.mailforge.com ~all"]],
+        "v=spf1 include:_spf.mailforge.com ~all",
+        "spf",
+      ),
+    ).toBe("green");
+  });
+});
+
+describe("DKIM verification (placeholder-aware)", () => {
+  it("returns red when expected DKIM has empty p= (no key issued yet)", () => {
+    // Placeholder used as fallback when Mailforge hasn't issued the key.
+    // We must NEVER report green for the placeholder; downstream signers
+    // would fail Gmail's DKIM check.
+    const placeholder = "v=DKIM1; k=rsa; p=";
+    expect(checkTxtLogic([["v=DKIM1; k=rsa; p=ABCDEF1234567890abcdef"]], placeholder, "dkim")).toBe(
+      "red",
+    );
+  });
+
+  it("returns red when published record has empty p= but expected has a real key", () => {
+    const placeholder = "v=DKIM1; k=rsa; p=";
+    const realExpected = "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADC...";
+    expect(checkTxtLogic([[placeholder]], realExpected, "dkim")).toBe("red");
+  });
+
+  it("returns green when published key exactly matches expected", () => {
+    const expected = "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQ";
+    expect(checkTxtLogic([[expected]], expected, "dkim")).toBe("green");
+  });
+
+  it("returns red when no DKIM record present", () => {
+    expect(
+      checkTxtLogic(
+        [],
+        "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQ",
+        "dkim",
+      ),
+    ).toBe("red");
+  });
+});
+
+describe("DMARC verification", () => {
+  it("returns green when record starts with v=DMARC1 regardless of policy", () => {
+    expect(
+      checkTxtLogic(
+        [["v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com"]],
+        "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io",
+        "dmarc",
+      ),
+    ).toBe("green");
+  });
+
+  it("returns red when no DMARC record present", () => {
+    expect(
+      checkTxtLogic([], "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io", "dmarc"),
+    ).toBe("red");
+  });
+
+  it("returns red for an SPF record on the DMARC host (wrong protocol)", () => {
+    expect(
+      checkTxtLogic(
+        [["v=spf1 include:_spf.google.com ~all"]],
+        "v=DMARC1; p=none; rua=mailto:dmarc@convergeflow.io",
+        "dmarc",
+      ),
+    ).toBe("red");
   });
 });
 
