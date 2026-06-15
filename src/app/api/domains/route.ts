@@ -12,6 +12,8 @@ import {
 import { connectDomainSchema } from '@/lib/schemas';
 import * as mailforge from '@/lib/mailforge/client';
 import type { MailforgeDomain, MailforgeDnsRecord } from '@/lib/mailforge/client';
+import { normalizePhone } from '@/lib/schemas/domain';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,9 +113,71 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseAndValidate(req, connectDomainSchema);
   if (parsed.response) return parsed.response;
-  const { domain, purpose } = parsed.data;
+  const { domain, purpose, phone: phoneFromRequest } = parsed.data;
 
   logRequest('domains.POST', userId, { domain, purpose });
+
+  // ─── Resolve WHOIS contact for Mailforge ───────────────────────────────────
+  // Mailforge requires phone (ICANN WHOIS rule). Try the request body first,
+  // then fall back to the caller's stored profile phone, then Clerk's primary
+  // phone number. If still missing, 422 so the UI can prompt the user.
+  let resolvedPhone = phoneFromRequest;
+  let registrantFirstName: string | undefined;
+  let registrantLastName: string | undefined;
+  let registrantEmail: string | undefined;
+
+  try {
+    const profileSnap = await adminDb.collection('user_profiles').doc(userId).get();
+    if (profileSnap.exists) {
+      const data = profileSnap.data() as { phone?: string };
+      if (!resolvedPhone && data.phone) resolvedPhone = data.phone;
+    }
+  } catch (err) {
+    console.warn('[api:domains.POST] could not load user profile', err);
+  }
+
+  try {
+    const clerkUser = await clerkClient.users.getUser(userId);
+    if (!resolvedPhone) {
+      const primary = clerkUser.phoneNumbers.find(
+        (p) => p.id === clerkUser.primaryPhoneNumberId,
+      );
+      if (primary?.phoneNumber) resolvedPhone = primary.phoneNumber;
+    }
+    registrantFirstName = clerkUser.firstName ?? undefined;
+    registrantLastName = clerkUser.lastName ?? undefined;
+    const primaryEmail = clerkUser.emailAddresses.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId,
+    );
+    registrantEmail = primaryEmail?.emailAddress;
+  } catch (err) {
+    console.warn('[api:domains.POST] could not load Clerk user', err);
+  }
+
+  if (!resolvedPhone) {
+    return NextResponse.json(
+      {
+        error: 'phone_required',
+        message:
+          'A phone number is required to register the domain (ICANN WHOIS). Please add a phone number to your profile and try again.',
+      },
+      { status: 422 },
+    );
+  }
+
+  // Persist the phone back to the user profile so the next domain registration
+  // (and any retry) doesn't need to re-prompt. Best-effort; failure is logged
+  // but does not block the registration flow.
+  if (phoneFromRequest) {
+    try {
+      await adminDb
+        .collection('user_profiles')
+        .doc(userId)
+        .set({ phone: resolvedPhone, updatedAt: new Date().toISOString() }, { merge: true });
+    } catch (err) {
+      console.warn('[api:domains.POST] failed to persist phone to user_profiles', err);
+    }
+  }
 
   const now = new Date().toISOString();
   const id = `dom_${Math.random().toString(36).slice(2, 12)}`;
@@ -123,7 +187,12 @@ export async function POST(req: NextRequest) {
 
   if (mailforge.isConfigured()) {
     try {
-      const mfDomain = await mailforge.purchaseDomain(domain);
+      const mfDomain = await mailforge.purchaseDomain(domain, {
+        phone: normalizePhone(resolvedPhone),
+        email: registrantEmail,
+        firstName: registrantFirstName,
+        lastName: registrantLastName,
+      });
       mailforgeDomainId = mfDomain.id;
 
       if (mfDomain.dnsRecords) {

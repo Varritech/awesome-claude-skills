@@ -41,14 +41,34 @@ export const domainSchema = z.object({
 });
 export type Domain = z.infer<typeof domainSchema>;
 
+/**
+ * Loose phone validation accepting E.164 or common formatted inputs like
+ * "+1 (647) 410-2820". `normalizePhone()` strips formatting before the
+ * value is sent to Mailforge.
+ */
+const phoneRegex = /^[+]?[\d\s().-]{8,20}$/;
+
 export const connectDomainSchema = z.object({
   domain: z
     .string()
     .min(3)
     .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, 'Must be a valid domain'),
   purpose: z.enum(['primary', 'sending']).default('sending'),
+  /**
+   * WHOIS registrant phone. Mailforge passes this to the upstream registrar
+   * for ICANN-mandated WHOIS contact. Optional here so the API route can
+   * fall back to the caller's stored profile phone — but the route MUST
+   * reject the request if neither is present.
+   */
+  phone: z.string().regex(phoneRegex, 'Enter a valid phone number').optional(),
 });
 export type ConnectDomainInput = z.infer<typeof connectDomainSchema>;
+
+/** Strip non-digits and re-prepend `+` so Mailforge receives an E.164 string. */
+export function normalizePhone(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  return `+${digits}`;
+}
 
 export const inboxConnectionSchema = z.object({
   id: z.string().min(1),

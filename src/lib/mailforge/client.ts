@@ -88,10 +88,43 @@ export async function listDomains(): Promise<MailforgeDomain[]> {
   return Array.isArray(res) ? res : res.data;
 }
 
+/**
+ * WHOIS registrant contact required by ICANN for any TLD registration.
+ * Mailforge proxies this through to the upstream registrar (Namecheap,
+ * GoDaddy, etc). Without a phone number the upstream API 400s with
+ * `{"message":"phone number is required"}`.
+ */
+export interface MailforgeRegistrantContact {
+  /** E.164 phone (e.g. `+16474102820`). Strip parens/spaces before sending. */
+  phone: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  /** Optional postal address fields. Mailforge tolerates omission today. */
+  address1?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
+
 /** Purchase/register a new domain through Mailforge. */
-export async function purchaseDomain(domain: string, workspaceId?: string): Promise<MailforgeDomain> {
+export async function purchaseDomain(
+  domain: string,
+  contact: MailforgeRegistrantContact,
+  workspaceId?: string,
+): Promise<MailforgeDomain> {
   return req<MailforgeDomain>('POST', '/domains', {
     domains: [domain],
+    phone: contact.phone,
+    ...(contact.email ? { email: contact.email } : {}),
+    ...(contact.firstName ? { firstName: contact.firstName } : {}),
+    ...(contact.lastName ? { lastName: contact.lastName } : {}),
+    ...(contact.address1 ? { address1: contact.address1 } : {}),
+    ...(contact.city ? { city: contact.city } : {}),
+    ...(contact.state ? { state: contact.state } : {}),
+    ...(contact.postalCode ? { postalCode: contact.postalCode } : {}),
+    ...(contact.country ? { country: contact.country } : {}),
     ...(workspaceId ? { workspaceId } : {}),
   });
 }

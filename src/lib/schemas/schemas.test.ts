@@ -84,6 +84,45 @@ describe("connectDomainSchema", () => {
     const result = connectDomainSchema.safeParse({ domain: "example.com", purpose: "outbound" });
     expect(result.success).toBe(false);
   });
+
+  it("accepts request with phone in E.164 format", () => {
+    const result = connectDomainSchema.safeParse({
+      domain: "example.com",
+      phone: "+16474102820",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts request with phone in formatted form", () => {
+    const result = connectDomainSchema.safeParse({
+      domain: "example.com",
+      phone: "+1 (647) 410-2820",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects phone that's clearly not a phone number", () => {
+    const result = connectDomainSchema.safeParse({
+      domain: "example.com",
+      phone: "not-a-phone",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("phone is optional so the route handler can fall back to stored profile", () => {
+    const result = connectDomainSchema.safeParse({ domain: "example.com" });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("normalizePhone", () => {
+  // Imported lazily so the test stays close to the schema it documents
+  it("strips parens, spaces, and hyphens, returns E.164", async () => {
+    const { normalizePhone } = await import("./domain");
+    expect(normalizePhone("+1 (647) 410-2820")).toBe("+16474102820");
+    expect(normalizePhone("647-410-2820")).toBe("+6474102820");
+    expect(normalizePhone("+16474102820")).toBe("+16474102820");
+  });
 });
 
 describe("connectInboxSchema", () => {

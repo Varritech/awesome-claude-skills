@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
-import { apiPost, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 import { HelpTooltip } from "@/components/ui";
+
+interface UserProfile {
+  phone?: string;
+}
+
+const PHONE_REGEX = /^[+]?[\d\s().-]{8,20}$/;
 
 type DomainOption = "own" | "convergeflow" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
@@ -116,7 +122,29 @@ export default function DomainPage() {
   const [domainId, setDomainId] = useState<string | null>(null);
   const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>(fallbackDnsRecords);
   const [verifyingNow, setVerifyingNow] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [storedPhone, setStoredPhone] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch profile on mount so we know whether to require the phone field.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await apiGet<UserProfile>("/api/user/profile");
+        if (cancelled) return;
+        if (profile?.phone) {
+          setStoredPhone(profile.phone);
+          setPhoneInput(profile.phone);
+        }
+      } catch {
+        // Profile may not exist yet; leave phoneInput empty.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -183,13 +211,24 @@ export default function DomainPage() {
       return;
     }
 
+    const trimmedPhone = phoneInput.trim();
+    if (!trimmedPhone) {
+      setError("Enter a phone number — it's required by ICANN for the WHOIS registrant contact.");
+      return;
+    }
+    if (!PHONE_REGEX.test(trimmedPhone)) {
+      setError("Enter a valid phone number (e.g. +1 647 410 2820).");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const cleanDomain = domainInput.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-      // API expects { domain: string, purpose: "primary" | "sending" }
+      // API expects { domain, purpose, phone }
       const data = await apiPost<ApiDomainData>("/api/domains", {
         domain: cleanDomain,
         purpose: "sending",
+        phone: trimmedPhone,
       });
       if (data?.dnsInstructions) {
         setDnsRecords(instructionsToRecords(data.dnsInstructions));
@@ -308,23 +347,49 @@ export default function DomainPage() {
               </button>
 
               {selected === "own" && (
-                <div className="animate-[fadeUp_0.3s_ease-out]">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <label className="text-[11px] font-medium text-white/35">
-                      Your website domain
-                    </label>
-                    <HelpTooltip
-                      content="Enter just the root domain, e.g. acme.com — no https:// or www."
-                      position="right"
+                <div className="animate-[fadeUp_0.3s_ease-out] flex flex-col gap-4">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-[11px] font-medium text-white/35">
+                        Your website domain
+                      </label>
+                      <HelpTooltip
+                        content="Enter just the root domain, e.g. acme.com — no https:// or www."
+                        position="right"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={domainInput}
+                      onChange={(e) => setDomainInput(e.target.value)}
+                      placeholder="yourdomain.com"
+                      className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
                     />
                   </div>
-                  <input
-                    type="text"
-                    value={domainInput}
-                    onChange={(e) => setDomainInput(e.target.value)}
-                    placeholder="yourdomain.com"
-                    className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
-                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-[11px] font-medium text-white/35">
+                        Phone number (WHOIS registrant)
+                      </label>
+                      <HelpTooltip
+                        content="ICANN requires a phone number on every domain registration for the WHOIS contact record. We pass this to the registrar — we don't display it publicly."
+                        position="right"
+                      />
+                    </div>
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      placeholder="+1 647 410 2820"
+                      autoComplete="tel"
+                      className="w-full bg-[#222228] border-2 border-transparent rounded-[14px] py-3.5 px-4 text-sm text-white outline-none focus:border-cf-orange placeholder:text-white/35"
+                    />
+                    {storedPhone && (
+                      <p className="text-[11px] text-white/40 mt-1.5">
+                        Using the phone number on file. Edit above to change it.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -337,18 +402,28 @@ export default function DomainPage() {
           {/* Default Next Button */}
           {!showDns && (
             <>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={!selected || submitting}
-                className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
-                  selected && !submitting
-                    ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
-                    : "opacity-35 cursor-default"
-                }`}
-              >
-                {submitting ? "Saving..." : "Next"}
-              </button>
+              {(() => {
+                const ownNeedsPhone =
+                  selected === "own" &&
+                  (!phoneInput.trim() || !PHONE_REGEX.test(phoneInput.trim()));
+                const ownNeedsDomain = selected === "own" && !domainInput.trim();
+                const canSubmit =
+                  !!selected && !submitting && !ownNeedsPhone && !ownNeedsDomain;
+                return (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={!canSubmit}
+                    className={`w-full bg-cf-orange text-white text-sm font-bold py-3.5 px-7 rounded-[14px] border-none cursor-pointer transition-all duration-150 font-heading uppercase tracking-wide ${
+                      canSubmit
+                        ? "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                        : "opacity-35 cursor-default"
+                    }`}
+                  >
+                    {submitting ? "Saving..." : "Next"}
+                  </button>
+                );
+              })()}
               <Link
                 href="/onboarding"
                 className="block text-center mt-5 text-[13px] text-white/35 hover:text-white/60 transition-colors"
