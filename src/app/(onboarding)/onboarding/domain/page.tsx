@@ -79,7 +79,7 @@ const fallbackDnsRecords: DnsRecord[] = [
   {
     type: "TXT",
     name: "DKIM",
-    host: "cf._domainkey.yourdomain.com",
+    host: "resend._domainkey.yourdomain.com",
     value: "v=DKIM1; k=rsa; p=MIGfMA0GCSqGS...",
     status: "checking",
   },
@@ -87,7 +87,7 @@ const fallbackDnsRecords: DnsRecord[] = [
     type: "TXT",
     name: "SPF",
     host: "@",
-    value: "v=spf1 include:_spf.mailforge.com ~all",
+    value: "v=spf1 include:_resend.com ~all",
     status: "checking",
   },
   {
@@ -114,7 +114,10 @@ function mapApiStatus(s?: string): DnsStatus {
 
 export default function DomainPage() {
   const router = useRouter();
-  const [selected, setSelected] = useState<DomainOption>(null);
+  // "own" is the only option now that the shared subdomain path is gone, so
+  // pre-select it. State stays a discriminated union to keep the door open
+  // for the GCP Cloud Domains "buy a fresh domain" path that lands next.
+  const [selected, setSelected] = useState<DomainOption>("own");
   const [showDns, setShowDns] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -211,12 +214,12 @@ export default function DomainPage() {
       return;
     }
 
+    // Phone is now only collected for the future "buy a fresh sending
+    // domain" path (GCP Cloud Domains needs WHOIS). For BYO we still
+    // persist it to the user profile when provided so the buy flow can
+    // skip the prompt, but we do not block the submit on it.
     const trimmedPhone = phoneInput.trim();
-    if (!trimmedPhone) {
-      setError("Enter a phone number — it's required by ICANN for the WHOIS registrant contact.");
-      return;
-    }
-    if (!PHONE_REGEX.test(trimmedPhone)) {
+    if (trimmedPhone && !PHONE_REGEX.test(trimmedPhone)) {
       setError("Enter a valid phone number (e.g. +1 647 410 2820).");
       return;
     }
@@ -224,11 +227,10 @@ export default function DomainPage() {
     setSubmitting(true);
     try {
       const cleanDomain = domainInput.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-      // API expects { domain, purpose, phone }
       const data = await apiPost<ApiDomainData>("/api/domains", {
         domain: cleanDomain,
         purpose: "sending",
-        phone: trimmedPhone,
+        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
       });
       if (data?.dnsInstructions) {
         setDnsRecords(instructionsToRecords(data.dnsInstructions));
@@ -315,36 +317,13 @@ export default function DomainPage() {
                 </div>
               </button>
 
-              <button
-                type="button"
-                onClick={() => handleSelectOption("convergeflow")}
-                className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 ${
-                  selected === "convergeflow"
-                    ? "border-cf-orange bg-[#26262C]"
-                    : "border-transparent hover:border-cf-orange/30"
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${
-                    selected === "convergeflow" ? "bg-cf-orange/10" : "bg-cf-card"
-                  }`}
-                >
-                  <LogoIcon size={20} className="text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <span className="text-[15px] font-bold font-heading">
-                      Use a ConvergeFlow address
-                    </span>
-                    <span className="text-[11px] font-bold px-2.5 py-[3px] rounded-[6px] bg-[#D4E4DD] text-[#1B1B1F] whitespace-nowrap">
-                      Recommended
-                    </span>
-                  </div>
-                  <p className="text-[13px] text-white/50 leading-relaxed">
-                    We&apos;ll set one up for you right now. No setup needed.
-                  </p>
-                </div>
-              </button>
+              {/*
+                The shared "Use a ConvergeFlow address" subdomain option used to
+                live here. We dropped it on 2026-06-16 to force every customer
+                onto their own root domain so reputation can't bleed across the
+                shared pool. The buy-a-fresh-sending-domain flow (GCP Cloud
+                Domains) lives in a follow-up onboarding step.
+              */}
 
               {selected === "own" && (
                 <div className="animate-[fadeUp_0.3s_ease-out] flex flex-col gap-4">
@@ -369,10 +348,10 @@ export default function DomainPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <label className="text-[11px] font-medium text-white/35">
-                        Phone number (WHOIS registrant)
+                        Phone number (optional)
                       </label>
                       <HelpTooltip
-                        content="ICANN requires a phone number on every domain registration for the WHOIS contact record. We pass this to the registrar — we don't display it publicly."
+                        content="Optional for a domain you already own. We'll use this for the WHOIS contact if you later buy a fresh sending domain through ConvergeFlow."
                         position="right"
                       />
                     </div>
@@ -403,12 +382,15 @@ export default function DomainPage() {
           {!showDns && (
             <>
               {(() => {
-                const ownNeedsPhone =
+                // Phone is optional for BYO; only blocks submit if entered
+                // but malformed.
+                const phoneInvalid =
                   selected === "own" &&
-                  (!phoneInput.trim() || !PHONE_REGEX.test(phoneInput.trim()));
+                  phoneInput.trim().length > 0 &&
+                  !PHONE_REGEX.test(phoneInput.trim());
                 const ownNeedsDomain = selected === "own" && !domainInput.trim();
                 const canSubmit =
-                  !!selected && !submitting && !ownNeedsPhone && !ownNeedsDomain;
+                  !!selected && !submitting && !phoneInvalid && !ownNeedsDomain;
                 return (
                   <button
                     type="button"

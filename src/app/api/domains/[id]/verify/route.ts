@@ -3,15 +3,15 @@
  *
  * Uses Node's built-in dns.promises to perform real DNS lookups against the
  * expected SPF/DKIM/DMARC/MX values stored on the domain Firestore doc.
- * Also refreshes dnsInstructions from Mailforge if DKIM key was not yet
- * ready at registration time.
+ * For Resend-managed domains we also poll Resend's `/domains/{id}/verify`
+ * endpoint so the dashboard status mirrors what Resend itself sees.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { promises as dns } from 'dns';
 import { adminDb } from '@/lib/firebase/admin';
 import { logRequest, requireUser } from '@/lib/api/helpers';
-import * as mailforge from '@/lib/mailforge/client';
+import * as resend from '@/lib/resend/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,8 @@ interface DnsCheck {
 
 interface DomainDoc {
   domain: string;
+  resendDomainId?: string;
+  /** Legacy field kept so docs created before the Resend migration still load. */
   mailforgeDomainId?: string;
   spfStatus?: DnsStatus;
   dkimStatus?: DnsStatus;
@@ -146,54 +148,49 @@ export async function POST(_req: NextRequest, ctx: RouteCtx) {
 
   const domain = domainDoc?.domain ?? id;
   let instructions = domainDoc?.dnsInstructions;
-  const mfId = domainDoc?.mailforgeDomainId;
+  const resendId = domainDoc?.resendDomainId;
 
-  // If DKIM key was empty at registration time, try to fetch it now from Mailforge
-  const dkimValueStored = instructions?.dkim?.value ?? '';
-  const dkimKeyMissing = !dkimValueStored.replace('v=DKIM1; k=rsa; p=', '').trim();
-
-  if (mailforge.isConfigured() && mfId && dkimKeyMissing) {
+  // Ask Resend to recheck the domain so the records list (and DKIM key) is
+  // up to date on its side. Best-effort: if Resend is down we still fall
+  // back to our own Node DNS lookups below.
+  if (resend.isConfigured() && resendId) {
     try {
-      const dnsRecs = await mailforge.getDomainDns(mfId);
-      const dkim = dnsRecs.find((r) => r.host?.includes('domainkey'));
-      const dkimReady = dkim?.value && dkim.value.replace('v=DKIM1; k=rsa; p=', '').trim().length > 0;
+      const refreshed = await resend.verifyDomain(resendId);
+      const records = refreshed.records ?? [];
+      const spf = records.find((r) => r.record === 'SPF');
+      const dkim = records.find((r) => r.record === 'DKIM');
+      const mx = records.find((r) => r.record === 'MX');
+      const dmarc = records.find((r) => r.name.startsWith('_dmarc'));
 
-      if (dkimReady) {
-        const spf = dnsRecs.find((r) => r.value?.includes('spf'));
-        const dmarc = dnsRecs.find((r) => r.host?.startsWith('_dmarc'));
-        const mx = dnsRecs.find((r) => r.type?.toUpperCase() === 'MX');
-
-        const refreshed = {
-          spf: spf ? { host: spf.host, type: spf.type, value: spf.value } : instructions?.spf,
-          dkim: { host: dkim!.host, type: dkim!.type, value: dkim!.value },
-          dmarc: dmarc ? { host: dmarc.host, type: dmarc.type, value: dmarc.value } : instructions?.dmarc,
-          mx: mx ? { host: mx.host, type: mx.type, value: mx.value } : instructions?.mx,
+      if (spf || dkim || mx || dmarc) {
+        const next = {
+          spf: spf ? { host: spf.name, type: spf.type, value: spf.value } : instructions?.spf,
+          dkim: dkim ? { host: dkim.name, type: dkim.type, value: dkim.value } : instructions?.dkim,
+          dmarc: dmarc ? { host: dmarc.name, type: dmarc.type, value: dmarc.value } : instructions?.dmarc,
+          mx: mx ? { host: mx.name, type: mx.type, value: mx.value } : instructions?.mx,
         };
-
-        // Persist the refreshed instructions so the UI gets the real DKIM key
         try {
-          await adminDb.collection('domains').doc(id).set(
-            { dnsInstructions: refreshed, updatedAt: new Date().toISOString() },
-            { merge: true },
-          );
-          instructions = refreshed as typeof instructions;
-          console.info('[api:domains.[id].verify] DKIM key now available, dnsInstructions updated');
+          await adminDb
+            .collection('domains')
+            .doc(id)
+            .set({ dnsInstructions: next, updatedAt: new Date().toISOString() }, { merge: true });
+          instructions = next as typeof instructions;
         } catch (err) {
-          console.warn('[api:domains.[id].verify] failed to persist refreshed dnsInstructions', err);
+          console.warn('[api:domains.[id].verify] failed to persist refreshed instructions', err);
         }
       }
     } catch (err) {
-      console.warn('[api:domains.[id].verify] mailforge.getDomainDns failed', err);
+      console.warn('[api:domains.[id].verify] resend.verifyDomain failed', err);
     }
   }
 
   const spfHost = instructions?.spf?.host ?? domain;
-  const spfExpected = instructions?.spf?.value ?? 'v=spf1 include:_spf.mailforge.com';
-  const dkimHost = instructions?.dkim?.host ?? `cf._domainkey.${domain}`;
+  const spfExpected = instructions?.spf?.value ?? 'v=spf1 include:_resend.com';
+  const dkimHost = instructions?.dkim?.host ?? `resend._domainkey.${domain}`;
   const dkimExpected = instructions?.dkim?.value ?? 'v=DKIM1';
   const dmarcHost = instructions?.dmarc?.host ?? `_dmarc.${domain}`;
   const dmarcExpected = instructions?.dmarc?.value ?? 'v=DMARC1';
-  const mxExpected = 'mailforge.com';
+  const mxExpected = 'resend.com';
 
   const [spfResult, dkimResult, dmarcResult, mxResult] = await Promise.all([
     checkTxt(spfHost, spfExpected, 'spf'),

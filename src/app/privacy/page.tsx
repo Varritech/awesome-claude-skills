@@ -90,6 +90,7 @@ export default function PrivacyPage() {
             <li><strong>Google Cloud / Firebase</strong> — database, storage, hosting.</li>
             <li><strong>Vercel</strong> — application hosting.</li>
             <li><strong>Stripe</strong> — payment processing.</li>
+            <li><strong>Resend</strong> — email sending, domain authentication, deliverability webhooks.</li>
             <li><strong>Ollama Cloud, OpenAI</strong> — message drafting and embeddings.</li>
             <li><strong>Sentry</strong> — error monitoring.</li>
           </ul>

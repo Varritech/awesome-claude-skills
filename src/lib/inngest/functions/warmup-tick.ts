@@ -15,13 +15,14 @@ import { adminDb } from '@/lib/firebase/admin';
 import { sendEmail, verifySmtp, type SmtpConfig } from '@/lib/smtp/mailer';
 import { todayQuota, isWarmedUp } from '@/lib/warmup/scheduler';
 
-// Warmup recipient pool — Mailforge internal addresses for inbox warming
-// In production these come from the Mailforge warmup network
+// Warmup recipient pool — internal ConvergeFlow inboxes that act as warm
+// recipients during the initial reputation-building period. Replace with a
+// real warmup network (Maildoso / Folderly / homegrown) when scale demands.
 const WARMUP_POOL = [
   'warmup1@convergeflow.io',
   'warmup2@convergeflow.io',
   'warmup3@convergeflow.io',
-  'warmup-reply@mailforge.com',
+  'warmup4@convergeflow.io',
 ];
 
 const WARMUP_SUBJECTS = [
