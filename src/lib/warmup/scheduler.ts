@@ -2,7 +2,7 @@
  * Warmup scheduler — computes how many emails an inbox can send today
  * based on how many days it has been warming up.
  *
- * Schedule (conservative, Mailforge-recommended):
+ * Schedule (conservative, common across deliverability tools):
  *   Day 1:  5 emails
  *   Day 2:  8 emails
  *   ...

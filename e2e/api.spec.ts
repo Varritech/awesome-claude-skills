@@ -200,13 +200,14 @@ test.describe('Security API', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Webhooks', () => {
-  test('POST /api/webhooks/complaint with no signature returns 200 when MAILFORGE_WEBHOOK_SECRET is not set', async ({ request }) => {
-    const res = await request.post('/api/webhooks/complaint', {
+  test('POST /api/webhooks/resend with no signature returns 200 when RESEND_WEBHOOK_SECRET is unset', async ({ request }) => {
+    const res = await request.post('/api/webhooks/resend', {
       headers: { 'Content-Type': 'application/json' },
-      data: { type: 'complaint', email: 'spam-reporter@example.com' },
+      data: { type: 'email.delivered', data: { email_id: 'e_fake', to: ['x@y.com'] } },
     });
-    // When secret is not configured, verification is skipped and webhook is accepted.
-    // If the route does not yet exist, 404 is the only acceptable alternative.
+    // When secret is not configured, verification is skipped and the webhook is
+    // accepted. If the route does not yet exist, 404 is the only acceptable
+    // alternative.
     expect([200, 404]).toContain(res.status());
   });
 

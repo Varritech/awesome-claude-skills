@@ -2,8 +2,8 @@
  * Inngest function: inbox/warmup-tick
  *
  * Fires daily (via Vercel Cron → /api/inngest) for every warming inbox.
- * Sends warmup emails to a pool of real Mailforge warmup addresses
- * (or a placeholder pool until Mailforge warmup API is available).
+ * Sends warmup emails to a fixed pool of internal ConvergeFlow inboxes.
+ * Swap with a real warmup network (Maildoso/Folderly) when scale demands.
  *
  * Also transitions inbox status:
  *   connecting → warming (when SMTP is verified)

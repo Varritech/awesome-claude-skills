@@ -57,12 +57,12 @@ function overall(statuses: DnsStatus[]): DnsStatus {
  * we can detect the right record on the host without requiring byte-for-byte
  * equality. Each protocol has a specific token that must be present:
  *
- *   SPF   → `include:<sender>` (e.g. `include:_spf.mailforge.com`)
+ *   SPF   → `include:<sender>` (e.g. `include:_resend.com`)
  *   DKIM  → the full `p=<key>` payload after the prefix (non-empty)
  *   DMARC → `v=DMARC1` plus `p=` policy
  *
  * Falling back to substring of the raw expected value silently passes any
- * record that shares a generic prefix (e.g. Google SPF passing the Mailforge
+ * record that shares a generic prefix (e.g. Google SPF passing the Resend
  * SPF check). The previous implementation did exactly that.
  */
 function extractMatchSignature(record: 'spf' | 'dkim' | 'dmarc', expected: string): string | null {

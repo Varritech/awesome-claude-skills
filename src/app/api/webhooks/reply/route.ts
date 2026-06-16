@@ -1,7 +1,7 @@
 /**
  * /api/webhooks/reply - inbound reply notification handler.
  *
- * Called by the email provider (e.g. Mailforge) when a lead replies.
+ * Internal endpoint called by /api/webhooks/resend and Inngest handlers
  * Updates email + lead status to 'replied' and sets the leadSequenceState
  * replied flag so shouldStopSequence() halts further follow-ups.
  */

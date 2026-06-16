@@ -49,14 +49,14 @@ INTEGRATION_CLEANUP=1 node scripts/integration/send-real-email.mjs
    URL is printed; for real SMTP, the recipient address is verified by
    inbox check)
 
-## Mailforge path (future)
+## Resend path (BYO domain)
 
-A second script `send-via-mailforge.mjs` will cover:
-- Buying a Mailforge domain through `/api/domains`
-- Waiting for DNS verification (`/api/domains/[id]/verify` returning all-green)
-- Provisioning a mailbox via `/api/inboxes` with that `domainId`
-- Sending and verifying delivery
+A second script `send-via-resend.mjs` will cover:
+- Adding a BYO domain through `/api/domains` (calls Resend `domains.create`)
+- Polling `/api/domains/[id]/verify` until SPF/DKIM/DMARC turn green
+- Connecting a sending inbox (Gmail OAuth or own SMTP) via `/api/inboxes`
+- Sending a real email and asserting delivery via the Resend webhook
+  `/api/webhooks/resend` (event `email.delivered`)
 
-That depends on PR #111 (auth header fix) being merged and a Mailforge domain
-being purchased. Once both are in place, the script mirrors the same shape as
-`send-real-email.mjs`.
+Requires `RESEND_API_KEY` (Full Access scope) and `RESEND_WEBHOOK_SECRET`
+in the local env or `.env.test`.

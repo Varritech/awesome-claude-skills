@@ -1,5 +1,5 @@
 /**
- * SMTP mailer — wraps Nodemailer with Mailforge credentials.
+ * SMTP mailer — wraps Nodemailer with per-inbox SMTP credentials.
  *
  * Passwords are stored encrypted in Firestore (AES-256-GCM).
  * Set SMTP_ENCRYPTION_KEY (32-byte hex) in Vercel env.

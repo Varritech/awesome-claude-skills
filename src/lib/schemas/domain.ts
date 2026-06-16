@@ -35,6 +35,9 @@ export const domainSchema = z.object({
   dkimValid: z.boolean().default(false),
   dmarcValid: z.boolean().default(false),
   mxValid: z.boolean().default(false),
+  /** Live provider id. `resendDomainId` is current; `mailforgeDomainId`
+   *  is tolerated so docs created before the Resend migration still load. */
+  resendDomainId: z.string().optional(),
   mailforgeDomainId: z.string().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -44,7 +47,7 @@ export type Domain = z.infer<typeof domainSchema>;
 /**
  * Loose phone validation accepting E.164 or common formatted inputs like
  * "+1 (647) 410-2820". `normalizePhone()` strips formatting before the
- * value is sent to Mailforge.
+ * value is sent to the upstream registrar.
  */
 const phoneRegex = /^[+]?[\d\s().-]{8,20}$/;
 
@@ -55,16 +58,16 @@ export const connectDomainSchema = z.object({
     .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, 'Must be a valid domain'),
   purpose: z.enum(['primary', 'sending']).default('sending'),
   /**
-   * WHOIS registrant phone. Mailforge passes this to the upstream registrar
-   * for ICANN-mandated WHOIS contact. Optional here so the API route can
-   * fall back to the caller's stored profile phone — but the route MUST
-   * reject the request if neither is present.
+   * Optional WHOIS registrant phone. Used by the buy-fresh registrar flow
+   * (GCP Cloud Domains in Phase 2). Not required by the BYO path because
+   * the customer already owns the domain. Stored on the profile when
+   * provided so later registrar calls skip the prompt.
    */
   phone: z.string().regex(phoneRegex, 'Enter a valid phone number').optional(),
 });
 export type ConnectDomainInput = z.infer<typeof connectDomainSchema>;
 
-/** Strip non-digits and re-prepend `+` so Mailforge receives an E.164 string. */
+/** Strip non-digits and re-prepend `+` so the registrar gets an E.164 string. */
 export function normalizePhone(input: string): string {
   const digits = input.replace(/\D/g, '');
   return `+${digits}`;

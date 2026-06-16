@@ -4,7 +4,7 @@
  * The previous implementation used:
  *   flat.some((r) => r.includes(expected) || expected.includes(r.slice(0, 20)))
  * which silently passed unrelated records that shared a generic 20-char prefix
- * (e.g. a Google SPF record passing a Mailforge SPF check because both start
+ * (e.g. a Google SPF record passing a Resend SPF check because both start
  * with `v=spf1 include:_spf.`). It also marked empty DKIM placeholders green.
  *
  * The fixed implementation matches per-protocol signatures: SPF requires the
@@ -67,32 +67,32 @@ function overallLogic(
 }
 
 describe("SPF verification", () => {
-  it("returns green when SPF record exactly contains include:_spf.mailforge.com", () => {
+  it("returns green when SPF record exactly contains include:_resend.com", () => {
     expect(
       checkTxtLogic(
-        [["v=spf1 include:_spf.mailforge.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com ~all",
+        [["v=spf1 include:_resend.com ~all"]],
+        "v=spf1 include:_resend.com ~all",
         "spf",
       ),
     ).toBe("green");
   });
 
-  it("returns red when SPF points to a different sender (Google instead of Mailforge)", () => {
+  it("returns red when SPF points to a different sender (Google instead of Resend)", () => {
     // This is the false-positive the old code allowed. The fix must reject it.
     expect(
       checkTxtLogic(
         [["v=spf1 include:_spf.google.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com ~all",
+        "v=spf1 include:_resend.com ~all",
         "spf",
       ),
     ).toBe("red");
   });
 
-  it("returns green for SPF that includes Mailforge plus other senders", () => {
+  it("returns green for SPF that includes Resend plus other senders", () => {
     expect(
       checkTxtLogic(
-        [["v=spf1 include:_spf.google.com include:_spf.mailforge.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com ~all",
+        [["v=spf1 include:_spf.google.com include:_resend.com ~all"]],
+        "v=spf1 include:_resend.com ~all",
         "spf",
       ),
     ).toBe("green");
@@ -100,15 +100,15 @@ describe("SPF verification", () => {
 
   it("returns red when no SPF record present at all", () => {
     expect(
-      checkTxtLogic([], "v=spf1 include:_spf.mailforge.com ~all", "spf"),
+      checkTxtLogic([], "v=spf1 include:_resend.com ~all", "spf"),
     ).toBe("red");
   });
 
   it("handles multi-chunk TXT records (joined before match)", () => {
     expect(
       checkTxtLogic(
-        [["v=spf1 ", "include:_spf.mailforge.com ~all"]],
-        "v=spf1 include:_spf.mailforge.com ~all",
+        [["v=spf1 ", "include:_resend.com ~all"]],
+        "v=spf1 include:_resend.com ~all",
         "spf",
       ),
     ).toBe("green");
@@ -117,7 +117,7 @@ describe("SPF verification", () => {
 
 describe("DKIM verification (placeholder-aware)", () => {
   it("returns red when expected DKIM has empty p= (no key issued yet)", () => {
-    // Placeholder used as fallback when Mailforge hasn't issued the key.
+    // Placeholder used as fallback when Resend hasn't issued the key.
     // We must NEVER report green for the placeholder; downstream signers
     // would fail Gmail's DKIM check.
     const placeholder = "v=DKIM1; k=rsa; p=";
