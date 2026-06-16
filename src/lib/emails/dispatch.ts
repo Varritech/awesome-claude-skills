@@ -12,6 +12,7 @@
 
 import type { Firestore } from 'firebase-admin/firestore';
 import { sendEmail, type SendResult, type SmtpConfig } from '@/lib/smtp/mailer';
+import * as resend from '@/lib/resend/client';
 import { todayQuota } from '@/lib/warmup/scheduler';
 
 export interface EmailRecord {
@@ -36,6 +37,10 @@ export interface InboxRecord {
   warmupEnabled: boolean;
   warmupStartDate?: string | null;
   dailySendLimit: number;
+  /** When set to "resend", dispatch sends via Resend's `/emails` endpoint
+   *  using the from-domain. Otherwise dispatch falls back to per-inbox SMTP
+   *  (Gmail OAuth, custom SMTP — the existing path). */
+  sendProvider?: 'resend' | 'smtp';
   smtpHost?: string;
   smtpPort?: number;
   smtpUser?: string;
@@ -101,12 +106,21 @@ export async function dispatchEmail(
   }
   const inbox = inboxSnap.data() as InboxRecord;
 
-  if (!inbox.smtpHost || !inbox.smtpPort || !inbox.smtpUser || !inbox.smtpPasswordEncrypted) {
+  const useResend = inbox.sendProvider === 'resend';
+  if (!useResend) {
+    if (!inbox.smtpHost || !inbox.smtpPort || !inbox.smtpUser || !inbox.smtpPasswordEncrypted) {
+      await db.collection('emails').doc(emailId).set(
+        { status: 'bounced', error: 'Inbox SMTP not configured', updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      return { kind: 'bounced', emailId, reason: 'inbox SMTP not configured' };
+    }
+  } else if (!resend.isConfigured()) {
     await db.collection('emails').doc(emailId).set(
-      { status: 'bounced', error: 'Inbox SMTP not configured', updatedAt: new Date().toISOString() },
+      { status: 'bounced', error: 'Resend not configured', updatedAt: new Date().toISOString() },
       { merge: true },
     );
-    return { kind: 'bounced', emailId, reason: 'inbox SMTP not configured' };
+    return { kind: 'bounced', emailId, reason: 'resend not configured' };
   }
 
   // 3. Warmup quota check
@@ -165,35 +179,62 @@ export async function dispatchEmail(
   const subject = personalize(emailDoc.subject, lead);
   const body = personalize(emailDoc.body, lead);
 
-  // 5. Send
-  const smtpConfig: SmtpConfig = {
-    host: inbox.smtpHost,
-    port: inbox.smtpPort,
-    user: inbox.smtpUser,
-    encryptedPassword: inbox.smtpPasswordEncrypted,
+  // 5. Send — either via Resend's API (ConvergeFlow-managed sending domains)
+  // or via per-inbox SMTP (Gmail OAuth, customer-provided SMTP).
+  const fromAddress = inbox.displayName ? `${inbox.displayName} <${inbox.email}>` : inbox.email;
+  const sharedHeaders: Record<string, string> = {
+    'X-Campaign-Id': emailDoc.campaignId ?? '',
+    // Custom header echoed back on every Resend webhook event so the
+    // /api/webhooks/resend handler can map events to Firestore email docs
+    // even if Resend's own message id was not yet persisted.
+    'X-Convergeflow-Email-Id': emailId,
   };
 
   let result: SendResult;
-  try {
-    result = await send(smtpConfig, {
-      from: inbox.displayName ? `${inbox.displayName} <${inbox.email}>` : inbox.email,
-      to: recipient,
-      subject,
-      html: bodyToHtml(body),
-      text: body,
-      headers: {
-        'X-Campaign-Id': emailDoc.campaignId ?? '',
-        'X-Email-Id': emailId,
-      },
-    });
-  } catch (err) {
-    // Leave status=queued so the next cron tick retries.
-    const message = err instanceof Error ? err.message : String(err);
-    await db.collection('emails').doc(emailId).set(
-      { lastError: message, updatedAt: new Date().toISOString() },
-      { merge: true },
-    );
-    return { kind: 'skipped', emailId, reason: `SMTP send failed: ${message}` };
+  if (useResend) {
+    try {
+      const sent = await resend.sendEmail({
+        from: fromAddress,
+        to: recipient,
+        subject,
+        html: bodyToHtml(body),
+        text: body,
+        headers: sharedHeaders,
+      });
+      result = { messageId: sent.id, accepted: [recipient], rejected: [] };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await db.collection('emails').doc(emailId).set(
+        { lastError: message, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      return { kind: 'skipped', emailId, reason: `Resend send failed: ${message}` };
+    }
+  } else {
+    const smtpConfig: SmtpConfig = {
+      host: inbox.smtpHost!,
+      port: inbox.smtpPort!,
+      user: inbox.smtpUser!,
+      encryptedPassword: inbox.smtpPasswordEncrypted!,
+    };
+
+    try {
+      result = await send(smtpConfig, {
+        from: fromAddress,
+        to: recipient,
+        subject,
+        html: bodyToHtml(body),
+        text: body,
+        headers: sharedHeaders,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await db.collection('emails').doc(emailId).set(
+        { lastError: message, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      return { kind: 'skipped', emailId, reason: `SMTP send failed: ${message}` };
+    }
   }
 
   // 6. Persist outcome
@@ -207,6 +248,10 @@ export async function dispatchEmail(
       status: wasBounced ? 'bounced' : 'sent',
       sentAt: now,
       messageId: result.messageId,
+      // When sent via Resend, messageId IS the Resend id — but stash it
+      // under the named field too so the webhook router can query it
+      // without caring which provider produced the send.
+      ...(useResend ? { resendMessageId: result.messageId } : {}),
       recipient,
       updatedAt: now,
     },

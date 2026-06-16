@@ -14,7 +14,7 @@ interface UserProfile {
 
 const PHONE_REGEX = /^[+]?[\d\s().-]{8,20}$/;
 
-type DomainOption = "own" | "convergeflow" | null;
+type DomainOption = "own" | "buy" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
 
 interface DnsRecord {
@@ -114,9 +114,8 @@ function mapApiStatus(s?: string): DnsStatus {
 
 export default function DomainPage() {
   const router = useRouter();
-  // "own" is the only option now that the shared subdomain path is gone, so
-  // pre-select it. State stays a discriminated union to keep the door open
-  // for the GCP Cloud Domains "buy a fresh domain" path that lands next.
+  // BYO is the default — most customers already have a domain. "buy" routes
+  // to a dedicated availability/checkout sub-page so this card stays clean.
   const [selected, setSelected] = useState<DomainOption>("own");
   const [showDns, setShowDns] = useState(false);
   const [domainInput, setDomainInput] = useState("");
@@ -201,11 +200,12 @@ export default function DomainPage() {
     if (!selected || submitting) return;
     setError(null);
 
-    if (selected === "convergeflow") {
-      // Store intent so the industry step can provision {industry}-{slug}.convergeflow.io
-      sessionStorage.setItem("cf_domain_choice", "convergeflow");
-      apiPatch("/api/user/onboarding", { step: "domain", completed: true }).catch(() => {});
-      router.push("/onboarding/inbox");
+    if (selected === "buy") {
+      // The buy-fresh flow lives at /onboarding/domain/buy because it has
+      // a search-and-confirm step before registration. Mark the onboarding
+      // step in progress (not completed) so the user can come back if they
+      // bail out mid-purchase.
+      router.push("/onboarding/domain/buy");
       return;
     }
 
@@ -317,13 +317,49 @@ export default function DomainPage() {
                 </div>
               </button>
 
-              {/*
-                The shared "Use a ConvergeFlow address" subdomain option used to
-                live here. We dropped it on 2026-06-16 to force every customer
-                onto their own root domain so reputation can't bleed across the
-                shared pool. The buy-a-fresh-sending-domain flow (GCP Cloud
-                Domains) lives in a follow-up onboarding step.
-              */}
+              <button
+                type="button"
+                onClick={() => handleSelectOption("buy")}
+                className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 ${
+                  selected === "buy"
+                    ? "border-cf-orange bg-[#26262C]"
+                    : "border-transparent hover:border-cf-orange/30"
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${
+                    selected === "buy" ? "bg-cf-orange/10" : "bg-cf-card"
+                  }`}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <span className="text-[15px] font-bold font-heading">
+                      Buy a fresh sending domain
+                    </span>
+                    <span className="text-[11px] font-bold px-2.5 py-[3px] rounded-[6px] bg-[#D4E4DD] text-[#1B1B1F] whitespace-nowrap">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-white/50 leading-relaxed">
+                    Buy a domain through ConvergeFlow. Protects your main domain
+                    reputation. We handle DNS, you stay the owner. From ~$22/yr.
+                  </p>
+                </div>
+              </button>
 
               {selected === "own" && (
                 <div className="animate-[fadeUp_0.3s_ease-out] flex flex-col gap-4">
