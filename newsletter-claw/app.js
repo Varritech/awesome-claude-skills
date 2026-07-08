@@ -8,6 +8,7 @@ import { renderSubject, renderHtml } from './format.js';
 import { pickTopic } from './topics.js';
 import { createApprovals } from './approval.js';
 import { logClick } from './leads.js';
+import { syncClicksToHubspot } from './hubspot-sync.js';
 
 const HISTORY_KEY = 'topic-history';
 
@@ -100,6 +101,18 @@ export function createApp(deps) {
       console.error('click log failed:', e.message);
     }
     res.redirect(302, dest);
+  });
+
+  // Push newsletter clicks into HubSpot contact timelines (own scheduler; clicks
+  // trickle in over days). Matches by email, logs a click note, marks synced.
+  app.get('/sync-hubspot', async (_req, res) => {
+    try {
+      const result = await (deps.syncHubspot || syncClicksToHubspot)();
+      res.json(result);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: String(e) });
+    }
   });
 
   app.get('/unsubscribe', async (req, res) => {
