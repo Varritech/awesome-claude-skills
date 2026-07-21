@@ -7,6 +7,7 @@ import {
 } from '@/lib/api/helpers';
 import { connectInboxSchema } from '@/lib/schemas';
 import * as mailforge from '@/lib/mailforge/client';
+import { encryptPassword } from '@/lib/smtp/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,12 @@ interface InboxRecord {
   smtpHost?: string;
   smtpPort?: number;
   smtpUser?: string;
+  smtpPasswordEncrypted?: string;
+  imapHost?: string;
+  imapPort?: number;
+  imapUser?: string;
+  imapPasswordEncrypted?: string;
+  lastPolledAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,12 +103,15 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseAndValidate(req, connectInboxSchema);
   if (parsed.response) return parsed.response;
-  const { provider, email, displayName, smtp } = parsed.data;
+  const { provider, email, displayName, smtp, imap } = parsed.data;
 
   logRequest('inboxes.POST', userId, { provider, email });
 
   if (smtp?.password) {
     console.info('[api:inboxes.POST] smtp password received (not persisted plaintext)');
+  }
+  if (imap?.password) {
+    console.info('[api:inboxes.POST] imap password received (not persisted plaintext)');
   }
 
   const now = new Date().toISOString();
@@ -153,6 +163,12 @@ export async function POST(req: NextRequest) {
     ...(resolvedSmtp.host ? { smtpHost: resolvedSmtp.host } : {}),
     ...(resolvedSmtp.port ? { smtpPort: resolvedSmtp.port } : {}),
     ...(resolvedSmtp.user ? { smtpUser: resolvedSmtp.user } : {}),
+    // IMAP credentials (encrypted at rest, same pattern as SMTP)
+    ...(imap?.host ? { imapHost: imap.host } : {}),
+    ...(imap?.port ? { imapPort: imap.port } : {}),
+    ...(imap?.user ? { imapUser: imap.user } : {}),
+    ...(imap?.password ? { imapPasswordEncrypted: encryptPassword(imap.password) } : {}),
+    lastPolledAt: null,
     createdAt: now,
     updatedAt: now,
   };

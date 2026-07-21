@@ -1,4 +1,14 @@
 {
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/warmup",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/poll-replies",
+      "schedule": "*/2 * * * *"
+    }
+  ]
 }

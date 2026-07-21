@@ -70,23 +70,49 @@ export const inboxConnectionSchema = z.object({
       password: z.string().optional(),
     })
     .optional(),
+  imap: z
+    .object({
+      host: z.string(),
+      port: z.number().int().positive().default(993),
+      user: z.string(),
+      // Never persisted to Firestore in plaintext; stored encrypted at rest.
+      password: z.string().optional(),
+    })
+    .optional(),
+  lastPolledAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 export type InboxConnection = z.infer<typeof inboxConnectionSchema>;
 
-export const connectInboxSchema = z.object({
-  provider: inboxProviderSchema,
-  email: z.string().email(),
-  displayName: z.string().optional(),
-  domainId: z.string().optional(),
-  smtp: z
-    .object({
-      host: z.string(),
-      port: z.number().int().positive(),
-      user: z.string(),
-      password: z.string(),
-    })
-    .optional(),
-});
+export const connectInboxSchema = z
+  .object({
+    provider: inboxProviderSchema,
+    // Optional: OAuth providers (gmail/yahoo) don't know the address until the
+    // consent callback resolves it. smtp_imap must supply it up front — enforced
+    // by the refine below. When present it must be a valid address.
+    email: z.string().email().optional(),
+    displayName: z.string().optional(),
+    domainId: z.string().optional(),
+    smtp: z
+      .object({
+        host: z.string(),
+        port: z.number().int().positive(),
+        user: z.string(),
+        password: z.string(),
+      })
+      .optional(),
+    imap: z
+      .object({
+        host: z.string(),
+        port: z.number().int().positive().default(993),
+        user: z.string(),
+        password: z.string(),
+      })
+      .optional(),
+  })
+  .refine((v) => v.provider !== 'smtp_imap' || !!v.email, {
+    message: 'email is required for smtp_imap inboxes',
+    path: ['email'],
+  });
 export type ConnectInboxInput = z.infer<typeof connectInboxSchema>;

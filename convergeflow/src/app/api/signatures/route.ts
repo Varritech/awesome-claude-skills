@@ -3,33 +3,15 @@
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { z } from 'zod';
 import { adminDb } from '@/lib/firebase/admin';
 import {
   requireUser,
   parseAndValidate,
   logRequest,
 } from '@/lib/api/helpers';
+import { createSignatureSchema, type SignatureRecord } from './schema';
 
 export const dynamic = 'force-dynamic';
-
-export const createSignatureSchema = z.object({
-  name: z.string().min(1).max(80),
-  html: z.string().min(1).max(10000),
-  isDefault: z.boolean().default(false),
-});
-
-export type CreateSignatureInput = z.infer<typeof createSignatureSchema>;
-
-export interface SignatureRecord {
-  id: string;
-  userId: string;
-  name: string;
-  html: string;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export async function GET() {
   const auth = await requireUser();

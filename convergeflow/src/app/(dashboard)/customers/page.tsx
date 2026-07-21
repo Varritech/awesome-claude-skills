@@ -1,28 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Card, Button, Skeleton } from "@/components/ui";
 import { SearchIcon, DownloadIcon } from "@/components/icons";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPost } from "@/lib/api-client";
 
 type Freshness = "new" | "warm" | "cold";
+type EnrichmentStatus = "pending" | "categorizing" | "done" | "failed";
 
 interface Lead {
   id: string | number;
   name: string;
   company: string;
   industry: string;
+  category?: string;
   location: string;
   freshness: Freshness;
   score: number;
+  enrichmentStatus?: EnrichmentStatus;
 }
 
 interface LeadsResponse {
   leads?: Lead[];
-  industries?: string[];
+  categories?: string[];
+  needsPull?: boolean;
 }
 
-const defaultIndustries = [
+// Fallback chip set shown only until the DB reports real categories.
+const fallbackCategories = [
   "All",
   "Roofing",
   "Gutters",
@@ -38,57 +43,103 @@ const freshnessConfig: Record<Freshness, { label: string; color: string }> = {
   cold: { label: "Cold", color: "text-white/25" },
 };
 
+const POLL_INTERVAL_MS = 5000;
+
 export default function CustomersPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLeads, setSelectedLeads] = useState<(string | number)[]>([]);
   const [query, setQuery] = useState("");
-  const [industry, setIndustry] = useState("All");
-  const [industries, setIndustries] = useState<string[]>(defaultIndustries);
+  const [category, setCategory] = useState("All");
+  const [categories, setCategories] = useState<string[]>(fallbackCategories);
   const [addToCampaignOpen, setAddToCampaignOpen] = useState(false);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadLeads = (params: { q?: string; industry?: string }) => {
+  // Tracks categories we've already auto-pulled for, so we never trigger a
+  // second provider call for the same trade (DB-first after the first pull).
+  const pulledRef = useRef<Set<string>>(new Set());
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadLeads = useCallback(async (cat: string) => {
     setLoading(true);
-    const search = new URLSearchParams();
-    if (params.industry && params.industry !== "All") search.set("industry", params.industry);
-    const isSearching = !!params.q?.trim();
-    const path = isSearching
-      ? `/api/leads/search?${new URLSearchParams({ q: params.q!.trim(), ...(params.industry && params.industry !== "All" ? { industry: params.industry } : {}) }).toString()}`
-      : `/api/leads${search.toString() ? `?${search.toString()}` : ""}`;
+    const params = new URLSearchParams();
+    if (cat !== "All") params.set("category", cat);
+    const path = `/api/leads${params.toString() ? `?${params.toString()}` : ""}`;
 
-    apiGet<LeadsResponse | Lead[]>(path)
-      .then((res) => {
-        if (Array.isArray(res)) {
-          setLeads(res);
-        } else {
-          setLeads(res?.leads ?? []);
-          if (res?.industries?.length) {
-            setIndustries(["All", ...res.industries]);
-          }
+    try {
+      const res = await apiGet<LeadsResponse>(path);
+      setLeads(res?.leads ?? []);
+      if (res?.categories?.length) {
+        setCategories(["All", ...res.categories]);
+      }
+
+      // Auto-pull the first time a trade category has no cached leads.
+      if (res?.needsPull && cat !== "All" && !pulledRef.current.has(cat)) {
+        pulledRef.current.add(cat);
+        await apiPost("/api/leads/search", {
+          provider: "aleads",
+          industry: cat,
+          location: "United States",
+          count: 50,
+        });
+        // Reload from the DB now that leads are persisted.
+        const refreshed = await apiGet<LeadsResponse>(path);
+        setLeads(refreshed?.leads ?? []);
+        if (refreshed?.categories?.length) {
+          setCategories(["All", ...refreshed.categories]);
         }
-      })
-      .catch((err) => {
-        console.error("Failed to load leads", err);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadLeads({ industry });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      }
+    } catch (err) {
+      console.error("Failed to load leads", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      loadLeads({ q: query, industry });
-    }, 250);
+    loadLeads(category);
+  }, [category, loadLeads]);
+
+  // Poll while any lead is still being AI-categorized; stop once all settle.
+  useEffect(() => {
+    const pending = leads.some(
+      (l) => l.enrichmentStatus === "pending" || l.enrichmentStatus === "categorizing",
+    );
+    if (!pending) {
+      if (pollTimer.current) {
+        clearTimeout(pollTimer.current);
+        pollTimer.current = null;
+      }
+      return;
+    }
+    pollTimer.current = setTimeout(async () => {
+      const params = new URLSearchParams();
+      if (category !== "All") params.set("category", category);
+      try {
+        const res = await apiGet<LeadsResponse>(`/api/leads${params.toString() ? `?${params.toString()}` : ""}`);
+        setLeads(res?.leads ?? []);
+        if (res?.categories?.length) setCategories(["All", ...res.categories]);
+      } catch {
+        // ignore — next poll will retry
+      }
+    }, POLL_INTERVAL_MS);
     return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (pollTimer.current) clearTimeout(pollTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, industry]);
+  }, [leads, category]);
+
+  // Free-text search is a client-side filter over the currently loaded leads
+  // (the previous version built a GET to /api/leads/search, which is POST-only
+  // and silently 405'd). Server-side `q` can be added later if scale demands.
+  const visibleLeads = query.trim()
+    ? leads.filter((l) => {
+        const q = query.trim().toLowerCase();
+        return (
+          l.name.toLowerCase().includes(q) ||
+          l.company.toLowerCase().includes(q) ||
+          l.location.toLowerCase().includes(q)
+        );
+      })
+    : leads;
 
   const toggleLead = (id: string | number) => {
     setSelectedLeads((prev) =>
@@ -99,8 +150,8 @@ export default function CustomersPage() {
   const handleExport = () => {
     const selected = leads.filter((l) => selectedLeads.includes(l.id));
     const rows = [
-      ["Name", "Company", "Industry", "Location", "Score"].join(","),
-      ...selected.map((l) => [l.name, l.company, l.industry, l.location, l.score].join(",")),
+      ["Name", "Company", "Category", "Location", "Score"].join(","),
+      ...selected.map((l) => [l.name, l.company, l.category ?? "", l.location, l.score].join(",")),
     ];
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -137,19 +188,19 @@ export default function CustomersPage() {
         />
       </div>
 
-      {/* Industry filter chips */}
+      {/* Category filter chips (real trades from the DB) */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        {industries.map((ind) => (
+        {categories.map((cat) => (
           <button
-            key={ind}
-            onClick={() => setIndustry(ind)}
+            key={cat}
+            onClick={() => setCategory(cat)}
             className={`px-4 py-2 rounded-[var(--radius-pill)] text-[13px] font-medium whitespace-nowrap transition-colors ${
-              ind === industry
+              cat === category
                 ? "bg-cf-orange text-white"
                 : "bg-white/[0.04] text-white/35 hover:bg-white/[0.08]"
             }`}
           >
-            {ind}
+            {cat}
           </button>
         ))}
       </div>
@@ -164,7 +215,7 @@ export default function CustomersPage() {
       )}
 
       {/* Empty state */}
-      {!loading && leads.length === 0 && (
+      {!loading && visibleLeads.length === 0 && (
         <Card className="text-center py-12">
           <p className="text-[14px] text-white/40">
             {query.trim() ? `No leads match "${query}".` : "No leads in this category yet."}
@@ -173,11 +224,13 @@ export default function CustomersPage() {
       )}
 
       {/* Lead cards */}
-      {!loading && leads.length > 0 && (
+      {!loading && visibleLeads.length > 0 && (
         <div className="flex flex-col gap-2 mb-5">
-          {leads.map((lead) => {
+          {visibleLeads.map((lead) => {
             const config = freshnessConfig[lead.freshness];
             const isSelected = selectedLeads.includes(lead.id);
+            const categorizing =
+              lead.enrichmentStatus === "pending" || lead.enrichmentStatus === "categorizing";
             return (
               <Card
                 key={lead.id}
@@ -217,9 +270,15 @@ export default function CustomersPage() {
                       <span className={`text-[11px] font-medium ${config.color}`}>
                         {config.label}
                       </span>
+                      {categorizing && (
+                        <span className="text-[11px] font-medium text-white/30">
+                          categorizing…
+                        </span>
+                      )}
                     </div>
                     <p className="text-[12px] text-white/25">
                       {lead.company} &middot; {lead.location}
+                      {lead.category ? ` &middot; ${lead.category}` : ""}
                     </p>
                   </div>
 

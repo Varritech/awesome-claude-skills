@@ -1,8 +1,11 @@
 /**
- * /api/leads - list & import leads.
+ * /api/leads — list & import leads.
  *
- * GET returns the shape expected by the customers page:
- * { leads: Lead[], industries: string[] }
+ * GET browses persisted leads from Firestore (DB-only; the search route handles
+ * pulling from providers). Supports category/industry/location/status filters
+ * (applied in-memory to avoid needing composite Firestore indexes) and returns
+ * the distinct categories present so the customers page can render real trade
+ * chips. `needsPull:true` tells the page a category has no cached leads yet.
  *
  * The api-client unwraps the { data: T } envelope, so the page receives the
  * inner object directly.
@@ -17,137 +20,14 @@ import {
   requireUser,
 } from '@/lib/api/helpers';
 import { importLeadsSchema, leadFilterSchema } from '@/lib/schemas';
+import {
+  buildLeadRecord,
+  toUiResponse,
+  type LeadRecord,
+  type NormalizedLead,
+} from '@/lib/leads';
 
 export const dynamic = 'force-dynamic';
-
-// ── Internal storage type ────────────────────────────────────────────────────
-
-interface LeadRecord {
-  id: string;
-  userId: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  company?: string;
-  title?: string;
-  industry?: string;
-  location?: string;
-  status: 'new' | 'contacted' | 'replied' | 'booked' | 'unsubscribed' | 'bounced';
-  source: 'csv' | 'apollo' | 'aleads' | 'snov' | 'outscraper' | 'manual';
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
-
-// ── UI type ──────────────────────────────────────────────────────────────────
-
-type Freshness = 'new' | 'warm' | 'cold';
-
-interface Lead {
-  id: string;
-  name: string;
-  company: string;
-  industry: string;
-  location: string;
-  freshness: Freshness;
-  score: number;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function statusToFreshness(status: LeadRecord['status']): Freshness {
-  if (status === 'new') return 'new';
-  if (status === 'contacted' || status === 'replied' || status === 'booked') return 'warm';
-  return 'cold';
-}
-
-/** Deterministic score 60-99 derived from the lead id string. */
-function scoreFromId(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return 60 + (hash % 40);
-}
-
-function toUiLead(r: LeadRecord): Lead {
-  return {
-    id: r.id,
-    name: [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || r.email || r.id,
-    company: r.company ?? '',
-    industry: r.industry ?? '',
-    location: r.location ?? '',
-    freshness: statusToFreshness(r.status),
-    score: scoreFromId(r.id),
-  };
-}
-
-function toUiResponse(records: LeadRecord[]): { leads: Lead[]; industries: string[] } {
-  const leads = records.map(toUiLead);
-  const seen = new Set<string>();
-  const industries: string[] = [];
-  for (const r of records) {
-    if (r.industry && !seen.has(r.industry)) {
-      seen.add(r.industry);
-      industries.push(r.industry);
-    }
-  }
-  return { leads, industries };
-}
-
-// ── Mock seed ────────────────────────────────────────────────────────────────
-
-function mockSeed(userId: string): LeadRecord[] {
-  const now = new Date().toISOString();
-  const rows: Array<Partial<LeadRecord>> = [
-    {
-      id: 'ld_demo_1',
-      firstName: 'Alex',
-      lastName: 'Chen',
-      email: 'alex@acme.io',
-      company: 'Acme SaaS',
-      title: 'Head of Growth',
-      industry: 'SaaS',
-      location: 'New York, NY',
-      status: 'contacted',
-      source: 'apollo',
-    },
-    {
-      id: 'ld_demo_2',
-      firstName: 'Jordan',
-      lastName: 'Patel',
-      email: 'jordan@northside.dental',
-      company: 'Northside Dental',
-      title: 'Practice Owner',
-      industry: 'Healthcare',
-      location: 'Austin, TX',
-      status: 'new',
-      source: 'aleads',
-    },
-    {
-      id: 'ld_demo_3',
-      firstName: 'Sam',
-      lastName: 'Ruiz',
-      email: 'sam@hawkcap.com',
-      company: 'Hawk Capital',
-      title: 'Managing Partner',
-      industry: 'Finance',
-      location: 'Miami, FL',
-      status: 'booked',
-      source: 'manual',
-    },
-  ];
-  return rows.map(
-    (r) =>
-      ({
-        userId,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        ...r,
-      }) as LeadRecord,
-  );
-}
 
 // ── GET ──────────────────────────────────────────────────────────────────────
 
@@ -163,44 +43,47 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     return jsonError('Invalid filters', 400, parsed.error.flatten());
   }
-  const { industry, location, status, limit, cursor } = parsed.data;
+  const { industry, category, location, status, limit } = parsed.data;
 
-  logRequest('leads.GET', userId, { industry, location, status, limit, cursor });
+  logRequest('leads.GET', userId, { industry, category, location, status, limit });
 
+  let records: LeadRecord[] = [];
   try {
-    let q = adminDb
+    // Query by userId + createdAt (single composite index, already used by the
+    // prior implementation). Load a generous window then filter in-memory so
+    // adding category/industry/status filters needs no new Firestore indexes.
+    const snap = await adminDb
       .collection('leads')
       .where('userId', '==', userId)
       .orderBy('createdAt', 'desc')
-      .limit(limit);
-    if (industry) q = q.where('industry', '==', industry);
-    if (location) q = q.where('location', '==', location);
-    if (status) q = q.where('status', '==', status);
-    if (cursor) {
-      const cursorDoc = await adminDb.collection('leads').doc(cursor).get();
-      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
-    }
-    const snap = await q.get();
-    const records = snap.docs
+      .limit(Math.min(limit * 4, 200))
+      .get();
+    records = snap.docs
       .map((d) => d.data() as LeadRecord)
       .filter((l) => !l.deletedAt);
-    if (records.length === 0) {
-      const seed = mockSeed(userId).filter(
-        (l) =>
-          (!industry || l.industry === industry) &&
-          (!location || l.location === location) &&
-          (!status || l.status === status),
-      );
-      return NextResponse.json({ data: toUiResponse(seed) });
-    }
-    return NextResponse.json({ data: toUiResponse(records) });
   } catch (err) {
-    console.warn('[api:leads.GET] falling back to mock seed', err);
-    return NextResponse.json({ data: toUiResponse(mockSeed(userId)) });
+    console.warn('[api:leads.GET] firestore query failed', err);
+    // Degrade to empty + needsPull rather than fabricating mock leads.
+    return NextResponse.json({ data: { leads: [], categories: [], needsPull: true } });
   }
+
+  const filtered = records.filter((r) => {
+    if (category && r.category !== category) return false;
+    if (industry && r.industry !== industry) return false;
+    if (location && r.location !== location) return false;
+    if (status && r.status !== status) return false;
+    return true;
+  });
+
+  const page = filtered.slice(0, limit);
+  const needsPull = filtered.length === 0;
+
+  // Categories reflect the full loaded set (not the filtered page) so chips
+  // stay stable across filters.
+  return NextResponse.json({ data: toUiResponse(page, needsPull) });
 }
 
-// ── POST ─────────────────────────────────────────────────────────────────────
+// ── POST (import) ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const auth = await requireUser();
@@ -214,34 +97,29 @@ export async function POST(req: NextRequest) {
   logRequest('leads.POST', userId, { source, count: leads.length });
 
   const now = new Date().toISOString();
-  const inserted: LeadRecord[] = leads.map((l) => ({
-    id: `ld_${Math.random().toString(36).slice(2, 12)}`,
-    userId,
-    firstName: l.firstName,
-    lastName: l.lastName,
-    email: l.email,
-    company: l.company,
-    title: l.title,
-    industry: l.industry,
-    location: l.location,
-    status: 'new',
-    source,
-    createdAt: now,
-    updatedAt: now,
-    deletedAt: null,
-  }));
+  // Deterministic dedup ids → re-importing the same CSV upserts instead of
+  // duplicating.
+  const inserted: LeadRecord[] = leads.map((l) =>
+    buildLeadRecord({
+      normalized: l as NormalizedLead,
+      userId,
+      provider: source,
+      pullFingerprint: `import_${source}`,
+      now,
+    }),
+  );
 
   try {
-    // TODO: batch-write in 500-doc chunks once real Firestore is wired.
     for (const rec of inserted) {
-      await adminDb.collection('leads').doc(rec.id).set(rec);
+      await adminDb.collection('leads').doc(rec.id).set(rec, { merge: true });
     }
   } catch (err) {
-    console.warn('[api:leads.POST] placeholder mode', err);
+    console.warn('[api:leads.POST] write failed', err);
+    return NextResponse.json({ error: 'Failed to import leads' }, { status: 500 });
   }
 
   return NextResponse.json(
-    { data: { imported: inserted.length, source, leads: inserted } },
+    { data: { imported: inserted.length, source, leads: toUiResponse(inserted).leads } },
     { status: 201 },
   );
 }

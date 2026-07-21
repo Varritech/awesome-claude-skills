@@ -3,13 +3,43 @@
 import { useEffect, useState } from "react";
 import { Card, Button, Input, Toggle, Skeleton } from "@/components/ui";
 import { MailIcon } from "@/components/icons";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 
 interface InboxConnection {
   id: string;
   email: string;
   provider: string;
   status: "connected" | "pending" | "error";
+}
+
+/** Raw inbox record shape returned by GET /api/inboxes. */
+interface InboxApiRecord {
+  id: string;
+  email?: string;
+  provider?: string;
+  status?: string;
+}
+
+/**
+ * Map a backend inbox lifecycle status onto the three states the Settings UI
+ * renders. connected/warming/active are all "live" from the user's POV;
+ * connecting is still pending; anything else is an error.
+ */
+function toInboxStatus(status?: string): InboxConnection["status"] {
+  if (status === "connected" || status === "warming" || status === "active") {
+    return "connected";
+  }
+  if (status === "connecting") return "pending";
+  return "error";
+}
+
+function mapInboxRecords(records: InboxApiRecord[] | null | undefined): InboxConnection[] {
+  return (records ?? []).map((r) => ({
+    id: r.id,
+    email: r.email ?? "",
+    provider: r.provider ?? "",
+    status: toInboxStatus(r.status),
+  }));
 }
 
 interface DomainConnection {
@@ -46,6 +76,7 @@ interface UserProfile {
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [inboxes, setInboxes] = useState<InboxConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     fullName: "",
@@ -70,13 +101,22 @@ export default function SettingsPage() {
           fullName: data?.fullName ?? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim(),
           email: data?.email ?? "",
           company: data?.company ?? "",
-          phone: (data as any)?.phone ?? "",
+          phone: data?.phone ?? "",
         });
       })
       .catch((err) => console.error("Failed to load profile", err))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    // Connected inboxes live in the inboxes collection, not on the profile doc.
+    apiGet<InboxApiRecord[]>("/api/inboxes")
+      .then((records) => {
+        if (cancelled) return;
+        setInboxes(mapInboxRecords(records));
+      })
+      .catch((err) => console.error("Failed to load inboxes", err));
+
     return () => {
       cancelled = true;
     };
@@ -103,6 +143,27 @@ export default function SettingsPage() {
     }
   };
 
+  const handleConnectInbox = async () => {
+    try {
+      const data = await apiPost<{ authUrl?: string | null }>("/api/inboxes", {
+        provider: inboxProvider,
+      });
+      // Gmail returns a Google consent URL — hand off to OAuth.
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      }
+      // Otherwise refresh the list from the source of truth.
+      const records = await apiGet<InboxApiRecord[]>("/api/inboxes");
+      setInboxes(mapInboxRecords(records));
+    } catch (err) {
+      console.error("Failed to connect inbox", err);
+    } finally {
+      setAddingInbox(false);
+      setInboxEmail("");
+    }
+  };
+
   const updatePreference = async (key: keyof UserPreferences, value: boolean) => {
     setProfile((prev) =>
       prev ? { ...prev, preferences: { ...prev.preferences, [key]: value } } : prev
@@ -125,7 +186,6 @@ export default function SettingsPage() {
     );
   }
 
-  const inboxes = profile?.inboxes ?? [];
   const domains = profile?.domains ?? [];
   const preferences = profile?.preferences ?? {};
   const plan = profile?.plan;
@@ -250,8 +310,7 @@ export default function SettingsPage() {
                 className="bg-cf-card rounded-[var(--radius-button)] px-3 py-2 text-[13px] text-white/70 outline-none"
               >
                 <option value="gmail">Gmail</option>
-                <option value="outlook">Outlook</option>
-                <option value="smtp">Custom SMTP</option>
+                <option value="smtp_imap">Custom SMTP</option>
               </select>
               <input
                 type="email"
@@ -263,7 +322,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setAddingInbox(false); setInboxEmail(""); }} className="flex-1 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
-              <button onClick={() => { setAddingInbox(false); setInboxEmail(""); }} className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold">Connect</button>
+              <button onClick={handleConnectInbox} className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold">Connect</button>
             </div>
           </div>
         )}

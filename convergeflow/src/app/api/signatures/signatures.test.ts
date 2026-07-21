@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createSignatureSchema } from './route';
+import { createSignatureSchema } from './schema';
 
 describe('createSignatureSchema', () => {
   it('accepts valid signature data', () => {

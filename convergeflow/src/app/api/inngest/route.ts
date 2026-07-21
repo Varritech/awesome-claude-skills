@@ -4,8 +4,10 @@ import { sendEmailFn } from "@/lib/inngest/functions/send-email";
 import { campaignStartFn, campaignPauseFn } from "@/lib/inngest/functions/campaign-executor";
 import { warmupTickFn } from "@/lib/inngest/functions/warmup-tick";
 import { tokenRefreshFn } from "@/lib/inngest/functions/token-refresh";
+import { pollRepliesFn } from "@/lib/inngest/functions/poll-replies";
+import { categorizeLeadFn } from "@/lib/inngest/functions/categorize-lead";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [sendEmailFn, campaignStartFn, campaignPauseFn, warmupTickFn, tokenRefreshFn],
+  functions: [sendEmailFn, campaignStartFn, campaignPauseFn, warmupTickFn, tokenRefreshFn, pollRepliesFn, categorizeLeadFn],
 });
