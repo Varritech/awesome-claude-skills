@@ -14,6 +14,9 @@ export * from './campaign';
 export * from './lead';
 export * from './domain';
 
+export { replyCategorySchema } from './campaign';
+export type { ReplyCategory } from './campaign';
+
 /* Personas (custom user-defined personas, separate from the persona preset enum) */
 
 export const createPersonaSchema = z.object({

@@ -40,4 +40,16 @@ export type Events = {
       userId: string;
     };
   };
+  "inbox/poll-replies": {
+    data: {
+      inboxId: string;
+      userId: string;
+    };
+  };
+  "lead/categorize": {
+    data: {
+      leadId: string;
+      userId: string;
+    };
+  };
 };

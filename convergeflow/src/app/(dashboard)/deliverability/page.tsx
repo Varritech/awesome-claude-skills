@@ -118,7 +118,6 @@ export default function DeliverabilityPage() {
   const inboxProviders = data?.inboxProviders ?? [];
   const inboxHealth = data?.inboxHealth ?? 0;
   const inboxHealthLabel = data?.inboxHealthLabel ?? "Unknown";
-  const trackingDomainEnabled = data?.trackingDomainEnabled ?? false;
   const trackingDomain = data?.trackingDomain;
 
   return (

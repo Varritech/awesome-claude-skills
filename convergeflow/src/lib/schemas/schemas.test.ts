@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createCampaignSchema, emailStatusSchema } from "./campaign";
+import { createCampaignSchema, emailStatusSchema, replyCategorySchema } from "./campaign";
 import { connectDomainSchema, connectInboxSchema } from "./domain";
 
 describe("createCampaignSchema", () => {
@@ -123,6 +123,24 @@ describe("connectInboxSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts gmail provider WITHOUT email (OAuth supplies it after consent)", () => {
+    const result = connectInboxSchema.safeParse({ provider: "gmail" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts yahoo provider without email", () => {
+    const result = connectInboxSchema.safeParse({ provider: "yahoo" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects smtp_imap inbox with no email (SMTP needs an address up front)", () => {
+    const result = connectInboxSchema.safeParse({
+      provider: "smtp_imap",
+      smtp: { host: "smtp.example.com", port: 587, user: "u", password: "p" },
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("emailStatusSchema", () => {
@@ -145,5 +163,69 @@ describe("emailStatusSchema", () => {
   it("BUG: paused is not a valid email status in schema (but campaign-pause writes it)", () => {
     const result = emailStatusSchema.safeParse("paused");
     expect(result.success).toBe(false); // documents the schema/data mismatch
+  });
+});
+
+describe("replyCategorySchema", () => {
+  it("accepts all valid categories", () => {
+    for (const cat of ["interested", "booked", "question", "not_interested", "auto_reply"] as const) {
+      expect(replyCategorySchema.safeParse(cat).success).toBe(true);
+    }
+  });
+
+  it("rejects unknown category", () => {
+    expect(replyCategorySchema.safeParse("spam").success).toBe(false);
+  });
+
+  it("rejects empty string", () => {
+    expect(replyCategorySchema.safeParse("").success).toBe(false);
+  });
+
+  it("rejects non-string values", () => {
+    expect(replyCategorySchema.safeParse(123).success).toBe(false);
+    expect(replyCategorySchema.safeParse(null).success).toBe(false);
+    expect(replyCategorySchema.safeParse(undefined).success).toBe(false);
+  });
+});
+
+describe("connectInboxSchema IMAP fields", () => {
+  it("accepts valid IMAP config", () => {
+    const result = connectInboxSchema.safeParse({
+      provider: "smtp_imap",
+      email: "sender@example.com",
+      smtp: { host: "smtp.example.com", port: 587, user: "sender@example.com", password: "pass" },
+      imap: { host: "imap.example.com", port: 993, user: "sender@example.com", password: "pass" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts IMAP with default port", () => {
+    const result = connectInboxSchema.safeParse({
+      provider: "smtp_imap",
+      email: "sender@example.com",
+      smtp: { host: "smtp.example.com", port: 587, user: "sender@example.com", password: "pass" },
+      imap: { host: "imap.example.com", user: "sender@example.com", password: "pass" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.imap?.port).toBe(993);
+    }
+  });
+
+  it("rejects IMAP with invalid port (0)", () => {
+    const result = connectInboxSchema.safeParse({
+      provider: "smtp_imap",
+      email: "sender@example.com",
+      smtp: { host: "smtp.example.com", port: 587, user: "sender@example.com", password: "pass" },
+      imap: { host: "imap.example.com", port: 0, user: "sender@example.com", password: "pass" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts inbox without IMAP (optional field)", () => {
+    const result = connectInboxSchema.safeParse({
+      provider: "gmail",
+    });
+    expect(result.success).toBe(true);
   });
 });

@@ -49,9 +49,23 @@ export default function InboxPage() {
         }
         router.push("/onboarding/industry");
       } else {
+        // Custom provider maps to the schema's `smtp_imap` shape. The email
+        // address doubles as the SMTP/IMAP username.
         await apiPost("/api/inboxes", {
-          provider: "custom",
-          credentials: custom,
+          provider: "smtp_imap",
+          email: custom.email,
+          smtp: {
+            host: custom.smtpHost,
+            port: Number(custom.smtpPort),
+            user: custom.email,
+            password: custom.password,
+          },
+          imap: {
+            host: custom.imapHost,
+            port: Number(custom.imapPort),
+            user: custom.email,
+            password: custom.password,
+          },
         });
         router.push("/onboarding/industry");
       }
