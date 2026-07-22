@@ -46,6 +46,7 @@ export const campaignSchema = z.object({
   domainId: z.string().optional(),
   inboxIds: z.array(z.string()).default([]),
   scheduledAt: z.string().datetime().nullable().optional(),
+  sequenceId: z.string().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -68,6 +69,7 @@ export const updateCampaignSchema = z.object({
   status: campaignStatusSchema.optional(),
   persona: personaSchema.optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
+  sequenceId: z.string().optional(),
 });
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
 

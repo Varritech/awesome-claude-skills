@@ -16,6 +16,7 @@ import {
   LogoIcon,
   HelpIcon,
   ShieldIcon,
+  SendIcon,
 } from "@/components/icons";
 import { FeedbackWidget, SessionTimeout } from "@/components/ui";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -43,6 +44,7 @@ function InboxIcon({ size = 18, className = "" }: { size?: number; className?: s
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
   { href: "/emails", label: "Emails", icon: MailIcon, matchPrefix: true },
+  { href: "/campaigns", label: "Campaigns", icon: SendIcon, matchPrefix: true },
   { href: "/replies", label: "Replies", icon: InboxIcon, matchPrefix: true },
   { href: "/customers", label: "Customers", icon: UsersIcon, matchPrefix: true },
   { href: "/styles", label: "Styles", icon: PenIcon, matchPrefix: true },
@@ -53,6 +55,7 @@ const navItems = [
 const bottomNavItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
   { href: "/emails", label: "Emails", icon: MailIcon, matchPrefix: true },
+  { href: "/campaigns", label: "Campaigns", icon: SendIcon, matchPrefix: true },
   { href: "/customers", label: "Customers", icon: UsersIcon, matchPrefix: true },
   { href: "/settings", label: "Account", icon: UserIcon, matchPrefix: true },
 ];

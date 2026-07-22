@@ -83,4 +83,59 @@ describe("SequenceEditor", () => {
       expect.objectContaining({ name: "Outbound A" }),
     );
   });
+
+  it("fires onSaved with the new sequence id when a new sequence is created", async () => {
+    (apiPost as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
+      id: "seq_new",
+      name: "My sequence",
+      steps: [],
+    });
+    const onSaved = vi.fn();
+    render(<SequenceEditor onSaved={onSaved} />);
+    fireEvent.change(await screen.findByPlaceholderText(/Sequence name/i), {
+      target: { value: "My sequence" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Save sequence/i }));
+    await screen.findByText(/Saving…|Save sequence/i);
+    // wait for the post to resolve + onSaved to fire
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onSaved).toHaveBeenCalledWith("seq_new");
+  });
+
+  it("AI-generates a sequence from a picked lead when campaignId is provided", async () => {
+    (apiGet as unknown as { mockImplementation: (f: (path: string) => unknown) => void }).mockImplementation(
+      (path: string) => {
+        if (path.startsWith("/api/leads")) {
+          return { data: [{ id: "ld_1", firstName: "Jane", company: "Acme" }] };
+        }
+        return null;
+      },
+    );
+    (apiPost as unknown as { mockImplementation: (f: (path: string, body: unknown) => unknown) => void }).mockImplementation(
+      (path: string) => {
+        if (path.endsWith("/generate-sequence")) {
+          return {
+            emails: [
+              { emailNumber: 1, dayOffset: 0, subject: "Intro", body: "Hi {{firstName}}", variant: "A", plainText: true },
+              { emailNumber: 2, dayOffset: 2, subject: "Follow", body: "Did you see this?", variant: "A", plainText: true },
+            ],
+          };
+        }
+        return null;
+      },
+    );
+    render(<SequenceEditor campaignId="cmp_1" />);
+    // open the AI-generate picker + pick the lead
+    fireEvent.click(await screen.findByRole("button", { name: /AI-generate/i }));
+    const leadSelect = await screen.findByLabelText(/Pick a lead/i);
+    fireEvent.change(leadSelect, { target: { value: "ld_1" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Generate$/i }));
+    // the two generated subjects should populate the step inputs
+    expect(await screen.findByDisplayValue("Intro")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Follow")).toBeInTheDocument();
+    expect(apiPost).toHaveBeenCalledWith(
+      "/api/campaigns/cmp_1/generate-sequence",
+      expect.objectContaining({ prospectId: "ld_1" }),
+    );
+  });
 });

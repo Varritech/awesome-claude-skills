@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { generatedEmailsToSteps } from "@/lib/sequences/map-generated";
+import type { GeneratedEmail } from "@/lib/ai/sequence-generator";
 import { VariableGuide } from "./VariableGuide";
 
 type ConditionType = "always" | "no_reply" | "no_open";
@@ -20,8 +22,18 @@ interface Sequence {
   steps: SequenceStep[];
 }
 
+interface LeadOption {
+  id: string;
+  firstName?: string;
+  company?: string;
+}
+
 interface SequenceEditorProps {
   sequenceId?: string;
+  /** When provided, an "AI-generate" button produces a 5-email sequence for a picked lead. */
+  campaignId?: string;
+  /** Fired with the sequence id after a successful save (so the caller can link it to a campaign). */
+  onSaved?: (sequenceId: string) => void;
 }
 
 function blankStep(order: number): SequenceStep {
@@ -39,13 +51,19 @@ function blankStep(order: number): SequenceStep {
  * subject/body/delay/condition), manually, with a variable reference guide.
  * Save creates (POST /api/sequences) or updates (PUT /api/sequences/[id]).
  */
-export function SequenceEditor({ sequenceId }: SequenceEditorProps) {
+export function SequenceEditor({ sequenceId, campaignId, onSaved }: SequenceEditorProps) {
   const [name, setName] = useState("");
   const [steps, setSteps] = useState<SequenceStep[]>([blankStep(0)]);
   const [loading, setLoading] = useState(!!sequenceId);
   const [saving, setSaving] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [savedId, setSavedId] = useState<string | undefined>(sequenceId);
+
+  // AI-generate state
+  const [showAi, setShowAi] = useState(false);
+  const [leads, setLeads] = useState<LeadOption[]>([]);
+  const [pickedLead, setPickedLead] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (!sequenceId) return;
@@ -88,14 +106,46 @@ export function SequenceEditor({ sequenceId }: SequenceEditorProps) {
     try {
       if (savedId) {
         await apiPut(`/api/sequences/${savedId}`, payload);
+        onSaved?.(savedId);
       } else {
         const created = await apiPost<{ id: string }>("/api/sequences", payload);
-        if (created?.id) setSavedId(created.id);
+        if (created?.id) {
+          setSavedId(created.id);
+          onSaved?.(created.id);
+        }
       }
     } catch (err) {
       console.error("Failed to save sequence", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openAiPicker = async () => {
+    setShowAi(true);
+    try {
+      const res = await apiGet<{ data: LeadOption[] }>("/api/leads?limit=50");
+      setLeads(res?.data ?? []);
+    } catch (err) {
+      console.error("Failed to load leads", err);
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!campaignId || !pickedLead || generating) return;
+    setGenerating(true);
+    try {
+      const res = await apiPost<{ emails: GeneratedEmail[] }>(
+        `/api/campaigns/${campaignId}/generate-sequence`,
+        { prospectId: pickedLead },
+      );
+      if (res?.emails?.length) {
+        setSteps(generatedEmailsToSteps(res.emails));
+      }
+    } catch (err) {
+      console.error("AI generation failed", err);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -189,6 +239,49 @@ export function SequenceEditor({ sequenceId }: SequenceEditorProps) {
 
         <VariableGuide onInsert={insertVariable} />
       </div>
+
+      {campaignId && (
+        <div className="bg-cf-card rounded-[14px] p-4">
+          <button
+            type="button"
+            onClick={openAiPicker}
+            className="text-[12px] font-bold uppercase tracking-wide text-cf-orange hover:text-cf-orange/80"
+          >
+            AI-generate sequence
+          </button>
+          {showAi && (
+            <div className="flex flex-wrap items-end gap-3 mt-3">
+              <label className="flex flex-col gap-1 text-[12px] text-white/50">
+                Pick a lead
+                <select
+                  aria-label="Pick a lead"
+                  value={pickedLead}
+                  onChange={(e) => setPickedLead(e.target.value)}
+                  className="bg-[#222228] rounded-[10px] py-2 px-3 text-[13px] text-white outline-none border border-transparent focus:border-cf-orange/40"
+                >
+                  <option value="">Select a lead…</option>
+                  {leads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.firstName ?? "Lead"}{l.company ? ` · ${l.company}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={!pickedLead || generating}
+                className="bg-cf-orange text-white text-sm font-bold py-2 px-4 rounded-[10px] disabled:opacity-40 font-heading uppercase tracking-wide"
+              >
+                {generating ? "Generating…" : "Generate"}
+              </button>
+              <p className="text-[11px] text-white/35 leading-relaxed">
+                Generates a 5-email Straight Line sequence for the picked lead. Tweak + save.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         type="button"
