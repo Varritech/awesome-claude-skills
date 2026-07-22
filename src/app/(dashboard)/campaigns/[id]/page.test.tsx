@@ -63,4 +63,30 @@ describe("CampaignDetailPage", () => {
       expect(apiPatch).toHaveBeenCalledWith("/api/campaigns/cmp_1", { sequenceId: "seq_new" }),
     );
   });
+
+  it("attaches leads to the campaign via POST /api/campaigns/[id]/leads", async () => {
+    (apiGet as unknown as { mockImplementation: (f: (path: string) => unknown) => void }).mockImplementation(
+      (path: string) => {
+        if (path === "/api/campaigns/cmp_1") return Promise.resolve({ data: campaignPayload });
+        if (path === "/api/campaigns/cmp_1/leads") return Promise.resolve({ data: [] });
+        if (path.startsWith("/api/leads")) {
+          return Promise.resolve({ data: [{ id: "ld_1", firstName: "Jane", company: "Acme" }] });
+        }
+        return Promise.resolve(null);
+      },
+    );
+    (apiPost as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
+      data: { attached: 1 },
+    });
+    render(<CampaignDetailPage />);
+    // wait for the lead to appear in the "Add leads" picker
+    const checkbox = await screen.findByLabelText(/Jane.*Acme/i);
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: /Add to campaign/i }));
+    await waitFor(() =>
+      expect(apiPost).toHaveBeenCalledWith("/api/campaigns/cmp_1/leads", {
+        leadIds: ["ld_1"],
+      }),
+    );
+  });
 });

@@ -18,6 +18,12 @@ interface CampaignDetail {
   emails?: Array<{ id: string; subject: string; status: string }>;
 }
 
+interface LeadOption {
+  id: string;
+  firstName?: string;
+  company?: string;
+}
+
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: "bg-white/[0.04]", text: "text-white/35", label: "Draft" },
   scheduled: { bg: "bg-cf-indigo/15", text: "text-cf-indigo", label: "Scheduled" },
@@ -33,6 +39,24 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  // Leads
+  const [campaignLeads, setCampaignLeads] = useState<LeadOption[]>([]);
+  const [availableLeads, setAvailableLeads] = useState<LeadOption[]>([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [attaching, setAttaching] = useState(false);
+
+  const refreshLeads = async () => {
+    try {
+      const [attached, all] = await Promise.all([
+        apiGet<{ data: LeadOption[] }>(`/api/campaigns/${id}/leads`),
+        apiGet<{ data: LeadOption[] }>("/api/leads?limit=50"),
+      ]);
+      setCampaignLeads(Array.isArray(attached?.data) ? attached.data : []);
+      setAvailableLeads(Array.isArray(all?.data) ? all.data : []);
+    } catch (err) {
+      console.error("Failed to load leads", err);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -45,6 +69,7 @@ export default function CampaignDetailPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    refreshLeads();
     return () => {
       cancelled = true;
     };
@@ -71,6 +96,28 @@ export default function CampaignDetailPage() {
       setCampaign((prev) => (prev ? { ...prev, sequenceId } : prev));
     } catch (err) {
       console.error("Failed to link sequence to campaign", err);
+    }
+  };
+
+  const toggleLead = (leadId: string) =>
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId);
+      else next.add(leadId);
+      return next;
+    });
+
+  const handleAttachLeads = async () => {
+    if (attaching || selectedLeadIds.size === 0) return;
+    setAttaching(true);
+    try {
+      await apiPost(`/api/campaigns/${id}/leads`, { leadIds: [...selectedLeadIds] });
+      setSelectedLeadIds(new Set());
+      await refreshLeads();
+    } catch (err) {
+      console.error("Failed to attach leads", err);
+    } finally {
+      setAttaching(false);
     }
   };
 
@@ -140,6 +187,64 @@ export default function CampaignDetailPage() {
           campaignId={campaign.id}
           onSaved={handleSequenceSaved}
         />
+      </Card>
+
+      <Card className="mt-5">
+        <p className="text-sm font-bold mb-2 font-heading">
+          Leads · {campaignLeads.length} in this campaign
+        </p>
+        <p className="text-[12px] text-white/40 leading-relaxed mb-4">
+          Add leads to this campaign. When started, the sequence sends to these leads.
+        </p>
+
+        {campaignLeads.length > 0 && (
+          <ul className="flex flex-col gap-1 mb-4">
+            {campaignLeads.map((l) => (
+              <li key={l.id} className="text-[12px] text-white/55">
+                {l.firstName ?? "Lead"}{l.company ? ` · ${l.company}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="text-[11px] font-bold uppercase tracking-wide text-white/40 mb-2">
+          Add leads
+        </p>
+        {availableLeads.length === 0 ? (
+          <p className="text-[12px] text-white/30">
+            No leads available. Add leads under Customers first.
+          </p>
+        ) : (
+          <>
+            <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto mb-3">
+              {availableLeads.map((l) => {
+                const checked = selectedLeadIds.has(l.id);
+                return (
+                  <li key={l.id}>
+                    <label className="flex items-center gap-2 text-[12px] text-white/55 cursor-pointer hover:text-white/80">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleLead(l.id)}
+                        aria-label={`${l.firstName ?? "Lead"}${l.company ? ` ${l.company}` : ""}`}
+                        className="accent-cf-orange"
+                      />
+                      {l.firstName ?? "Lead"}{l.company ? ` · ${l.company}` : ""}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              onClick={handleAttachLeads}
+              disabled={attaching || selectedLeadIds.size === 0}
+              className="bg-cf-orange text-white text-sm font-bold py-2 px-4 rounded-[12px] disabled:opacity-40 font-heading uppercase tracking-wide"
+            >
+              {attaching ? "Adding…" : "Add to campaign"}
+            </button>
+          </>
+        )}
       </Card>
     </>
   );

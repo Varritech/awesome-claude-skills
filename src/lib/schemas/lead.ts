@@ -26,6 +26,7 @@ export const leadSchema = z.object({
   id: z.string().min(1),
   userId: z.string().min(1),
   listId: z.string().optional(),
+  campaignId: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   email: z.string().email().optional(),

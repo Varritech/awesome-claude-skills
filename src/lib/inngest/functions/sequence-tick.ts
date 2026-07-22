@@ -86,11 +86,12 @@ export const sequenceTickFn = inngest.createFunction(
     const sortedSteps = [...sequence.steps].sort((a, b) => a.order - b.order);
 
     // ── 3. Load all leads for this campaign ───────────────────────────────────
+    // Leads are associated with a campaign via `lead.campaignId` (set when added
+    // to the campaign). Single-field equality — no composite index needed.
     const leads = await step.run("load-leads", async () => {
       const snap = await adminDb
         .collection("leads")
-        .where("userId", "==", userId)
-        .where("status", "in", ["contacted", "opened"])
+        .where("campaignId", "==", campaignId)
         .get();
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LeadRecord);
     });
