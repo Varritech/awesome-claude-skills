@@ -21,6 +21,22 @@ interface EmailRecord {
   leadId?: string | null;
 }
 
+interface CampaignRecord {
+  id: string;
+  name: string;
+  status: string;
+  persona: string;
+}
+
+const campaignStatusBadge: Record<string, { bg: string; text: string; label: string }> = {
+  draft: { bg: "bg-white/[0.04]", text: "text-white/35", label: "Draft" },
+  scheduled: { bg: "bg-cf-indigo/15", text: "text-cf-indigo", label: "Scheduled" },
+  running: { bg: "bg-cf-green/15", text: "text-cf-green", label: "Running" },
+  paused: { bg: "bg-cf-amber/15", text: "text-cf-amber", label: "Paused" },
+  completed: { bg: "bg-white/[0.04]", text: "text-white/35", label: "Completed" },
+  archived: { bg: "bg-white/[0.04]", text: "text-white/35", label: "Archived" },
+};
+
 const statusConfig: Record<EmailStatus, { label: string; bg: string; text: string }> = {
   draft:   { label: "Draft",   bg: "bg-white/[0.04]",   text: "text-white/35" },
   queued:  { label: "Scheduled · 8:00 AM", bg: "bg-cf-indigo/15", text: "text-cf-indigo" },
@@ -47,9 +63,11 @@ function formatScheduledDate(iso: string): string {
 export default function EmailsPage() {
   const router = useRouter();
   const [emails, setEmails] = useState<EmailRecord[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
   const [creating, setCreating] = useState(false);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,11 +99,39 @@ export default function EmailsPage() {
       }
     }
 
+    async function loadCampaigns() {
+      try {
+        const res = await apiGet<{ data: CampaignRecord[] }>("/api/campaigns");
+        if (cancelled) return;
+        setCampaigns(Array.isArray(res?.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to load campaigns", err);
+      }
+    }
+
     loadEmails();
+    loadCampaigns();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const handleNewCampaign = async () => {
+    if (creatingCampaign) return;
+    setCreatingCampaign(true);
+    try {
+      const res = await apiPost<{ data: { id: string } }>("/api/campaigns", {
+        name: "New campaign",
+        persona: "closer",
+      });
+      const id = res?.data?.id ?? (res as { id?: string })?.id;
+      if (id) router.push(`/campaigns/${id}`);
+    } catch (err) {
+      console.error("Failed to create campaign", err);
+    } finally {
+      setCreatingCampaign(false);
+    }
+  };
 
   const handleNewEmail = async () => {
     if (creating) return;
@@ -218,6 +264,56 @@ export default function EmailsPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Campaigns — multi-step sequences, on the same tab as emails */}
+      {!loading && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-[18px] font-bold tracking-tight font-heading">Campaigns</h2>
+              <p className="text-[12px] text-white/25 mt-0.5">
+                Multi-step email sequences. Generate with AI, add leads, start.
+              </p>
+            </div>
+            <button
+              onClick={handleNewCampaign}
+              disabled={creatingCampaign}
+              className="px-4 py-2 rounded-[var(--radius-button)] bg-cf-card border border-white/[0.06] text-white text-[13px] font-bold hover:bg-white/[0.04] transition-colors flex items-center gap-2 font-heading uppercase tracking-wide disabled:opacity-60"
+            >
+              <PlusIcon size={14} />
+              {creatingCampaign ? "Creating..." : "New campaign"}
+            </button>
+          </div>
+
+          {campaigns.length === 0 ? (
+            <Card className="text-center py-8">
+              <p className="text-[13px] text-white/30">
+                No campaigns yet. Create one to author its email sequence.
+              </p>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {campaigns.map((c) => {
+                const badge = campaignStatusBadge[c.status] ?? campaignStatusBadge.draft!;
+                return (
+                  <Card
+                    key={c.id}
+                    className="cursor-pointer hover:bg-white/[0.02] transition-colors"
+                    onClick={() => router.push(`/campaigns/${c.id}`)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[14px] font-bold truncate">{c.name}</p>
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-[var(--radius-pill)] ${badge.bg} ${badge.text}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </>
