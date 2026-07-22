@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { requireUser, logRequest } from '@/lib/api/helpers';
 import { todayQuota } from '@/lib/warmup/scheduler';
+import { warmupProgressPercent, statusBadge } from '@/lib/warmup/health';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,27 +37,13 @@ interface InboxHealth {
   provider: string;
   status: string;
   warmupEnabled: boolean;
+  warmupStartDate?: string | null;
   warmupProgressPercent: number; // 0–100
   dailyQuotaUsed: number;
   dailyQuotaTotal: number;
   bounceRate: number; // 0–1
   lastSentAt?: string;
   statusBadge: 'healthy' | 'warming' | 'warning' | 'error';
-}
-
-function warmupProgressPercent(warmupStartDate: string | null | undefined, targetDays = 30): number {
-  if (!warmupStartDate) return 0;
-  const start = new Date(warmupStartDate);
-  if (isNaN(start.getTime())) return 0;
-  const elapsed = (Date.now() - start.getTime()) / (1000 * 60 * 60 * 24);
-  return Math.min(100, Math.round((elapsed / targetDays) * 100));
-}
-
-function statusBadge(status: string, bounceRate: number): InboxHealth['statusBadge'] {
-  if (status === 'error' || status === 'disconnected') return 'error';
-  if (bounceRate > 0.1) return 'warning';
-  if (status === 'warming') return 'warming';
-  return 'healthy';
 }
 
 async function getEmailStats(inboxId: string): Promise<EmailStats> {
@@ -145,6 +132,7 @@ export async function GET() {
         provider: inbox.provider,
         status: inbox.status,
         warmupEnabled: inbox.warmupEnabled,
+        warmupStartDate: inbox.warmupStartDate ?? null,
         warmupProgressPercent: warmupProgressPercent(inbox.warmupStartDate),
         dailyQuotaUsed: stats.sentToday,
         dailyQuotaTotal: quota,

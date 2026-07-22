@@ -63,4 +63,12 @@ export type Events = {
       userId: string;
     };
   };
+  'warmup/reply': {
+    data: {
+      from: string;
+      toRecipient: string;
+      subject: string;
+      messageId: string;
+    };
+  };
 };

@@ -19,7 +19,8 @@ export interface WarmupState {
   status: string;
 }
 
-const WARMUP_BASE = 5;     // day-1 quota
+// 14-day warmup window: day 0 = 8, +3/day, reaches dailySendLimit (50) at day 14.
+const WARMUP_BASE = 8;     // day-1 quota
 const WARMUP_STEP = 3;     // +3 per day
 
 /**

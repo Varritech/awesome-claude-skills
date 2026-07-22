@@ -66,7 +66,7 @@ export default function BuyDomainPage() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<SearchResult | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [, setProfile] = useState<UserProfile | null>(null);
 
   // Contact form state
   const [firstName, setFirstName] = useState("");

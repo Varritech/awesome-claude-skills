@@ -80,6 +80,96 @@ export function getTransporter(cfg: SmtpConfig): Transporter {
   return t;
 }
 
+// ─── Gmail OAuth2 transport (XOAUTH2) ─────────────────────────────────────────
+// For Gmail inboxes connected via OAuth: authenticate to smtp.gmail.com with the
+// stored refresh token + Google client creds. nodemailer auto-refreshes the
+// access token, so a live stored access token is not required.
+
+export interface OAuth2Config {
+  user: string;            // the Gmail address mail is sent from
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  accessToken?: string;
+  expires?: number;       // ms, matching nodemailer's XOAuth2.Options.expires
+}
+
+const _oauth2Pool = new Map<string, Transporter>();
+
+export function getOAuth2Transporter(cfg: OAuth2Config): Transporter {
+  if (_oauth2Pool.has(cfg.user)) return _oauth2Pool.get(cfg.user)!;
+
+  const auth: {
+    type: "OAuth2";
+    user: string;
+    clientId: string;
+    clientSecret: string;
+    refreshToken: string;
+    accessToken?: string;
+    expires?: number;
+  } = {
+    type: "OAuth2",
+    user: cfg.user,
+    clientId: cfg.clientId,
+    clientSecret: cfg.clientSecret,
+    refreshToken: cfg.refreshToken,
+  };
+  if (cfg.accessToken) auth.accessToken = cfg.accessToken;
+  if (cfg.expires) auth.expires = cfg.expires;
+
+  const t = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth,
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 1,
+  });
+
+  _oauth2Pool.set(cfg.user, t);
+  return t;
+}
+
+export async function sendEmailOauth2(
+  cfg: OAuth2Config,
+  opts: SendOptions,
+): Promise<SendResult> {
+  const transporter = getOAuth2Transporter(cfg);
+  const info = await transporter.sendMail({
+    from: opts.from,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text ?? htmlToText(opts.html),
+    replyTo: opts.replyTo,
+    messageId: opts.messageId,
+    headers: {
+      "X-Mailer": "ConvergeFlow/1.0",
+      "X-Campaign-Id": opts.headers?.["X-Campaign-Id"] ?? "",
+      ...opts.headers,
+    },
+  });
+
+  return {
+    messageId: info.messageId,
+    accepted: info.accepted as string[],
+    rejected: info.rejected as string[],
+  };
+}
+
+export async function verifyGmailOauth2(cfg: OAuth2Config): Promise<boolean> {
+  try {
+    const t = getOAuth2Transporter(cfg);
+    await t.verify();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Send ─────────────────────────────────────────────────────────────────────
 
 export interface SendOptions {

@@ -3,6 +3,7 @@ import { inngest } from '@/lib/inngest/client';
 import { sendEmailFn } from '@/lib/inngest/functions/send-email';
 import { campaignStartFn, campaignPauseFn } from '@/lib/inngest/functions/campaign-executor';
 import { warmupTickFn } from '@/lib/inngest/functions/warmup-tick';
+import { warmupReplyFn } from '@/lib/inngest/functions/warmup-reply';
 import { dailyLeadRefreshFn } from '@/lib/inngest/functions/daily-lead-refresh';
 import { dailyAutoSendFn } from '@/lib/inngest/functions/daily-auto-send';
 import { classifyReplyFn } from '@/lib/inngest/functions/classify-reply';
@@ -19,6 +20,7 @@ export const { GET, POST, PUT } = serve({
     campaignStartFn,
     campaignPauseFn,
     warmupTickFn,
+    warmupReplyFn,
     dailyLeadRefreshFn,
     dailyAutoSendFn,
     classifyReplyFn,

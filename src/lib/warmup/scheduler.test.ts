@@ -58,7 +58,7 @@ describe("todayQuota", () => {
     ).toBe(0);
   });
 
-  it("returns WARMUP_BASE (5) on day 0 (same day as start)", () => {
+  it("returns WARMUP_BASE (8) on day 0 (same day as start)", () => {
     expect(
       todayQuota({
         warmupEnabled: true,
@@ -66,10 +66,10 @@ describe("todayQuota", () => {
         dailySendLimit: 50,
         status: "warming",
       })
-    ).toBe(5);
+    ).toBe(8);
   });
 
-  it("returns 8 on day 1 (start + 1 day)", () => {
+  it("returns 11 on day 1 (start + 1 day)", () => {
     const start = new Date(NOW.getTime() - 86_400_000).toISOString();
     expect(
       todayQuota({
@@ -78,7 +78,19 @@ describe("todayQuota", () => {
         dailySendLimit: 50,
         status: "warming",
       })
-    ).toBe(8);
+    ).toBe(11);
+  });
+
+  it("reaches dailySendLimit (50) at day 14 — 14-day warmup window", () => {
+    const start = new Date(NOW.getTime() - 14 * 86_400_000).toISOString();
+    expect(
+      todayQuota({
+        warmupEnabled: true,
+        warmupStartDate: start,
+        dailySendLimit: 50,
+        status: "warming",
+      })
+    ).toBe(50);
   });
 
   it("caps at dailySendLimit", () => {
@@ -102,7 +114,7 @@ describe("todayQuota", () => {
         dailySendLimit: 50,
         status: "active",
       })
-    ).toBe(5);
+    ).toBe(8);
   });
 });
 
@@ -143,7 +155,7 @@ describe("warmupProgress", () => {
     ).toBe(0);
   });
 
-  it("returns 10 on day 0 with limit 50 (5/50 = 10%)", () => {
+  it("returns 16 on day 0 with limit 50 (8/50 = 16%)", () => {
     expect(
       warmupProgress({
         warmupEnabled: true,
@@ -151,7 +163,7 @@ describe("warmupProgress", () => {
         dailySendLimit: 50,
         status: "warming",
       })
-    ).toBe(10);
+    ).toBe(16);
   });
 
   it("returns 100 when fully warmed up", () => {

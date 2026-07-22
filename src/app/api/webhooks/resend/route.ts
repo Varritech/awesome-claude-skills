@@ -22,6 +22,8 @@ import { Webhook } from 'svix';
 import { adminDb } from '@/lib/firebase/admin';
 import { inngest } from '@/lib/inngest/client';
 import { jsonError, logRequest } from '@/lib/api/helpers';
+import { loadWarmupPool } from '@/lib/warmup/pool';
+import { matchWarmupPoolRecipient } from '@/lib/warmup/reply-planner';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +79,8 @@ interface ResendInboundData {
   subject?: string;
   text?: string;
   html?: string;
+  /** Message-ID of the received message (echoed by Resend). */
+  message_id?: string;
   /** When the inbound message is a reply, the original message id appears here. */
   in_reply_to?: string;
   /** ConvergeFlow stamps a custom header on outbound; Resend echoes it. */
@@ -230,6 +234,26 @@ async function handleClicked(data: ResendClickedData): Promise<void> {
 }
 
 async function handleInbound(data: ResendInboundData): Promise<void> {
+  // ── Warmup pool inbound: a warmup email we sent landed at a pool address.
+  // Reply back to the sender via Resend (randomized delay) so the sender's
+  // Gmail sees engagement on the warmup thread. This is NOT a customer reply.
+  const pool = loadWarmupPool();
+  if (pool.length > 0) {
+    const poolRecipient = matchWarmupPoolRecipient(data.to ?? [], pool);
+    if (poolRecipient && data.from) {
+      await inngest.send({
+        name: 'warmup/reply',
+        data: {
+          from: data.from,
+          toRecipient: poolRecipient,
+          subject: data.subject ?? '',
+          messageId: data.message_id ?? data.in_reply_to ?? '',
+        },
+      });
+      return;
+    }
+  }
+
   // Prefer the custom header (carried through by Resend on replies),
   // otherwise fall back to in_reply_to which references the Message-ID
   // of the email we sent.

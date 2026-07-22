@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
-import { LogoIcon } from "@/components/icons";
 import { apiGet, apiPost, apiPatch } from "@/lib/api-client";
 import { HelpTooltip } from "@/components/ui";
 

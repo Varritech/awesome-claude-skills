@@ -12,12 +12,23 @@ interface InboxHealth {
   provider: string;
   status: string;
   warmupEnabled: boolean;
+  warmupStartDate?: string | null;
   warmupProgressPercent: number;
   dailyQuotaUsed: number;
   dailyQuotaTotal: number;
   bounceRate: number;
   lastSentAt?: string;
   statusBadge: "healthy" | "warming" | "warning" | "error";
+}
+
+const WARMUP_WINDOW_DAYS = 14;
+
+function warmupDayLabel(warmupStartDate: string | null | undefined): string {
+  if (!warmupStartDate) return "Day 0 of 14";
+  const start = new Date(warmupStartDate);
+  if (isNaN(start.getTime())) return "Day 0 of 14";
+  const days = Math.floor((Date.now() - start.getTime()) / 86_400_000);
+  return `Day ${Math.max(0, Math.min(WARMUP_WINDOW_DAYS, days + 1))} of ${WARMUP_WINDOW_DAYS}`;
 }
 
 const statusBadgeStyle: Record<InboxHealth["statusBadge"], { bg: string; text: string; label: string }> = {
@@ -105,6 +116,27 @@ export default function InboxHealthPage() {
                   {badge.label}
                 </span>
               </div>
+
+              {/* Warming banner */}
+              {inbox.statusBadge === "warming" && (
+                <div className="bg-cf-amber/10 rounded-[12px] p-4 mb-4 flex items-start gap-3">
+                  <div className="w-7 h-7 min-w-[28px] rounded-[8px] bg-cf-amber/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cf-amber">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-cf-amber mb-0.5">
+                      This mailbox is being warmed.
+                    </p>
+                    <p className="text-[12px] text-white/50 leading-relaxed">
+                      Check back in 14 days to see if this is happening.{" "}
+                      <span className="text-white/35">({warmupDayLabel(inbox.warmupStartDate)})</span>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-4">

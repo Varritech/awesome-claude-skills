@@ -1,5 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { encryptPassword, decryptPassword } from "./mailer";
+import { describe, it, expect, beforeAll, afterAll, vi, type Mock } from "vitest";
+
+// Mock nodemailer so transport construction is observable without a real SMTP server.
+vi.mock("nodemailer", () => ({
+  default: { createTransport: vi.fn() },
+}));
+
+import nodemailer from "nodemailer";
+import {
+  encryptPassword,
+  decryptPassword,
+  getOAuth2Transporter,
+  sendEmailOauth2,
+  type OAuth2Config,
+} from "./mailer";
 
 // Valid 64-char hex key (32 bytes) for tests
 const TEST_KEY = "a".repeat(64);
@@ -74,5 +87,71 @@ describe("encryptionKey validation", () => {
     process.env.SMTP_ENCRYPTION_KEY = "tooshort";
     expect(() => encryptPassword("x")).toThrow("64-char hex string");
     process.env.SMTP_ENCRYPTION_KEY = orig;
+  });
+});
+
+describe("Gmail OAuth2 send path", () => {
+  const cfg: OAuth2Config = {
+    user: "christian@christianvarriale.com",
+    clientId: "google-client-id",
+    clientSecret: "google-client-secret",
+    refreshToken: "google-refresh-token",
+  };
+
+  function mockTransporter() {
+    const transporter = {
+      sendMail: vi.fn().mockResolvedValue({
+        messageId: "<test@example.com>",
+        accepted: ["to@example.com"],
+        rejected: [] as string[],
+      }),
+      verify: vi.fn().mockResolvedValue(true),
+    };
+    (nodemailer.createTransport as Mock).mockReturnValue(transporter);
+    return transporter;
+  }
+
+  it("getOAuth2Transporter builds a Gmail OAuth2 transport (host/port/secure + OAuth2 auth)", () => {
+    mockTransporter();
+    getOAuth2Transporter(cfg);
+
+    expect(nodemailer.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: expect.objectContaining({
+          type: "OAuth2",
+          user: cfg.user,
+          clientId: cfg.clientId,
+          clientSecret: cfg.clientSecret,
+          refreshToken: cfg.refreshToken,
+        }),
+      }),
+    );
+  });
+
+  it("sendEmailOauth2 sends via the OAuth2 transporter with the provided envelope", async () => {
+    // Distinct user so this test builds its own transporter (the pool caches per user).
+    const sendCfg: OAuth2Config = { ...cfg, user: "sender@christianvarriale.com" };
+    const transporter = mockTransporter();
+    const result = await sendEmailOauth2(sendCfg, {
+      from: "ConvergeFlow <sender@christianvarriale.com>",
+      to: "warmup@example.com",
+      subject: "Checking in",
+      html: "<p>Thanks for reaching out.</p>",
+      text: "Thanks for reaching out.",
+      headers: { "X-Warmup": "1" },
+    });
+
+    expect(transporter.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: "ConvergeFlow <sender@christianvarriale.com>",
+        to: "warmup@example.com",
+        subject: "Checking in",
+        html: "<p>Thanks for reaching out.</p>",
+      }),
+    );
+    expect(result.accepted).toEqual(["to@example.com"]);
   });
 });
