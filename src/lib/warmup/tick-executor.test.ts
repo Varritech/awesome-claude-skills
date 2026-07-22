@@ -26,12 +26,16 @@ function makeDeps(): WarmupDeps & {
   sendSmtp: ReturnType<typeof vi.fn>;
   verifySmtp: ReturnType<typeof vi.fn>;
   writeInbox: ReturnType<typeof vi.fn>;
+  logWarmupSend: ReturnType<typeof vi.fn>;
+  incrementWarmupSent: ReturnType<typeof vi.fn>;
 } {
   return {
     sendOauth2: vi.fn().mockResolvedValue({ messageId: "m", accepted: ["x"], rejected: [] }),
     sendSmtp: vi.fn().mockResolvedValue({ messageId: "m", accepted: ["x"], rejected: [] }),
     verifySmtp: vi.fn().mockResolvedValue(true),
     writeInbox: vi.fn().mockResolvedValue(undefined),
+    logWarmupSend: vi.fn().mockResolvedValue(undefined),
+    incrementWarmupSent: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -56,6 +60,31 @@ describe("executeWarmupTick — Gmail OAuth path", () => {
     // day-0 quota = 8, pool size = 2 → min(8, 2) = 2 sends
     expect(deps.sendOauth2).toHaveBeenCalledTimes(2);
     expect(result.warmupSent).toBe(2);
+  });
+
+  it("logs each warmup send + increments the warmupSent counter (visibility)", async () => {
+    const deps = makeDeps();
+    const result = await executeWarmupTick(
+      gmailWarming() as never,
+      ENV as never,
+      NOW,
+      pool(ENV),
+      deps,
+    );
+
+    // 2 sends → 2 log entries + 2 counter increments
+    expect(result.warmupSent).toBe(2);
+    expect(deps.logWarmupSend).toHaveBeenCalledTimes(2);
+    expect(deps.incrementWarmupSent).toHaveBeenCalledTimes(2);
+    // each log entry carries the pool recipient + subject + timestamp
+    const firstEntry = deps.logWarmupSend.mock.calls[0]![1] as {
+      to: string;
+      subject: string;
+      sentAt: string;
+    };
+    expect(firstEntry.to).toMatch(/@example\.com$/);
+    expect(firstEntry.subject).toBeTruthy();
+    expect(firstEntry.sentAt).toBe(NOW.toISOString());
   });
 
   it("backfills warmupStartDate when missing (writes it once)", async () => {

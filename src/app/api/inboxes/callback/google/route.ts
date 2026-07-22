@@ -12,13 +12,16 @@ export async function GET(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://convergeflow-push.vercel.app';
 
-  // Resolve userId from the existing inbox doc (set during POST /api/inboxes)
-  // so we can attach it if the doc needs to be created from scratch.
+  // Resolve userId + warmupSkipped from the existing inbox doc (set during POST
+  // /api/inboxes) so we can attach userId if the doc needs creating from scratch
+  // and honor a user-requested warmup skip.
   let userId: string | undefined;
+  let skipped = false;
   if (state) {
     try {
       const existing = await adminDb.collection('inboxes').doc(state).get();
       userId = existing.exists ? (existing.data()?.userId as string | undefined) : undefined;
+      skipped = Boolean(existing.exists && existing.data()?.warmupSkipped);
     } catch {
       // best-effort
     }
@@ -65,7 +68,9 @@ export async function GET(req: NextRequest) {
     const userInfo = await userInfoRes.json();
     const email = userInfo.email as string;
 
-    // Update or create the inbox record in Firestore
+    // Update or create the inbox record in Firestore.
+    // Honor a user-requested warmup skip (resolved above): keep the inbox
+    // `active` instead of flipping it to `warming` after OAuth.
     if (state) {
       const update = {
         email,
@@ -73,7 +78,8 @@ export async function GET(req: NextRequest) {
         refreshToken: tokens.refresh_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-        status: 'warming' as const,
+        status: (skipped ? 'active' : 'warming') as 'active' | 'warming',
+        ...(skipped ? { warmupEnabled: false } : {}),
       };
       try {
         const ref = adminDb.collection('inboxes').doc(state);
@@ -84,7 +90,7 @@ export async function GET(req: NextRequest) {
           await ref.set({
             id: state,
             provider: 'gmail',
-            warmupEnabled: true,
+            warmupEnabled: skipped ? false : true,
             dailySendLimit: 50,
             createdAt: new Date().toISOString(),
             ...(userId ? { userId } : {}),

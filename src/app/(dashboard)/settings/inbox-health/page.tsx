@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { Card, Skeleton } from "@/components/ui";
 import { MailIcon } from "@/components/icons";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPatch } from "@/lib/api-client";
+
+interface WarmupSendLogEntry {
+  to: string;
+  subject: string;
+  sentAt: string;
+}
 
 interface InboxHealth {
   id: string;
@@ -13,6 +19,8 @@ interface InboxHealth {
   status: string;
   warmupEnabled: boolean;
   warmupStartDate?: string | null;
+  warmupSentTotal: number;
+  recentWarmupSends: WarmupSendLogEntry[];
   warmupProgressPercent: number;
   dailyQuotaUsed: number;
   dailyQuotaTotal: number;
@@ -53,6 +61,12 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 export default function InboxHealthPage() {
   const [inboxes, setInboxes] = useState<InboxHealth[]>([]);
   const [loading, setLoading] = useState(true);
+  const [skippingId, setSkippingId] = useState<string | null>(null);
+
+  const refresh = () =>
+    apiGet<InboxHealth[]>("/api/inboxes/health")
+      .then((res) => setInboxes(res ?? []))
+      .catch(console.error);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +80,19 @@ export default function InboxHealthPage() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  const handleSkipWarmup = async (inboxId: string) => {
+    if (skippingId) return;
+    setSkippingId(inboxId);
+    try {
+      await apiPatch(`/api/inboxes/${inboxId}`, { skipWarmup: true });
+      await refresh();
+    } catch (err) {
+      console.error("Failed to skip warmup", err);
+    } finally {
+      setSkippingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -134,6 +161,28 @@ export default function InboxHealthPage() {
                       Check back in 14 days to see if this is happening.{" "}
                       <span className="text-white/35">({warmupDayLabel(inbox.warmupStartDate)})</span>
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => handleSkipWarmup(inbox.id)}
+                      disabled={skippingId === inbox.id}
+                      className="mt-2 text-[12px] font-bold uppercase tracking-wide text-cf-orange hover:text-cf-orange/80 disabled:opacity-40"
+                    >
+                      {skippingId === inbox.id ? "Activating…" : "Skip warmup — send now"}
+                    </button>
+                    <p className="mt-3 text-[12px] text-white/50">
+                      Warmup emails sent:{" "}
+                      <span className="font-bold text-white/80">{inbox.warmupSentTotal}</span>
+                    </p>
+                    {inbox.recentWarmupSends.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {inbox.recentWarmupSends.slice(0, 5).map((s, i) => (
+                          <li key={i} className="text-[11px] text-white/40 leading-relaxed">
+                            <span className="text-white/55">{s.to}</span> — {s.subject}
+                            <span className="text-white/25"> · {new Date(s.sentAt).toLocaleString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               )}

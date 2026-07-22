@@ -15,6 +15,10 @@ const warmingInbox = {
   status: "warming",
   warmupEnabled: true,
   warmupStartDate: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+  warmupSentTotal: 3,
+  recentWarmupSends: [
+    { to: "warmup1@varritechlabs.com", subject: "Checking in", sentAt: new Date().toISOString() },
+  ],
   warmupProgressPercent: 14,
   dailyQuotaUsed: 0,
   dailyQuotaTotal: 11,
@@ -48,6 +52,10 @@ describe("InboxHealthPage — warming banner", () => {
     ).toBeInTheDocument();
     // Day-of-14 label is rendered from warmupStartDate
     expect(screen.getByText(/Day \d+ of 14/)).toBeInTheDocument();
+    // Warmup visibility: counter + recent log entry
+    expect(screen.getByText(/Warmup emails sent:/)).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText(/warmup1@varritechlabs.com/)).toBeInTheDocument();
   });
 
   it("does not show the warming banner for a healthy/active inbox", async () => {

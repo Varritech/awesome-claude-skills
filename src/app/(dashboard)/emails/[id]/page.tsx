@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, Skeleton } from "@/components/ui";
 import { ChevronLeftIcon } from "@/components/icons";
+import { SequenceEditor } from "@/components/SequenceEditor";
 import { apiGet, apiPost, apiStream } from "@/lib/api-client";
 
 type EmailStatus = "replied" | "opened" | "sent" | "bounced";
@@ -242,6 +243,16 @@ export default function EmailDetailPage() {
           </pre>
         </Card>
       )}
+
+      {/* Sequence — author a multi-step email series for this campaign */}
+      <Card className="mb-5">
+        <p className="text-sm font-bold mb-3 font-heading">Sequence</p>
+        <p className="text-[12px] text-white/40 leading-relaxed mb-4">
+          A series of emails sent over time. Add steps, personalize with variables, and save.
+          The sequence runs when this campaign is started with leads.
+        </p>
+        <SequenceEditor />
+      </Card>
 
       {/* Filters */}
       <div className="flex gap-2 mb-5">

@@ -21,6 +21,7 @@ interface InboxRecord {
   warmupEnabled: boolean;
   warmupStartDate?: string | null;
   dailySendLimit: number;
+  warmupSentTotal?: number;
 }
 
 interface EmailStats {
@@ -28,6 +29,12 @@ interface EmailStats {
   bouncedTotal: number;
   sentTotal: number;
   lastSentAt?: string;
+}
+
+interface WarmupSendLogEntry {
+  to: string;
+  subject: string;
+  sentAt: string;
 }
 
 interface InboxHealth {
@@ -38,6 +45,8 @@ interface InboxHealth {
   status: string;
   warmupEnabled: boolean;
   warmupStartDate?: string | null;
+  warmupSentTotal: number;
+  recentWarmupSends: WarmupSendLogEntry[];
   warmupProgressPercent: number; // 0–100
   dailyQuotaUsed: number;
   dailyQuotaTotal: number;
@@ -93,6 +102,30 @@ async function getEmailStats(inboxId: string): Promise<EmailStats> {
   }
 }
 
+/**
+ * Recent warmup-send log entries (for the Inbox Health "warmup is happening"
+ * visibility). Best-effort — returns [] if the subcollection is empty or
+ * querying fails (e.g. missing composite index).
+ */
+async function getRecentWarmupSends(inboxId: string): Promise<WarmupSendLogEntry[]> {
+  try {
+    const snap = await adminDb
+      .collection('inboxes')
+      .doc(inboxId)
+      .collection('warmupSends')
+      .orderBy('sentAt', 'desc')
+      .limit(10)
+      .get();
+    return snap.docs.map((d) => {
+      const data = d.data() as { to: string; subject: string; sentAt: string };
+      return { to: data.to, subject: data.subject, sentAt: data.sentAt };
+    });
+  } catch (err) {
+    console.warn('[api:inboxes.health] warmupSends query failed', err);
+    return [];
+  }
+}
+
 export async function GET() {
   const auth = await requireUser();
   if (auth.response) return auth.response;
@@ -116,6 +149,7 @@ export async function GET() {
   const healthData = await Promise.all(
     inboxes.map(async (inbox): Promise<InboxHealth> => {
       const stats = await getEmailStats(inbox.id);
+      const recentWarmupSends = await getRecentWarmupSends(inbox.id);
       const quota = todayQuota({
         warmupEnabled: inbox.warmupEnabled,
         warmupStartDate: inbox.warmupStartDate ?? null,
@@ -133,6 +167,8 @@ export async function GET() {
         status: inbox.status,
         warmupEnabled: inbox.warmupEnabled,
         warmupStartDate: inbox.warmupStartDate ?? null,
+        warmupSentTotal: inbox.warmupSentTotal ?? 0,
+        recentWarmupSends,
         warmupProgressPercent: warmupProgressPercent(inbox.warmupStartDate),
         dailyQuotaUsed: stats.sentToday,
         dailyQuotaTotal: quota,

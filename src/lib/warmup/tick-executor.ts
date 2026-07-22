@@ -12,6 +12,13 @@ export interface WarmupDeps {
   sendSmtp: (cfg: SmtpConfig, opts: SendOptions) => Promise<unknown>;
   verifySmtp?: (cfg: SmtpConfig) => Promise<boolean>;
   writeInbox: (id: string, patch: Record<string, unknown>) => Promise<unknown>;
+  /** Append a warmup-send log entry (visibility). Optional — no-op if absent. */
+  logWarmupSend?: (
+    inboxId: string,
+    entry: { to: string; subject: string; sentAt: string },
+  ) => Promise<unknown>;
+  /** Increment the inbox's warmup-sent counter (visibility). Optional. */
+  incrementWarmupSent?: (inboxId: string) => Promise<unknown>;
 }
 
 export interface WarmupTickResult {
@@ -156,6 +163,14 @@ export async function executeWarmupTick(
         await deps.sendSmtp(plan.smtpConfig, opts);
       }
       warmupSent++;
+      // Visibility: log the warmup send + bump the counter so the user can see
+      // warmup emails going out (distinct from real campaign sends).
+      if (deps.logWarmupSend) {
+        await deps.logWarmupSend(working.id, { to, subject, sentAt: iso });
+      }
+      if (deps.incrementWarmupSent) {
+        await deps.incrementWarmupSent(working.id);
+      }
     } catch {
       // best-effort per send; failures don't abort the tick
     }

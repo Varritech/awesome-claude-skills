@@ -22,6 +22,7 @@
 
 import { inngest } from '../client';
 import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, sendEmailOauth2, verifySmtp } from '@/lib/smtp/mailer';
 import { executeWarmupTick } from '@/lib/warmup/tick-executor';
 import { loadWarmupPool } from '@/lib/warmup/pool';
@@ -56,6 +57,13 @@ export const warmupTickFn = inngest.createFunction(
         verifySmtp,
         writeInbox: (id, patch) =>
           adminDb.collection('inboxes').doc(id).set(patch, { merge: true }),
+        logWarmupSend: (id, entry) =>
+          adminDb.collection('inboxes').doc(id).collection('warmupSends').add(entry),
+        incrementWarmupSent: (id) =>
+          adminDb
+            .collection('inboxes')
+            .doc(id)
+            .set({ warmupSentTotal: FieldValue.increment(1) }, { merge: true }),
       });
     });
   },

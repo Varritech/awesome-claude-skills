@@ -32,6 +32,7 @@ export default function InboxPage() {
   const [custom, setCustom] = useState<CustomCredentials>(emptyCustom);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipWarmup, setSkipWarmup] = useState(false);
 
   const handleContinue = async () => {
     if (!selected || submitting) return;
@@ -42,6 +43,7 @@ export default function InboxPage() {
       if (selected === "gmail" || selected === "yahoo") {
         const data = await apiPost<{ authUrl?: string } | null>("/api/inboxes", {
           provider: selected,
+          skipWarmup,
         });
         // OAuth flow: if backend returns an authUrl, redirect for consent
         if (data?.authUrl) {
@@ -53,6 +55,7 @@ export default function InboxPage() {
         await apiPost("/api/inboxes", {
           provider: "custom",
           credentials: custom,
+          skipWarmup,
         });
         router.push("/onboarding/industry");
       }
@@ -278,18 +281,43 @@ export default function InboxPage() {
             </div>
           </div>
 
-          {/* Warmup notice */}
-          <div className="bg-[#D4E4DD] rounded-[14px] p-5 flex items-start gap-3.5 mb-7 text-left">
-            <div className="w-10 h-10 min-w-[40px] rounded-[10px] bg-[rgba(27,27,31,0.1)] flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B1B1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
+          {/* Warmup notice (hidden when the user opts to skip warmup) */}
+          {!skipWarmup && (
+            <div className="bg-[#D4E4DD] rounded-[14px] p-5 flex items-start gap-3.5 mb-4 text-left">
+              <div className="w-10 h-10 min-w-[40px] rounded-[10px] bg-[rgba(27,27,31,0.1)] flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B1B1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <p className="text-[13px] text-[#1B1B1F] leading-relaxed font-medium">
+                We&apos;re warming up your inbox. Takes about 2 weeks, but you don&apos;t need to do anything.
+              </p>
             </div>
-            <p className="text-[13px] text-[#1B1B1F] leading-relaxed font-medium">
-              We&apos;re warming up your inbox. Takes about 2 weeks, but you don&apos;t need to do anything.
-            </p>
-          </div>
+          )}
+
+          {/* Skip warmup toggle */}
+          <button
+            type="button"
+            onClick={() => setSkipWarmup((v) => !v)}
+            className={`w-full flex items-center gap-3 bg-[#222228] rounded-[14px] p-4 mb-7 text-left transition-all duration-150 border-2 ${
+              skipWarmup ? "border-cf-orange" : "border-transparent hover:border-cf-orange/30"
+            }`}
+          >
+            <div className={`w-5 h-5 min-w-[20px] rounded-[6px] flex items-center justify-center shrink-0 ${skipWarmup ? "bg-cf-orange" : "bg-white/10"}`}>
+              {skipWarmup && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-[14px] font-bold font-heading">Skip warmup — send immediately</p>
+              <p className="text-[12px] text-white/50 leading-relaxed">
+                Go straight to active. Best for testing — sending from an unwarmed inbox can hurt deliverability.
+              </p>
+            </div>
+          </button>
 
           {error && (
             <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>

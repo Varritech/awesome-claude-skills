@@ -103,6 +103,7 @@ export const connectInboxSchema = z.object({
   email: z.string().email().optional(),
   displayName: z.string().optional(),
   domainId: z.string().optional(),
+  skipWarmup: z.boolean().optional(),
   smtp: z
     .object({
       host: z.string(),

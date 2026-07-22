@@ -28,6 +28,23 @@ const ALL_TAGS = [
 export type MergeTag = (typeof ALL_TAGS)[number];
 
 /**
+ * Human-readable docs for each merge tag — the canonical source the editor's
+ * variable-reference guide renders. Keep in sync with `replacements` below.
+ */
+export const MERGE_TAG_DOCS: Array<{ tag: MergeTag; label: string; description: string }> = [
+  { tag: "{{firstName}}", label: "First name", description: "Recipient's first name." },
+  { tag: "{{lastName}}", label: "Last name", description: "Recipient's last name." },
+  { tag: "{{company}}", label: "Company", description: "Recipient's company." },
+  { tag: "{{title}}", label: "Title", description: "Recipient's role/title." },
+  { tag: "{{industry}}", label: "Industry", description: "Recipient's industry." },
+  { tag: "{{location}}", label: "Location", description: "Recipient's location." },
+  { tag: "{{senderName}}", label: "Sender name", description: "Your name (the sending identity)." },
+  { tag: "{{senderCompany}}", label: "Sender company", description: "Your company." },
+  { tag: "{{currentDate}}", label: "Current date", description: "Today's date, formatted." },
+  { tag: "{{customSubdomain}}", label: "Custom subdomain", description: "The prospect's demo subdomain, if available." },
+];
+
+/**
  * Resolve all merge tags in a template string.
  *
  * @param template - The email template containing {{tag}} placeholders.

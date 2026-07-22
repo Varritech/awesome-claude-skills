@@ -8,6 +8,7 @@ import {
 } from '@/lib/api/helpers';
 import { connectInboxSchema } from '@/lib/schemas';
 import { encryptPassword, verifySmtp } from '@/lib/smtp/mailer';
+import { planInboxConnect } from '@/lib/inboxes/plan-connect';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ interface InboxRecord {
   warmupEnabled: boolean;
   dailySendLimit: number;
   warmupStartDate?: string | null;
+  warmupSkipped?: boolean;
   domainId?: string;
   smtpHost?: string;
   smtpPort?: number;
@@ -127,18 +129,24 @@ export async function POST(req: NextRequest) {
   // accepted so the connected inbox can be tied to a sending domain, but
   // we do not auto-provision a new mailbox from it.
 
-  // SMTP creds present (Gmail OAuth or own SMTP) → kick off warmup immediately.
+  // SMTP creds present (Gmail OAuth or own SMTP) → kick off warmup immediately,
+  // unless the user opted to skip warmup (inbox goes straight to `active`).
   const hasSmtp = Boolean(resolvedSmtp.encryptedPassword);
+  const connectPlan = planInboxConnect(
+    { skipWarmup: parsed.data.skipWarmup, hasSmtp },
+    new Date(now),
+  );
   const record: InboxRecord = {
     id,
     userId,
     provider,
     email: resolvedEmail,
     ...(displayName ? { displayName } : {}),
-    status: hasSmtp ? 'warming' : 'connecting',
-    warmupEnabled: true,
+    status: connectPlan.status,
+    warmupEnabled: connectPlan.warmupEnabled,
     dailySendLimit: 50,
-    warmupStartDate: hasSmtp ? now : null,
+    warmupStartDate: connectPlan.warmupStartDate,
+    ...(parsed.data.skipWarmup ? { warmupSkipped: true } : {}),
     ...(parsed.data.domainId ? { domainId: parsed.data.domainId } : {}),
     ...(resolvedSmtp.host ? { smtpHost: resolvedSmtp.host } : {}),
     ...(resolvedSmtp.port ? { smtpPort: resolvedSmtp.port } : {}),
