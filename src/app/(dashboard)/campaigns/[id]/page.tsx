@@ -111,7 +111,7 @@ export default function CampaignDetailPage() {
     if (attaching || selectedLeadIds.size === 0) return;
     setAttaching(true);
     try {
-      await apiPost(`/api/campaigns/${id}/leads`, { leadIds: [...selectedLeadIds] });
+      await apiPost(`/api/campaigns/${id}/leads`, { leadIds: Array.from(selectedLeadIds) });
       setSelectedLeadIds(new Set());
       await refreshLeads();
     } catch (err) {
