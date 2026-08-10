@@ -2,8 +2,10 @@
 // plain white single-column 600px email, Arial 16px black text, one-sentence
 // paragraphs, numbered steps, one soft CTA, catchphrase sign-off, PS, footer.
 
-export function renderSubject(hook) {
-  return `Varritech Minute: ${hook}`;
+import { MASTHEADS } from './audiences.js';
+
+export function renderSubject(hook, edition = 'varritech-minute') {
+  return `${MASTHEADS[edition] || MASTHEADS['varritech-minute']}: ${hook}`;
 }
 
 const SIGN_OFF = 'Keep building things that work while you sleep.';
@@ -27,7 +29,16 @@ function p(text) {
   return `<p style="font-size:16px; color:#000000; line-height:150%; margin:0 0 16px 0;">${text}</p>`;
 }
 
-export function renderHtml(draft, { unsubscribeUrl = 'mailto:christian@varritech.com?subject=unsubscribe', email = '', newsletter = '' } = {}) {
+// Open-tracking pixel — a 1x1 <img> hitting /o, unique per recipient + send.
+// Only emitted when both a baseUrl and a recipient are known (never on the
+// approver preview render).
+function openPixel(baseUrl, email, newsletter) {
+  if (!baseUrl || !email) return '';
+  const q = new URLSearchParams({ e: email, n: newsletter || '' });
+  return `<img src="${baseUrl}/o?${q.toString()}" width="1" height="1" alt="" style="display:block;border:0;" />`;
+}
+
+export function renderHtml(draft, { unsubscribeUrl = 'mailto:christian@varritech.com?subject=unsubscribe', email = '', newsletter = '', baseUrl = '' } = {}) {
   const { paragraphs = [], steps = [], cta, ps } = draft;
   const parts = [];
 
@@ -63,6 +74,7 @@ export function renderHtml(draft, { unsubscribeUrl = 'mailto:christian@varritech
   <div style="min-width:280px; max-width:600px; margin:0 auto; padding:20px;">
     ${parts.join('\n    ')}
     ${footer}
+    ${openPixel(baseUrl, email, newsletter)}
   </div>
 </body>
 </html>`;
