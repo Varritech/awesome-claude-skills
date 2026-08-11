@@ -4,7 +4,7 @@ import { loadAudience, isEdition } from '../audiences.js';
 
 test('the Scalewright Inner Circle edition resolves to its hand-picked list', async () => {
   const list = await loadAudience('scalewright-inner-circle');
-  assert.equal(list.length, 30);
+  assert.equal(list.length, 27);
   // spot-check one member from each cohort the list was assembled from
   for (const email of [
     'angus@vulcan-adv.com',                    // invited founder, never joined Slack
@@ -25,6 +25,9 @@ test('deliberately excluded people stay out of the Inner Circle', async () => {
     'llanauxjr@hotmail.com',                   // Laniel — removed 2026-08-10
     'hannah.melotto@melottogroup.com',         // Hannah Melotto — removed 2026-08-10
     'greghillgb@gmail.com',                    // Greg Hill — open billing dispute
+    'sefakolucy854@gmail.com',                 // Lehlohonolo — removed 2026-08-11
+    'moxiclear8@gmail.com',                    // Nicole Moxey — removed 2026-08-11
+    'idea.atm2346@gmail.com',                  // Nathan Hill — removed 2026-08-11
     'christian@varritech.com',                 // sender
     'jake@varritech.com',                      // Varritech staff, not a member
     'guido@varritech.com',
