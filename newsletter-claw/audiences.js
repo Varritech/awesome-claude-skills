@@ -50,15 +50,14 @@ export const SCALEWRIGHT_INNER_CIRCLE = [
   'dhoods31@gmail.com',                // Alex
   'ceo@praxia.ch',                     // Charlie — Praxia
   'erik.huber@reelworld.com',          // Erik Huber — Reelworld
-  'sefakolucy854@gmail.com',           // Lehlohonolo
-  'moxiclear8@gmail.com',              // Nicole Moxey
-  'idea.atm2346@gmail.com',            // Nathan Hill
   'jayar@j2-i.com',                    // Jay-Ar Jamon — J2i
 ];
 
 // ⛔ Removed on explicit instruction — do NOT reinstate without asking:
 //   Laniel `llanauxjr@hotmail.com` + Hannah Melotto `hannah.melotto@melottogroup.com`
 //     (both applied for tier=scalewright_circle; dropped 2026-08-10)
+//   Lehlohonolo `sefakolucy854@gmail.com`, Nicole Moxey `moxiclear8@gmail.com`,
+//     Nathan Hill `idea.atm2346@gmail.com` (join-form applicants, dropped 2026-08-11)
 //   Walson (Phleekz) — no email ever looked up
 //   Greg / Gregory Hill (TutorAssist) `greghillgb@gmail.com` — open £23k billing dispute
 // Also absent by design: Varritech staff (christian@, jake@, guido@, johaimalin@),
