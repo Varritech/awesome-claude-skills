@@ -9,14 +9,61 @@
 // would silently turn a private note into a broadcast.
 import { loadLeads, mergeLeads } from './leads.js';
 
+// Assembled 2026-08-10 from every person ever associated with the Varritech
+// Founder Ecosystem (37 distinct), then narrowed by explicit instruction.
+// Sources: the #varritech-founder-ecosystem Slack roster + its join/leave
+// timeline, the channel's pinned welcome post, and the Supabase
+// `community_invites` join-form table.
 export const SCALEWRIGHT_INNER_CIRCLE = [
-  'angus@vulcan-adv.com',
-  'fernan_violinist@yahoo.com',
-  'thebizhive@proton.me',
-  'georgie@troublemaker-studio.com',
-  'info@panaceacorporatewellness.com',
-  'theadkinsgroup@outlook.com',
+  // Invited founders who never joined Slack
+  'angus@vulcan-adv.com',              // Angus McLaughlin — LazyChef / Vulcan Advisory
+  'fernan_violinist@yahoo.com',        // Fernando — Supreme
+  'thebizhive@proton.me',              // Zack — Varto
+  'georgie@troublemaker-studio.com',   // Georgie — ffreya / Troublemaker Studio
+
+  // Added by hand from HubSpot (never Founder Ecosystem members)
+  'info@panaceacorporatewellness.com', // Magnolia Sarshar — Panacea Corporate Wellness
+  'theadkinsgroup@outlook.com',        // Mickey Adkins — The Adkins Group
+
+  // Current Slack members (external founders only — Varritech staff excluded)
+  'cjtufano@getcherrypicker.com',      // CJ Tufano — Cherrypicker
+  'contact@thecohive.com',             // Chiamaka — CoHive
+  'jitka@portabletenant.com',          // Jitka — Portable Tenant
+  'guyriches28@gmail.com',             // Guy Riches — ffreya
+  'kareem663@gmail.com',               // Kareem Maize — ConvergeFlow
+  'carroll.denzel@yahoo.com',          // Denzel Carroll — Renaissance
+
+  // Former Slack members (joined at one point, since left)
+  'mark@neuronovaeducation.org',       // Mark — NeuroNova
+  'leonardovinciguerra1998@gmail.com', // Leonardo Vinciguerra — Aldara
+  'tyron@thunderinc.info',             // Tyron — Fiesta by Thunder
+  'am@innovasol.co.uk',                // Ali — Innovasol / PilotsLogAI
+  'admin@drpksolutions.com',           // PKCS LLC — Priscilla Kucer Consulting
+  'mehul.patel@pathogensai.com',       // Dr Mehul Patel — PathogensAI
+  'erick@ucentered.co.uk',             // Erick M — Ucentered
+  'daresanusi@gmail.com',              // Daniel Sanusi — VOX
+  'nayyaroz@gmail.com',                // nayyaroz
+  'ikeudeokoro@gmail.com',             // Ike Udeokoro — Notove AI
+  'principalaisystemsarchitect@gmail.com', // "Ai Systems Architect"
+
+  // Applied through the /community join form (community_invites)
+  'dhoods31@gmail.com',                // Alex
+  'ceo@praxia.ch',                     // Charlie — Praxia
+  'erik.huber@reelworld.com',          // Erik Huber — Reelworld
+  'sefakolucy854@gmail.com',           // Lehlohonolo
+  'moxiclear8@gmail.com',              // Nicole Moxey
+  'idea.atm2346@gmail.com',            // Nathan Hill
+  'jayar@j2-i.com',                    // Jay-Ar Jamon — J2i
 ];
+
+// ⛔ Removed on explicit instruction — do NOT reinstate without asking:
+//   Laniel `llanauxjr@hotmail.com` + Hannah Melotto `hannah.melotto@melottogroup.com`
+//     (both applied for tier=scalewright_circle; dropped 2026-08-10)
+//   Walson (Phleekz) — no email ever looked up
+//   Greg / Gregory Hill (TutorAssist) `greghillgb@gmail.com` — open £23k billing dispute
+// Also absent by design: Varritech staff (christian@, jake@, guido@, johaimalin@),
+// ryan/Parkplan (former member, email unrecoverable), and the junk community_invites
+// rows (t@t.com, "Scammer", diag/probe addresses).
 
 const EDITIONS = {
   'varritech-minute': loadLeads,
