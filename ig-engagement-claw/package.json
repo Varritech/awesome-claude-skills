@@ -1,0 +1,16 @@
+{
+  "name": "ig-engagement-claw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hourly browser-driven Instagram engagement outreach — new followers + post likers, deduped, human-paced, handed off to the sales claw.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "run:once": "node src/cli.js run",
+    "ledger": "node src/cli.js ledger"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}
