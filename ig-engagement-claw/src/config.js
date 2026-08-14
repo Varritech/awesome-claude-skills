@@ -1,5 +1,6 @@
 export const config = () => ({
   statePath: process.env.CLAW_STATE || new URL('../state/contacted.json', import.meta.url).pathname,
+  seenPath: process.env.CLAW_SEEN || new URL('../state/seen-notifications.json', import.meta.url).pathname,
   // Per RUN. Small on purpose: the claw polls every 5 min, so this is "how many
   // at once", not "how many per hour" — that is perHour/perDay below.
   cap: Number(process.env.RUN_CAP ?? process.env.HOURLY_CAP ?? 2),

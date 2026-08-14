@@ -14,6 +14,7 @@
 
 import { readFileSync } from 'node:fs';
 import { createLedger } from './ledger.js';
+import { createSeenStore } from './seen.js';
 import { planBatch, commitSend, skipTarget } from './pipeline.js';
 import { anthropicLlm } from './llm.js';
 import { firestoreStore, nullStore } from './firestore-store.js';
@@ -35,7 +36,8 @@ const cmd = process.argv[2];
 
 if (cmd === 'next') {
   const result = await planBatch({
-    scrape: JSON.parse(readStdin()),
+    notifications: JSON.parse(readStdin()),
+    seen: createSeenStore({ path: cfg.seenPath }),
     ledger,
     llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model }),
     cap: cfg.cap,

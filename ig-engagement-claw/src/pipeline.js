@@ -2,17 +2,32 @@
 // so the whole path is testable end to end without a browser, a model, or a
 // database.
 
-import { collectTargets } from './targets.js';
+import { parseNotifications } from './notifications.js';
+import { newSince } from './seen.js';
 import { selectBatch } from './select.js';
 import { draftOpener } from './opener.js';
 import { recordOpener } from './handoff.js';
 
-/** Raw scrape in -> the exact people to message, each with a finished opener. */
-export async function planBatch({ scrape, ledger, llm, cap, now, window: win, killSwitch = false }) {
-  if (killSwitch) return { killed: true, considered: 0, batch: [] };
-  const drive = async (step) => scrape[step.op] ?? [];
-  const targets = await collectTargets({ drive, now: new Date(now).toISOString() });
-  const batch = selectBatch({ targets, ledger, cap, now, window: win });
+/**
+ * Raw notification rows in -> the exact people to message, each with a finished
+ * opener.
+ *
+ * The claw watches the notifications feed and messages the DIFF. The first call
+ * ever made is a silent baseline (see newSince) — it records where we stood and
+ * plans nobody, so installing this doesn't cold-DM the entire backlog at once.
+ */
+export async function planBatch({
+  notifications, seen, ledger, llm, cap, rate, now, window: win, killSwitch = false,
+}) {
+  if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [] };
+
+  const wasBaseline = seen.isBaseline();
+  const targets = newSince(parseNotifications(notifications), seen);
+  if (wasBaseline) {
+    return { killed: false, baseline: true, considered: 0, batch: [] };
+  }
+
+  const batch = selectBatch({ targets, ledger, cap, now, window: win, rate });
   const withOpeners = [];
   for (const target of batch) {
     const text = await draftOpener({ target, llm });
@@ -22,7 +37,7 @@ export async function planBatch({ scrape, ledger, llm, cap, now, window: win, ki
     if (!text) continue;
     withOpeners.push({ ...target, text });
   }
-  return { killed: false, considered: targets.length, batch: withOpeners };
+  return { killed: false, baseline: false, considered: targets.length, batch: withOpeners };
 }
 
 /**
