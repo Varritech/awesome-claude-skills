@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLedger } from '../src/ledger.js';
+import { createSeenStore } from '../src/seen.js';
 import { planBatch, commitSend, skipTarget } from '../src/pipeline.js';
 
 let dir, path;
@@ -10,19 +11,30 @@ beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'claw-')); path = join(dir, 
 afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
 
 const WORKDAY = new Date('2026-08-13T14:00:00-04:00');
-const SCRAPE = {
-  readNewFollowers: [{ handle: '@Ana' }, { handle: 'bob' }],
-  readRecentPosts: [{ postId: 'P1', caption: 'cutting render time' }],
-  readPostLikers: [{ handle: 'carl' }],
-};
+// Verbatim shapes from the live @varritech notifications feed.
+const NOTIFS = [
+  { handle: '@Ana', text: 'Ana started following you. 5m Follow Back', postHref: null },
+  { handle: 'bob', text: 'bob started following you. 12m Follow Back', postHref: null },
+  { handle: 'carl', text: 'carl liked your reel. 20m', postHref: '/p/P1/' },
+];
+const seenStore = () => createSeenStore({ path: join(dir, 'seen.json') });
+
+// Every plan needs a prior look to diff against. Baseline on an empty feed so
+// whatever the test passes next counts as new.
+async function planAfterBaseline(opts) {
+  await planBatch({ notifications: [], seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
+  return planBatch({ seen: seenStore(), ...opts });
+}
 const llm = async ({ target }) => `Hey ${target.handle}, saw you around. What are you building? https://varritech.com`;
 const memStore = () => { const d = new Map(); return { d, get: async (c, k) => d.get(`${c}/${k}`) ?? null, set: async (c, k, v) => d.set(`${c}/${k}`, v) }; };
 
 describe('plan -> send -> commit -> replan', () => {
   it('never re-offers a person once their send is committed', async () => {
     const store = memStore();
+    // Establish the baseline on an EMPTY feed, so the three below arrive as new.
+    await planBatch({ notifications: [], seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
 
-    const first = await planBatch({ scrape: SCRAPE, ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
+    const first = await planBatch({ notifications: NOTIFS, seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
     expect(first.batch.map((t) => t.handle).sort()).toEqual(['ana', 'bob', 'carl']);
     // carl liked P1, so he is ranked first and his opener can reference the post
     expect(first.batch[0].handle).toBe('carl');
@@ -36,7 +48,7 @@ describe('plan -> send -> commit -> replan', () => {
     }
 
     // next hour: fresh process, fresh ledger read off disk
-    const second = await planBatch({ scrape: SCRAPE, ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
+    const second = await planBatch({ notifications: NOTIFS, seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
     expect(second.batch.map((t) => t.handle)).toEqual(['bob']);
 
     // and the sales claw can see the opener it must not repeat
@@ -66,7 +78,7 @@ describe('plan -> send -> commit -> replan', () => {
     expect(led.has('ana')).toBe(true);
     expect(led.sentSince(3600_000, WORKDAY.getTime())).toBe(0);  // costs no send budget
 
-    const plan = await planBatch({ scrape: SCRAPE, ledger: led, llm, cap: 10, now: WORKDAY });
+    const plan = await planAfterBaseline({ notifications: NOTIFS, ledger: led, llm, cap: 10, now: WORKDAY });
     expect(plan.batch.map((t) => t.handle)).not.toContain('ana');
   });
 
@@ -74,11 +86,29 @@ describe('plan -> send -> commit -> replan', () => {
     const placeholderLlm = async ({ target }) =>
       target.handle === 'bob' ? 'Hey, into [their niche]?' : 'Hey, what are you building?';
 
-    const plan = await planBatch({
-      scrape: SCRAPE, ledger: createLedger({ path }), llm: placeholderLlm, cap: 10, now: WORKDAY,
+    const plan = await planAfterBaseline({
+      notifications: NOTIFS, ledger: createLedger({ path }), llm: placeholderLlm, cap: 10, now: WORKDAY,
     });
 
     expect(plan.batch.map((t) => t.handle)).not.toContain('bob');
     for (const t of plan.batch) expect(t.text.length).toBeGreaterThan(0);
+  });
+
+  it('says nothing on the first look, then plans only who appeared afterwards', async () => {
+    const seen = seenStore();
+
+    const first = await planBatch({
+      notifications: NOTIFS, seen, ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY,
+    });
+    expect(first.baseline).toBe(true);
+    expect(first.batch).toEqual([]);
+
+    const later = [...NOTIFS, { handle: 'dee', text: 'dee started following you. 1m Follow Back', postHref: null }];
+    const second = await planBatch({
+      notifications: later, seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY,
+    });
+
+    expect(second.baseline).toBe(false);
+    expect(second.batch.map((t) => t.handle)).toEqual(['dee']);
   });
 });

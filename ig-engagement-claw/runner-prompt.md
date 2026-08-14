@@ -37,51 +37,55 @@ safe to attempt.
 - Stop immediately on a login wall, checkpoint/challenge screen, "Action Blocked", "Try Again
   Later", or a 2FA prompt. A checkpoint is Instagram telling you it already noticed.
 
-## 1. Scrape (READ ONLY)
+## 1. Read the notifications feed (READ ONLY)
 
-Both lists are **virtualized** — the DOM only holds what's been scrolled past, so scroll before
-extracting or you'll get the first ~12 rows and think that's everyone.
+The notifications feed already says who followed and who liked, newest first.
+Do NOT scrape the followers list — 674 rows, virtualized, and it cannot tell a
+follower from 2024 apart from one from two minutes ago.
 
-Followers: `browser_navigate` → `https://www.instagram.com/varritech/followers/`, then
-`mcp__browsermcp__browser_scroll` → `{ "to": "bottom", "steps": 6, "delayMs": 900 }`.
+`browser_navigate` → `https://www.instagram.com/varritech/`, then open
+**Notifications** from the left rail (`browser_snapshot` → click its ref).
 
-Then extract with `mcp__browsermcp__browser_execute_js`. Unsafe mode needs an IIFE wrapper:
+⛔ Do NOT navigate straight to `/varritech/followers/` or a notifications URL —
+Instagram renders those panels only via the in-app click path. A direct
+navigation gives you a page with no dialog on it and looks like "no results".
 
-```json
-{
-  "unsafe": true,
-  "code": "(function(){ const seen=new Set(); document.querySelectorAll('div[role=\"dialog\"] a[href^=\"/\"]').forEach(a=>{ const h=a.getAttribute('href').replace(/\\//g,''); if(h && !h.includes('explore') && !h.includes('varritech')) seen.add(h); }); return [...seen].slice(0,30); })()"
-}
+Extract rows with `mcp__browsermcp__browser_execute_js` (unsafe mode, IIFE):
+
+```js
+(function(){
+  var rows=[];
+  document.querySelectorAll('a[href^="/"]').forEach(function(a){
+    var h=a.getAttribute('href').replace(/^\//,'').replace(/\/$/,'');
+    if(!h || h.indexOf('/')>=0 || h==='varritech') return;
+    var box=a.closest('div[role="button"]') || a.parentElement.parentElement.parentElement;
+    if(!box) return;
+    var t=(box.innerText||'').replace(/\s+/g,' ').trim();
+    if(!t) return;
+    var pl=box.querySelector('a[href*="/p/"],a[href*="/reel/"]');
+    rows.push({handle:h, text:t.slice(0,140), postHref: pl?pl.getAttribute('href'):null});
+  });
+  return rows;
+})()
 ```
 
-If unsafe mode is disabled on this server, fall back to safe mode (`api.getText` / `api.exists`,
-no wrapper) or to reading handles out of `browser_snapshot`. Either is fine — you just need the
-handles.
-
-Repeat per post for likers: open each of the 3 most recent posts, click its likes count,
-scroll the dialog, extract the same way.
-
-Assemble exactly:
-
-```json
-{
-  "readNewFollowers": [{ "handle": "@someone" }],
-  "readRecentPosts":  [{ "postId": "<shortcode>", "caption": "<gist, <=8 words>" }],
-  "readPostLikers":   [{ "handle": "@someone" }]
-}
-```
-
-30 followers and 30 likers per post is plenty. Do not go hunting for more.
+Pass that array through verbatim. Do not filter, dedupe or interpret it —
+`cli.js` knows which rows are follows, which are likes, and which to ignore.
 
 ## 2. Plan
 
 ```
-echo '<that json>' | node src/cli.js next
+echo '<the rows json>' | node src/cli.js next
 ```
 
-Returns `{ considered, batch: [{ handle, source, postId, text }] }`. An empty batch is a
-normal, correct outcome — outside sending hours, or everyone already contacted.
-**If the batch is empty, stop.**
+Returns `{ baseline, considered, batch: [{ handle, source, postId, text }] }`.
+
+⛔ **`"baseline": true` means this was the first look ever.** It recorded where things
+stood and planned nobody, on purpose — otherwise installing the claw would cold-DM
+everyone who ever liked a post. Report it and stop.
+
+An empty batch is the NORMAL outcome — nothing new, budget spent, or outside sending
+hours. **If the batch is empty, stop.** Never go hunting for people to fill a quota.
 
 ## 3. Send — one at a time
 

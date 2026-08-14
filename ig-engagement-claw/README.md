@@ -53,13 +53,32 @@ human-ness comes from the varied 40–90s gap between people, not from keystroke
 ## Flow
 
 ```
-launchd (5x/day, staggered)
+launchd (every 5 min)
   -> claude -p runner-prompt.md
-      1. read new followers + likers of last 3 posts        (READ ONLY)
-      2. echo <scrape json> | node src/cli.js next          -> batch + openers
-      3. type + send each, 40-90s apart, human-paced
-      4. node src/cli.js commit <handle> <text> [igUserId]  -> ledger + handoff
+      1. read the NOTIFICATIONS feed                        (READ ONLY)
+      2. echo <rows json> | node src/cli.js next            -> diff vs snapshot
+                                                              -> batch + openers
+      3. open each DM; if the thread already has messages:
+         node src/cli.js skip <handle> existing-thread      -> never reconsider
+      4. otherwise type + send, 40-90s apart, human-paced
+      5. node src/cli.js commit <handle> <text> [igUserId]  -> ledger + handoff
 ```
+
+## Why notifications, not the followers list
+
+The followers list can't distinguish a follower from 2024 from one from two minutes
+ago, and it means scrolling 674 virtualized rows every poll. The notifications feed
+already says who did what and how recently, newest first.
+
+**The first run ever is a silent baseline.** It records what's on the feed and messages
+nobody — otherwise installing the claw would cold-DM the entire backlog at once. Only
+things appearing after that count as new.
+
+⛔ The snapshot is *only* the install-day baseline; nothing is marked seen afterwards.
+An earlier version marked everything seen on every poll, which silently dropped anyone
+we couldn't message that minute (budget spent, outside hours, unusable draft) — they
+were never surfaced again. Leaving them unmarked makes the feed a work queue. Re-messaging
+is prevented by the **ledger** (keyed by person), not the snapshot (keyed by event).
 
 ## Safety rules, and where each one actually lives
 
@@ -103,7 +122,9 @@ npm test
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | required for opener drafting |
 | `GOOGLE_CLOUD_PROJECT` | — | unset = handoff disabled (warns loudly, still sends) |
-| `HOURLY_CAP` | `6` | **start at 3** |
+| `RUN_CAP` | `2` | per run — the claw polls every 5 min |
+| `MAX_PER_HOUR` | `4` | wall-clock, from the ledger |
+| `MAX_PER_DAY` | `15` | wall-clock, from the ledger |
 | `START_HOUR` / `END_HOUR` | `9` / `20` | local to `CLAW_TZ` |
 | `CLAW_TZ` | `America/New_York` | |
 | `KILL_SWITCH` | — | `1` = send nothing |
@@ -113,8 +134,13 @@ cp com.varritech.ig-engagement-claw.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.varritech.ig-engagement-claw.plist
 ```
 
-Schedule is 5 staggered off-the-hour times, not `:00` hourly — a job that fires exactly
-on the hour is itself a pattern. `launchd` needs the Mac awake.
+Runs every 5 minutes, so a follow gets a reply while the person still remembers you.
+
+⛔ **Polling every 5 min does NOT mean sending every 5 min.** The send budget is
+wall-clock (`MAX_PER_HOUR`/`MAX_PER_DAY`), enforced in `select.js` against the ledger, so
+most runs correctly do nothing. If the cap were per-run, this cadence would multiply
+volume by 12. `launchd` needs the Mac awake, and the run aborts unless Dia is open,
+logged in, and the Browser MCP extension is Connected.
 
 ## ⛔ Read before turning it on
 
