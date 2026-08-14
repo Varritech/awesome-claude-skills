@@ -3,20 +3,38 @@
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.varritech.ig-engagement-claw</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/zsh</string>
-    <string>-lc</string>
-    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; /usr/local/bin/claude -p "$(cat runner-prompt.md)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
-  </array>
+
+  <!-- 5 staggered off-the-hour runs a day. A job firing exactly at :00 is
+       itself a detectable pattern. NO Weekday keys on purpose: the weekday +
+       business-hours rule lives in select.js (isSendingWindow) so there is ONE
+       source of truth — a weekend run still fires, plans an empty batch, and
+       sends nothing. launchd does NOT wake the Mac; a missed run is skipped,
+       which is the safe failure. -->
   <key>StartCalendarInterval</key>
   <array>
     <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>17</integer></dict>
     <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>34</integer></dict>
-    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>08</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>8</integer></dict>
     <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>41</integer></dict>
     <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>23</integer></dict>
   </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- Start conservative. Raise only after watching a week of real runs. -->
+    <key>HOURLY_CAP</key><string>3</string>
+    <key>CLAW_TZ</key><string>America/New_York</string>
+    <key>START_HOUR</key><string>9</string>
+    <key>END_HOUR</key><string>20</string>
+  </dict>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "$(cat runner-prompt.md)" --allowedTools "mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
+  </array>
+
   <key>RunAtLoad</key><false/>
   <key>StandardErrorPath</key><string>/tmp/ig-engagement-claw.err</string>
 </dict>
