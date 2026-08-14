@@ -4,6 +4,10 @@ export const config = () => ({
   // Per RUN. Small on purpose: the claw polls every 5 min, so this is "how many
   // at once", not "how many per hour" — that is perHour/perDay below.
   cap: Number(process.env.RUN_CAP ?? process.env.HOURLY_CAP ?? 2),
+  // Never cold-DM these, ever: own/personal/family accounts that engage with the
+  // company posts. Comma-separated in CLAW_EXCLUDE.
+  exclude: (process.env.CLAW_EXCLUDE ?? 'varriale.cristiano,jess_varriale,varritech')
+    .split(',').map((h) => h.trim()).filter(Boolean),
   rate: {
     perHour: Number(process.env.MAX_PER_HOUR ?? 4),
     perDay: Number(process.env.MAX_PER_DAY ?? 15),

@@ -17,7 +17,7 @@ import { recordOpener } from './handoff.js';
  * plans nobody, so installing this doesn't cold-DM the entire backlog at once.
  */
 export async function planBatch({
-  notifications, seen, ledger, llm, cap, rate, now, window: win, killSwitch = false,
+  notifications, seen, ledger, llm, cap, rate, now, window: win, exclude, killSwitch = false,
 }) {
   if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [] };
 
@@ -27,7 +27,7 @@ export async function planBatch({
     return { killed: false, baseline: true, considered: 0, batch: [] };
   }
 
-  const batch = selectBatch({ targets, ledger, cap, now, window: win, rate });
+  const batch = selectBatch({ targets, ledger, cap, now, window: win, rate, exclude });
   const withOpeners = [];
   for (const target of batch) {
     const text = await draftOpener({ target, llm });

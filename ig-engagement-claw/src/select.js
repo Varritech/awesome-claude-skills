@@ -5,6 +5,8 @@
 // A liker engaged with a specific post, so the opener can reference something
 // real. A bare follower gives us nothing to open on. When slots are scarce,
 // spend them where the message can actually be specific.
+import { normalizeHandle } from './handle.js';
+
 const PRIORITY = { liker: 0, follower: 1 };
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -48,11 +50,15 @@ export function remainingBudget({ ledger, rate, cap }) {
   return Math.max(0, Math.min(cap, perHourLeft, perDayLeft));
 }
 
-export function selectBatch({ targets, ledger, cap, now, window: win, rate }) {
+export function selectBatch({ targets, ledger, cap, now, window: win, rate, exclude = [] }) {
   if (!isSendingWindow(now, win)) return [];
   const budget = remainingBudget({ ledger, rate, cap });
   if (budget <= 0) return [];
-  const fresh = targets.filter((t) => !ledger.has(t.handle));
+  // Own accounts, family, clients — anyone who must never receive a cold opener.
+  // Cristiano's personal @varriale.cristiano likes the company posts, so without
+  // this the claw would cold-pitch him from his own brand account.
+  const blocked = new Set(exclude.map(normalizeHandle));
+  const fresh = targets.filter((t) => !blocked.has(normalizeHandle(t.handle)) && !ledger.has(t.handle));
   fresh.sort((a, b) => (PRIORITY[a.source] ?? 9) - (PRIORITY[b.source] ?? 9));
   return fresh.slice(0, budget);
 }
