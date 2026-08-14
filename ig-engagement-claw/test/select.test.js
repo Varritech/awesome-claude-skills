@@ -84,4 +84,15 @@ describe('selectBatch', () => {
       isSendingWindow(new Date('2026-08-14T00:30:00-04:00'), { startHour: 0, endHour: 6 })
     ).toBe(true);
   });
+
+  it('never messages an excluded account (own/personal/family handles)', () => {
+    const batch = selectBatch({
+      targets: targets('varriale.cristiano', 'jess_varriale', 'astranger'),
+      ledger: { has: () => false, sentSince: () => 0 },
+      cap: 10,
+      now: WORKDAY,
+      exclude: ['varriale.cristiano', 'JESS_VARRIALE'],   // case-insensitive
+    });
+    expect(batch.map((t) => t.handle)).toEqual(['astranger']);
+  });
 });

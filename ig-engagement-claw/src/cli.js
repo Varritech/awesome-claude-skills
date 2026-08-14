@@ -42,6 +42,7 @@ if (cmd === 'next') {
     llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model }),
     cap: cfg.cap,
     rate: cfg.rate,
+    exclude: cfg.exclude,
     now: new Date(),
     window: { timeZone: cfg.timeZone, startHour: cfg.startHour, endHour: cfg.endHour },
     killSwitch: cfg.killSwitch,
