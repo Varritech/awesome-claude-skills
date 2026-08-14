@@ -27,4 +27,19 @@ describe('draftOpener', () => {
     expect(text).toMatch(/[.!?]$/);         // landed on a sentence end
     expect(rambly).toContain(text.trim());  // no invented or truncated words
   });
+
+  it('refuses an opener containing an unfilled template placeholder', async () => {
+    // Seen live: "noticed you're into [space/niche]" — the model leaving a slot
+    // for itself. Sending that verbatim is worse than sending nothing.
+    const text = await draftOpener({
+      target: LIKER,
+      llm: llmSaying("Hey! Noticed you're into [space/niche]. What are you building?"),
+    });
+    expect(text).toBe('');
+  });
+
+  it('keeps a normal opener that merely uses brackets in passing', async () => {
+    const text = await draftOpener({ target: LIKER, llm: llmSaying('Saw your post. What are you building?') });
+    expect(text).not.toBe('');
+  });
 });

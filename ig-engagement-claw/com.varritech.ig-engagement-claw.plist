@@ -4,25 +4,20 @@
 <dict>
   <key>Label</key><string>com.varritech.ig-engagement-claw</string>
 
-  <!-- 5 staggered off-the-hour runs a day. A job firing exactly at :00 is
-       itself a detectable pattern. NO Weekday keys on purpose: the weekday +
-       business-hours rule lives in select.js (isSendingWindow) so there is ONE
-       source of truth — a weekend run still fires, plans an empty batch, and
-       sends nothing. launchd does NOT wake the Mac; a missed run is skipped,
-       which is the safe failure. -->
-  <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>17</integer></dict>
-    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>34</integer></dict>
-    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>8</integer></dict>
-    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>41</integer></dict>
-    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>23</integer></dict>
-  </array>
+  <!-- Every 5 minutes: catch a follow/like while the person still remembers us.
+       ⛔ Polling this often does NOT mean sending this often. The send budget is
+       wall-clock (MAX_PER_HOUR / MAX_PER_DAY, enforced in select.js against the
+       ledger), so most runs correctly do nothing. launchd does not wake the Mac,
+       and the run aborts unless Dia is open, logged in, and the Browser MCP
+       extension is Connected. -->
+  <key>StartInterval</key><integer>300</integer>
 
   <key>EnvironmentVariables</key>
   <dict>
     <!-- Start conservative. Raise only after watching a week of real runs. -->
-    <key>HOURLY_CAP</key><string>3</string>
+    <key>RUN_CAP</key><string>2</string>
+    <key>MAX_PER_HOUR</key><string>4</string>
+    <key>MAX_PER_DAY</key><string>15</string>
     <key>CLAW_TZ</key><string>America/New_York</string>
     <key>START_HOUR</key><string>9</string>
     <key>END_HOUR</key><string>20</string>

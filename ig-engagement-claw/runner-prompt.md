@@ -1,5 +1,10 @@
 # ig-engagement-claw — one run
 
+Runs every 5 minutes. **Most runs should do nothing** — that is correct, not a failure.
+The send budget is wall-clock (`MAX_PER_HOUR` / `MAX_PER_DAY`), so frequent polling buys
+you speed of response, not volume. If `next` returns an empty batch, stop immediately
+and report "nothing to do". Never go looking for more people to fill a quota.
+
 You are driving Cristiano's already-logged-in Instagram session to open ONE conversation
 each with a handful of people who just engaged with @varritech.
 
@@ -85,10 +90,22 @@ For each entry in order:
 1. `browser_navigate` → `https://www.instagram.com/<handle>/`
 2. `browser_snapshot` → find the **Message** button, then
    `mcp__browsermcp__browser_click` → `{ "ref": "<ref>", "element": "Message button" }`
-3. Snapshot again, find the message textbox, then
+3. ⛔ **Check the thread is empty before typing anything.** Snapshot it. If there is
+   ANY prior message — from them or from us, however old — we have already talked to
+   this person. Do NOT send. Back out and record it so they are never reconsidered:
+
+   ```
+   node src/cli.js skip "<handle>" existing-thread
+   ```
+
+   This is the difference between "we haven't messaged them" and "this claw hasn't
+   messaged them". The ledger only knows its own sends; years of existing threads and
+   everything the sales claw has opened are invisible to it. You are the only thing
+   that can see them. A skip costs no send budget.
+4. Snapshot again, find the message textbox, then
    `mcp__browsermcp__browser_type` → `{ "ref": "<ref>", "text": "<the exact text>", "submit": false }`
-4. **Pause a beat**, then `mcp__browsermcp__browser_press_key` → `{ "key": "Enter" }`
-5. `browser_snapshot` once more and **confirm the message is actually in the thread**
+5. **Pause a beat**, then `mcp__browsermcp__browser_press_key` → `{ "key": "Enter" }`
+6. `browser_snapshot` once more and **confirm the message is actually in the thread**
 
 ⚠ `browser_type` sends the whole string in one shot — there is no per-character typing here.
 So the realism has to come from the gaps: **wait 40–90 seconds between people, varied.** Never

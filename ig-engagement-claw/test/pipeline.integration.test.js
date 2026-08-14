@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLedger } from '../src/ledger.js';
-import { planBatch, commitSend } from '../src/pipeline.js';
+import { planBatch, commitSend, skipTarget } from '../src/pipeline.js';
 
 let dir, path;
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'claw-')); path = join(dir, 'contacted.json'); });
@@ -50,5 +50,35 @@ describe('plan -> send -> commit -> replan', () => {
 
     expect(store.d.has('ig_pending_openers/ana')).toBe(true);
     expect(store.d.has('ig_pending_openers/@Ana')).toBe(false);
+  });
+
+  it('never re-offers someone skipped for already having a thread, and does not spend budget on them', async () => {
+    // The agent opens the DM, sees prior messages, and backs out. That person
+    // has "already been messaged" even though this claw never sent to them.
+    await skipTarget({
+      ledger: createLedger({ path }),
+      handle: '@Ana',
+      reason: 'existing-thread',
+      now: WORKDAY,
+    });
+
+    const led = createLedger({ path });
+    expect(led.has('ana')).toBe(true);
+    expect(led.sentSince(3600_000, WORKDAY.getTime())).toBe(0);  // costs no send budget
+
+    const plan = await planBatch({ scrape: SCRAPE, ledger: led, llm, cap: 10, now: WORKDAY });
+    expect(plan.batch.map((t) => t.handle)).not.toContain('ana');
+  });
+
+  it('drops anyone whose opener came back unusable rather than sending an empty DM', async () => {
+    const placeholderLlm = async ({ target }) =>
+      target.handle === 'bob' ? 'Hey, into [their niche]?' : 'Hey, what are you building?';
+
+    const plan = await planBatch({
+      scrape: SCRAPE, ledger: createLedger({ path }), llm: placeholderLlm, cap: 10, now: WORKDAY,
+    });
+
+    expect(plan.batch.map((t) => t.handle)).not.toContain('bob');
+    for (const t of plan.batch) expect(t.text.length).toBeGreaterThan(0);
   });
 });

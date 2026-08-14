@@ -30,6 +30,18 @@ export function capWords(text, max = OPENER_MAX_WORDS) {
   return (kept.join(' ') || sentences[0].trim()).trim();
 }
 
+/**
+ * A slot the model left for itself: "[space/niche]", "{name}", "<topic>".
+ * Seen live on the first real drafting run. Sending one verbatim is worse than
+ * sending nothing, so an opener carrying one is dropped entirely rather than
+ * patched — there is no safe way to guess what belonged there.
+ */
+const PLACEHOLDER_RE = /\[[^\]]{2,40}\]|\{[^}]{2,40}\}|<[a-z][^>]{1,40}>/i;
+
+export function hasPlaceholder(text) {
+  return PLACEHOLDER_RE.test(text);
+}
+
 export function buildPrompt(target) {
   const who =
     target.source === 'liker'
@@ -40,11 +52,15 @@ export function buildPrompt(target) {
     who,
     `Write ONE opener under ${OPENER_MAX_WORDS} words.`,
     'Rules: no links, no pitch, no price, no emoji spam. Reference what they engaged with if there is something to reference.',
+    'Write the FINAL text. Never leave a placeholder like [niche] or {name} — if you do not know something, do not refer to it.',
     'End on a genuine question about what they are building. Sound like a person, not a brand.',
   ].join(' ');
 }
 
 export async function draftOpener({ target, llm }) {
   const raw = await llm({ prompt: buildPrompt(target), target });
-  return capWords(stripLinks(String(raw ?? '').trim()));
+  const text = capWords(stripLinks(String(raw ?? '').trim()));
+  // Drop, don't patch. An empty opener means this person is simply skipped this
+  // run and picked up next time — they are not marked contacted.
+  return hasPlaceholder(text) ? '' : text;
 }

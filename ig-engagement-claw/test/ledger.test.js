@@ -27,4 +27,15 @@ describe('contacted ledger', () => {
     expect(led.has('  @CRISTIANOV ')).toBe(true);
     expect(led.size()).toBe(1);
   });
+
+  it('counts only sends inside the window, so a rolling budget can be enforced', () => {
+    const led = createLedger({ path: join(dir, 'contacted.json') });
+    const now = Date.parse('2026-08-13T15:00:00.000Z');
+    led.record('recent1', { at: '2026-08-13T14:30:00.000Z' });   // 30 min ago
+    led.record('recent2', { at: '2026-08-13T14:59:00.000Z' });   // 1 min ago
+    led.record('old', { at: '2026-08-13T10:00:00.000Z' });       // 5 hours ago
+
+    expect(led.sentSince(3600_000, now)).toBe(2);
+    expect(led.sentSince(24 * 3600_000, now)).toBe(3);
+  });
 });
