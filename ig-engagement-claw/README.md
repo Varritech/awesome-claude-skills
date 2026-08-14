@@ -14,17 +14,41 @@ verdict is scoped to API routes only.
 
 ## Why it's split in two
 
-`mcp__claude-in-chrome__*` are Claude's tools, not a Node library, so the browser half
-cannot be plain Node. The split:
+`mcp__browsermcp__*` are Claude's tools, not a Node library, so the browser half cannot be
+plain Node. The split:
 
 | | owns |
 |---|---|
 | **Node** (`src/`) | who gets messaged, the cap, the window, link-stripping, the word cap, the ledger, the handoff |
-| **Claude** (`runner-prompt.md`) | driving the logged-in session — and nothing else |
+| **Claude** (`runner-prompt.md`) | driving the logged-in session via Browser MCP — and nothing else |
 
 The agent is never trusted to decide who gets a DM or whether a send counts. It scrapes,
 it asks `cli.js next`, it types what it's told, it confirms. That boundary is the whole
-safety design.
+safety design — and it means the Node half is browser-agnostic. Swapping the browser tool
+is a `runner-prompt.md` edit, nothing more.
+
+## Browser requirement
+
+**`mcp__browsermcp__*` only** — the local `@browsermcp/mcp-enhanced` server at
+`~/.local/lib/browsermcp-enhanced`. Not claude-in-chrome, not CDP, never a scripted login.
+
+A run needs all of these true, and fails loudly rather than silently if any is false:
+
+- the Mac awake (`launchd` does not wake it)
+- the browser open, with Instagram logged in
+- the Browser MCP **extension showing Connected on that tab** — the server process being
+  healthy is not the same thing, and a `"no extension connected"` line in the daemon log
+  is the tell
+- the `browsermcp` server registered and the session started *after* registration
+
+If the tools are missing or the preflight snapshot fails, see `[[browsermcp-enhanced-setup]]`.
+The runner prompt aborts the run rather than falling back to another browser tool.
+
+⚠ Both the followers and likers lists are **virtualized** — scroll before extracting or you
+get the first ~12 rows and mistake that for everyone.
+
+⚠ `browser_type` sends the whole string in one call; there is no per-character typing. The
+human-ness comes from the varied 40–90s gap between people, not from keystroke timing.
 
 ## Flow
 
@@ -103,5 +127,6 @@ what make it survivable, not decoration. Start at `HOURLY_CAP=3` and watch the f
 If a run reports a checkpoint, an "Action Blocked" banner, or a challenge screen: stop,
 leave it off for several days, and do not "just try again with a lower cap."
 
-Related: `[[ig-dm-sales-claw]]` · `[[reference_instantdm_blocks_all_links_in_dms]]` ·
+Related: `[[ig-engagement-outreach-claw]]` · `[[ig-dm-sales-claw]]` ·
+`[[browsermcp-enhanced-setup]]` · `[[reference_instantdm_blocks_all_links_in_dms]]` ·
 `[[feedback_no_cdp_use_claude_in_chrome]]`
