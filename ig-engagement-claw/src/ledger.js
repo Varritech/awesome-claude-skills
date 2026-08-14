@@ -29,6 +29,18 @@ export function createLedger({ path }) {
       entries[normalize(handle)] = { handle: normalize(handle), ...meta };
       persist();
     },
+    /**
+     * How many people we SENT to within the last `windowMs`.
+     *
+     * Skipped entries (people who already had a thread) deliberately do not
+     * count — we never messaged them, so they must not consume send budget.
+     */
+    sentSince(windowMs, now = Date.now()) {
+      const cutoff = now - windowMs;
+      return Object.values(entries).filter(
+        (e) => e.status !== 'skipped' && e.at && Date.parse(e.at) >= cutoff
+      ).length;
+    },
     size: () => Object.keys(entries).length,
     all: () => Object.values(entries),
   };

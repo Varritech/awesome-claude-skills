@@ -14,7 +14,7 @@
 
 import { readFileSync } from 'node:fs';
 import { createLedger } from './ledger.js';
-import { planBatch, commitSend } from './pipeline.js';
+import { planBatch, commitSend, skipTarget } from './pipeline.js';
 import { anthropicLlm } from './llm.js';
 import { firestoreStore, nullStore } from './firestore-store.js';
 import { config } from './config.js';
@@ -39,6 +39,7 @@ if (cmd === 'next') {
     ledger,
     llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model }),
     cap: cfg.cap,
+    rate: cfg.rate,
     now: new Date(),
     window: { timeZone: cfg.timeZone, startHour: cfg.startHour, endHour: cfg.endHour },
     killSwitch: cfg.killSwitch,
@@ -51,11 +52,17 @@ if (cmd === 'next') {
   const res = await commitSend({ ledger, store: await getStore(), handle, text, igUserId: igUserId || null });
   console.log(res.recorded ? `recorded: ${handle}` : `already recorded: ${handle}`);
 
+} else if (cmd === 'skip') {
+  const [, , , handle, reason = 'existing-thread'] = process.argv;
+  if (!handle) { console.error('usage: cli.js skip <handle> [reason]'); process.exit(1); }
+  const res = await skipTarget({ ledger, handle, reason });
+  console.log(res.recorded ? `skipped: ${handle} (${reason})` : `already known: ${handle}`);
+
 } else if (cmd === 'ledger') {
   console.log(`${ledger.size()} contacted`);
   for (const e of ledger.all()) console.log(`  ${e.handle}  ${e.at ?? ''}  ${e.source ?? ''}`);
 
 } else {
-  console.error('usage: cli.js next|commit|ledger');
+  console.error('usage: cli.js next|commit|skip|ledger');
   process.exit(1);
 }
