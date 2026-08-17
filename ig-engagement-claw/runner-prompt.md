@@ -117,24 +117,59 @@ hours. **If the batch is empty, stop.** Never go hunting for people to fill a qu
 For each entry in order:
 
 1. `browser_navigate` → `https://www.instagram.com/<handle>/`
-2. `browser_snapshot` → find the **Message** button, then
-   `mcp__browsermcp__browser_click` → `{ "ref": "<ref>", "element": "Message button" }`
-3. ⛔ **Check the thread is empty before typing anything.** Snapshot it. If there is
-   ANY prior message — from them or from us, however old — we have already talked to
-   this person. Do NOT send. Back out and record it so they are never reconsidered:
+2. ⛔ **There is NO top-level "Message" button.** Only "Follow" renders on a
+   stranger's profile. The DM action lives behind the **3-dots Options** menu:
+
+   ```js
+   (function(){ var s=document.querySelector('svg[aria-label="Options"]');
+     (s.closest('div[role="button"],button')||s.parentElement).click(); })()
+   ```
+
+   Then click the item whose text is **exactly** `Send message`. Match the exact
+   string, never a position — that same menu holds **Block, Restrict and Report**.
+
+   ```js
+   (function(){ var d=document.querySelector('div[role="dialog"]'), t=null;
+     d.querySelectorAll('button,div[role="button"],[tabindex]').forEach(function(e){
+       if(!t && (e.innerText||'').trim()==='Send message') t=e; });
+     if(t) t.click(); return !!t; })()
+   ```
+
+3. ⛔ **Check the thread is empty before typing anything.** Screenshot it. If there
+   is ANY prior message — from them or from us, however old — we have already
+   talked to this person. Do NOT send. Back out and record it:
 
    ```
    node src/cli.js skip "<handle>" existing-thread
    ```
 
    This is the difference between "we haven't messaged them" and "this claw hasn't
-   messaged them". The ledger only knows its own sends; years of existing threads and
-   everything the sales claw has opened are invisible to it. You are the only thing
-   that can see them. A skip costs no send budget.
-4. Snapshot again, find the message textbox, then
-   `mcp__browsermcp__browser_type` → `{ "ref": "<ref>", "text": "<the exact text>", "submit": false }`
-5. **Pause a beat**, then `mcp__browsermcp__browser_press_key` → `{ "key": "Enter" }`
-6. `browser_snapshot` once more and **confirm the message is actually in the thread**
+   messaged them". The ledger only knows its own sends; years of existing threads
+   and everything the sales claw has opened are invisible to it. You are the only
+   thing that can see them. A skip costs no send budget. (Live 2026-08-17: 2 of 4
+   planned targets were caught here, both already opened by the sales claw.)
+
+4. The composer is a **Lexical** editor. It is not exposed as a snapshot ref until
+   you take a full `browser_snapshot` with `viewportOnly: false`, so put the text
+   in with an insertText command instead:
+
+   ```js
+   (function(){ var b=document.querySelector('div[contenteditable="true"][data-lexical-editor="true"]');
+     b.focus(); var s=getSelection(), r=document.createRange();
+     r.selectNodeContents(b); r.collapse(false); s.removeAllRanges(); s.addRange(r);
+     document.execCommand('insertText', false, "<the exact text>"); })()
+   ```
+
+   ⛔ Reading `innerText` back immediately returns `""` — Lexical has not committed
+   the node yet. That is NOT a failure. Confirm with a screenshot instead.
+
+5. ⛔ **Enter does NOT send.** `browser_press_key` Enter was tried twice on a
+   focused composer and the text just sat there. Take a `browser_snapshot` with
+   `viewportOnly: false`, find `div "Send" {role:button}` in the orphaned-elements
+   list, and `browser_click` that ref. That is the only send path that works.
+
+6. `browser_screenshot` once more and **confirm the bubble is actually in the
+   thread**, with a timestamp. The inbox row should also jump to the top.
 
 ⚠ `browser_type` sends the whole string in one shot — there is no per-character typing here.
 So the realism has to come from the gaps: **wait 40–90 seconds between people, varied.** Never
