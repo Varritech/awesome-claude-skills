@@ -6,10 +6,26 @@
 //      contact and structurally undeliverable downstream — Meta/InstantDM reject
 //      any DM containing a URL. See [[reference_instantdm_blocks_all_links_in_dms]].
 //   2. SHORT. Long first DMs read as a broadcast and get ignored or reported.
+//   3. NO EM DASHES. Cristiano's standing rule on everything that goes out under
+//      his name. The model ignores it when it is only in the prompt.
 
 export const OPENER_MAX_WORDS = 35;
 
 const URL_RE = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|io|co|net|org|ai|app)\b\S*/gi;
+
+/**
+ * Cristiano never uses an em dash. It is a standing rule across every channel,
+ * and these DMs go out under his name, so it is enforced HERE rather than in the
+ * prompt — the live model put one in 3 of 4 first drafts even when told not to.
+ * A dash between clauses becomes a comma; anything else becomes a plain space.
+ */
+export function stripEmDashes(text) {
+  return text
+    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+    .replace(/,\s*,/g, ',')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 
 export function stripLinks(text) {
   return text.replace(URL_RE, '').replace(/\s{2,}/g, ' ').trim();
@@ -54,7 +70,13 @@ function contextFor(target) {
       : quoted;
   }
   if (target.source === 'liker') {
-    return `They liked our post${target.caption ? ` about "${target.caption}"` : ''}.`;
+    // ⛔ Without a caption we genuinely do not know which post it was. Left to
+    // itself the model fills the gap — it wrote "the post about scaling with
+    // automation" on a live draft 2026-08-17, inventing a topic for OUR OWN
+    // post. A first DM that misdescribes our content is worse than a plain one.
+    return target.caption
+      ? `They liked our post about "${target.caption}".`
+      : 'They liked one of our posts. You do NOT know which one or what it was about, so do not describe what the post said, and do not guess at its topic.';
   }
   return 'They just followed us.';
 }
@@ -73,7 +95,7 @@ export function buildPrompt(target) {
 
 export async function draftOpener({ target, llm }) {
   const raw = await llm({ prompt: buildPrompt(target), target });
-  const text = capWords(stripLinks(String(raw ?? '').trim()));
+  const text = capWords(stripEmDashes(stripLinks(String(raw ?? '').trim())));
   // Drop, don't patch. An empty opener means this person is simply skipped this
   // run and picked up next time — they are not marked contacted.
   return hasPlaceholder(text) ? '' : text;

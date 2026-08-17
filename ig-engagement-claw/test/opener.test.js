@@ -68,3 +68,36 @@ describe('buildPrompt', () => {
     expect(prompt).toMatch(/do not quote/i);
   });
 });
+
+describe('buildPrompt — no invented facts', () => {
+  it('forbids describing the post when we do not know its caption', () => {
+    // Live 2026-08-17: with no caption the model wrote "the post about scaling
+    // with automation" — a topic it made up about OUR OWN post. A first DM that
+    // misdescribes our content is worse than a generic one.
+    const prompt = buildPrompt({ handle: 'floresaireona', source: 'liker', postId: 'DcIWNq_gXu9' });
+    expect(prompt).toMatch(/do not (?:describe|say|guess) what/i);
+  });
+
+  it('still lets it name the topic when the caption is actually known', () => {
+    const prompt = buildPrompt({
+      handle: 'ana', source: 'liker', postId: 'P1', caption: 'how we cut render time',
+    });
+    expect(prompt).toContain('"how we cut render time"');
+    expect(prompt).not.toMatch(/do not (?:describe|say|guess) what/i);
+  });
+});
+
+describe('never ships an em dash', () => {
+  it('rewrites an em dash the model insisted on, rather than sending it', async () => {
+    // Cristiano's standing rule: never an em dash, anywhere, in anything that
+    // goes out under his name. The live model produced one on 3 of 4 first
+    // drafts, so this is enforced in code like the link strip, not in the prompt.
+    const text = await draftOpener({
+      target: LIKER,
+      llm: llmSaying('Hey! Saw you drop "Build" on our post \u2014 love that energy. What are you building?'),
+    });
+    expect(text).not.toMatch(/[\u2014\u2013]/);
+    expect(text).toContain('love that energy');
+  });
+});
+

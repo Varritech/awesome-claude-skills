@@ -1,3 +1,35 @@
+// Secrets live in .env, which nothing was loading — `anthropicLlm` was being
+// handed `x-api-key: undefined`, so the FIRST real run would have 401'd on every
+// draft. Parsed by hand rather than via process.loadEnvFile(): that builtin
+// silently no-opped here on node 25 (returned without throwing AND without
+// setting anything), which is worse than failing. The key must never go in the
+// launchd plist — the repo tracks a copy of it.
+import { readFileSync } from 'node:fs';
+
+function loadDotEnv(path) {
+  let raw;
+  try {
+    raw = readFileSync(path, 'utf8');
+  } catch {
+    return; // no .env (CI, tests) — everything below has a default or is optional
+  }
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const eq = t.indexOf('=');
+    if (eq < 1) continue;
+    const key = t.slice(0, eq).trim();
+    // A real env var already set (launchd, shell) wins over the file — but an
+    // EMPTY one does not. Cristiano's login shell exports ANTHROPIC_API_KEY=""
+    // for zsh-ai, and an `!== undefined` check treated that as "already set",
+    // silently keeping the key empty. Truthiness is the correct test here.
+    if (process.env[key]) continue;
+    process.env[key] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+  }
+}
+
+loadDotEnv(new URL('../.env', import.meta.url).pathname);
+
 export const config = () => ({
   statePath: process.env.CLAW_STATE || new URL('../state/contacted.json', import.meta.url).pathname,
   seenPath: process.env.CLAW_SEEN || new URL('../state/seen-notifications.json', import.meta.url).pathname,

@@ -1,12 +1,17 @@
 // Firestore backend shaped like the {get,set} seam handoff.js expects.
-// firebase-admin is CJS: under ESM dynamic import the real API hangs off
-// `.default` — reading it off the namespace crashed a Cloud Run rev at boot.
-// See [[reference_cjs_dynamic_import_esm_default_interop]].
+//
+// ⛔ firebase-admin v14 REMOVED the old namespace API this used to reach for.
+// `admin.apps` and `admin.firestore()` are both gone — off the namespace AND off
+// `.default` — so the previous `admin.apps.length` line threw
+// "Cannot read properties of undefined (reading 'length')" on the first real
+// call. v14 exposes the modular API as named ESM exports instead, which also
+// means the old CJS `.default` unwrap is no longer needed here.
+// Related history: [[reference_cjs_dynamic_import_esm_default_interop]].
 export async function firestoreStore() {
-  const mod = await import('firebase-admin');
-  const admin = mod.default ?? mod;
-  if (admin.apps.length === 0) admin.initializeApp();
-  const db = admin.firestore();
+  const { getApps, initializeApp } = await import('firebase-admin/app');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  if (getApps().length === 0) initializeApp();
+  const db = getFirestore();
   return {
     async get(collection, key) {
       const snap = await db.collection(collection).doc(key).get();
