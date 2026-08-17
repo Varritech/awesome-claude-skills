@@ -58,10 +58,25 @@ export async function skipTarget({ ledger, handle, reason, now = new Date() }) {
   return { recorded: true };
 }
 
-/** A send the agent CONFIRMED landed. Only now does the person become contacted. */
+/**
+ * A send the agent CONFIRMED landed. Only now does the person become contacted.
+ *
+ * ⛔ The ledger write comes FIRST and the handoff is never allowed to throw past
+ * it. By the time this runs the DM is already sitting in someone's Instagram
+ * inbox — if a Firestore outage escaped here the run would die un-recorded and
+ * the next poll would message a real person a second time. Losing the handoff
+ * costs us a founder re-introduction; losing the ledger write costs us the
+ * relationship. Proven live 2026-08-17 when ADC went stale mid-run.
+ */
 export async function commitSend({ ledger, store, handle, text, igUserId = null, source = null, now = new Date() }) {
   if (ledger.has(handle)) return { recorded: false, reason: 'already-contacted' };
   ledger.record(handle, { at: new Date(now).toISOString(), text, source });
-  const where = await recordOpener({ store, target: { handle, igUserId }, text, now: new Date(now).toISOString() });
-  return { recorded: true, handoff: where };
+  try {
+    const where = await recordOpener({ store, target: { handle, igUserId }, text, now: new Date(now).toISOString() });
+    return { recorded: true, handoff: where };
+  } catch (err) {
+    const handoffError = String(err?.message ?? err);
+    console.error(`[claw] ⚠ HANDOFF FAILED for ${handle} (${handoffError}) — send IS recorded, sales claw will re-introduce the founder on reply`);
+    return { recorded: true, handoff: null, handoffError };
+  }
 }

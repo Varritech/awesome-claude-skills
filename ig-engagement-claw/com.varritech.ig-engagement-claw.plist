@@ -15,6 +15,12 @@
   <key>EnvironmentVariables</key>
   <dict>
     <!-- Start conservative. Raise only after watching a week of real runs. -->
+    <!-- ⛔ KILL_SWITCH was ABSENT here for days while it was set on the INSTALLED
+         job, so grepping this file reported "off" when the live job was killed.
+         Always read the truth with `launchctl print gui/$(id -u)/<label>`.
+         0 = live. Turned on 2026-08-17 after the first two real DMs were sent
+         and verified by hand. Set to 1 to make every run inert. -->
+    <key>KILL_SWITCH</key><string>0</string>
     <key>RUN_CAP</key><string>2</string>
     <key>MAX_PER_HOUR</key><string>4</string>
     <key>MAX_PER_DAY</key><string>15</string>
@@ -27,7 +33,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "$(cat runner-prompt.md)" --allowedTools "mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
+    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "$(cat runner-prompt.md)" --allowedTools "mcp__browsermcp__browser_tab,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
   </array>
 
   <key>RunAtLoad</key><false/>
