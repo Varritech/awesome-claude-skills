@@ -112,3 +112,26 @@ describe('plan -> send -> commit -> replan', () => {
     expect(second.batch.map((t) => t.handle)).toEqual(['dee']);
   });
 });
+
+describe('commitSend survives a broken handoff', () => {
+  it('still records the send when Firestore throws, so nobody gets DMed twice', async () => {
+    // Live 2026-08-17: ADC went stale (invalid_rapt) and the Firestore write threw.
+    // The DM had ALREADY landed in Instagram at that point. If the throw escapes,
+    // the run dies un-recorded and the next poll re-messages a real person.
+    const ledger = createLedger({ path });
+    const explodingStore = {
+      async get() { throw new Error('16 UNAUTHENTICATED: invalid_rapt'); },
+      async set() { throw new Error('16 UNAUTHENTICATED: invalid_rapt'); },
+    };
+
+    const res = await commitSend({
+      ledger, store: explodingStore, handle: 'someone', text: 'hi there',
+    });
+
+    expect(res.recorded).toBe(true);
+    expect(res.handoffError).toMatch(/invalid_rapt/);
+    // The load-bearing assertion: they are contacted, so we never send again.
+    expect(createLedger({ path }).has('someone')).toBe(true);
+  });
+});
+
