@@ -12,8 +12,5 @@
   },
   "devDependencies": {
     "vitest": "^1.6.0"
-  },
-  "dependencies": {
-    "firebase-admin": "^14.2.0"
   }
 }
