@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { draftOpener } from '../src/opener.js';
+import { draftOpener, buildPrompt } from '../src/opener.js';
 
 const llmSaying = (text) => async () => text;
 const LIKER = { handle: 'ana', source: 'liker', postId: 'P1', caption: 'how we cut render time' };
@@ -41,5 +41,30 @@ describe('draftOpener', () => {
   it('keeps a normal opener that merely uses brackets in passing', async () => {
     const text = await draftOpener({ target: LIKER, llm: llmSaying('Saw your post. What are you building?') });
     expect(text).not.toBe('');
+  });
+});
+
+describe('buildPrompt', () => {
+  it('hands the model the exact words a commenter typed', () => {
+    const prompt = buildPrompt({
+      handle: 'afshin.m.2019',
+      source: 'commenter',
+      postId: 'Da1rOHhAIOD',
+      commentText: 'Build',
+    });
+    expect(prompt).toContain('"Build"');
+    expect(prompt).toContain('commented');
+  });
+
+  it('tells the model a truncated comment is only a fragment, so it never quotes it back whole', () => {
+    const prompt = buildPrompt({
+      handle: 'toto_fan_99',
+      source: 'commenter',
+      postId: 'Da1rOHhAIOD',
+      commentText: 'by using ai you are exploiting the work of many people whose work was used without compen',
+      truncated: true,
+    });
+    expect(prompt).toMatch(/cut off|partial|fragment/i);
+    expect(prompt).toMatch(/do not quote/i);
   });
 });

@@ -33,6 +33,22 @@ describe('selectBatch', () => {
     expect(batch.map((t) => t.handle).sort()).toEqual(['bob', 'dee']);
   });
 
+  it('spends a scarce slot on a commenter before a liker or a follower', () => {
+    // A commenter typed words at us. That is the only source that gives the
+    // opener something real to quote, so it outranks a bare like.
+    const batch = selectBatch({
+      targets: [
+        { handle: 'ana', source: 'follower' },
+        { handle: 'bob', source: 'liker', postId: 'P1' },
+        { handle: 'carl', source: 'commenter', postId: 'P1', commentText: 'Build' },
+      ],
+      ledger: ledgerOf(),
+      cap: 1,
+      now: WORKDAY,
+    });
+    expect(batch.map((t) => t.handle)).toEqual(['carl']);
+  });
+
   it('sends nothing outside business hours', () => {
     const batch = selectBatch({
       targets: targets('ana', 'bob'),

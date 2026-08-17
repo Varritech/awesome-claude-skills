@@ -2,12 +2,13 @@
 // DM in THIS run. Everything ban-shaped lives here: the never-again rule, the
 // hourly cap, and the business-hours window.
 
-// A liker engaged with a specific post, so the opener can reference something
-// real. A bare follower gives us nothing to open on. When slots are scarce,
-// spend them where the message can actually be specific.
+// A commenter typed words at us, so the opener can quote them back. A liker
+// engaged with a specific post, so it can at least reference the post. A bare
+// follower gives us nothing to open on. When slots are scarce, spend them where
+// the message can actually be specific.
 import { normalizeHandle } from './handle.js';
 
-const PRIORITY = { liker: 0, follower: 1 };
+const PRIORITY = { commenter: 0, liker: 1, follower: 2 };
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 

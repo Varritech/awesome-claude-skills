@@ -42,11 +42,25 @@ export function hasPlaceholder(text) {
   return PLACEHOLDER_RE.test(text);
 }
 
+// What we know about this person, in the model's own working language. A
+// commenter is the only source that hands us their actual words — which is also
+// the only case where the feed can lie to us, because Instagram elides a long
+// comment to a prefix and quoting that prefix back reads as a non-sequitur.
+function contextFor(target) {
+  if (target.source === 'commenter') {
+    const quoted = `They commented "${target.commentText}" on our post.`;
+    return target.truncated
+      ? `${quoted} That comment is CUT OFF — it is only the first part of what they wrote, so do not quote it back to them; react to the gist instead.`
+      : quoted;
+  }
+  if (target.source === 'liker') {
+    return `They liked our post${target.caption ? ` about "${target.caption}"` : ''}.`;
+  }
+  return 'They just followed us.';
+}
+
 export function buildPrompt(target) {
-  const who =
-    target.source === 'liker'
-      ? `They liked our post${target.caption ? ` about "${target.caption}"` : ''}.`
-      : `They just followed us.`;
+  const who = contextFor(target);
   return [
     'You are Cristiano, founder of Varritech, opening a DM on Instagram.',
     who,

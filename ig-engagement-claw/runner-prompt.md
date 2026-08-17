@@ -16,8 +16,25 @@ the Browser MCP extension is installed and showing **Connected**.
 
 **Preflight — do this first, and abort the run if it fails:**
 
-1. `mcp__browsermcp__browser_navigate` → `{ "action": "goto", "url": "https://www.instagram.com/" }`
-2. `mcp__browsermcp__browser_snapshot` → `{ "level": "minimal" }`
+1. `mcp__browsermcp__browser_tab` → `{ "action": "list" }`
+2. Find an existing `instagram.com` tab and **select it**:
+   `mcp__browsermcp__browser_tab` → `{ "action": "select", "index": <n> }`.
+   Only if there is no Instagram tab at all, open one:
+   `{ "action": "new", "url": "https://www.instagram.com/" }`.
+3. `mcp__browsermcp__browser_snapshot` → `{ "level": "minimal" }`
+
+⛔ **Select a tab BEFORE you navigate, and reuse that one tab for the whole run.**
+`browser_navigate` has no tab argument — it acts on whatever tab is currently
+active. If that happens to be an `about:blank` scratch tab (which is what a
+scheduled run lands on), every navigation strands another Instagram tab behind
+it. Left unchecked this reached **20 orphaned Instagram tabs** before anyone
+noticed, and the run itself was driving a blank page the whole time, which reads
+as "the claw does nothing." Selecting first fixes both: a selected tab is
+navigated in place and the count never grows.
+
+If `list` shows more than one Instagram tab, close the extras
+(`{ "action": "close", "index": <n> }`, **highest index first** so the indices
+below don't shift under you) and keep one.
 
 If that errors, times out, or comes back with no extension connected, **stop and report it** —
 do not retry more than twice, and do not fall back to another browser tool. If the snapshot
@@ -39,7 +56,8 @@ safe to attempt.
 
 ## 1. Read the notifications feed (READ ONLY)
 
-The notifications feed already says who followed and who liked, newest first.
+The notifications feed already says who followed, who liked and who commented,
+newest first.
 Do NOT scrape the followers list — 674 rows, virtualized, and it cannot tell a
 follower from 2024 apart from one from two minutes ago.
 
@@ -70,7 +88,14 @@ Extract rows with `mcp__browsermcp__browser_execute_js` (unsafe mode, IIFE):
 ```
 
 Pass that array through verbatim. Do not filter, dedupe or interpret it —
-`cli.js` knows which rows are follows, which are likes, and which to ignore.
+`cli.js` knows which rows are follows, which are likes, which are comments, and
+which to ignore.
+
+Comments are the most valuable rows on the feed and the reason this claw exists:
+Instagram will not let the API claw open a DM off a comment (every attempt 403s
+`outside of allowed window`), so a commenter can ONLY be reached this way. They
+also outrank likers and followers when send budget is scarce, because their own
+words are the one thing that makes an opener specific.
 
 ## 2. Plan
 
