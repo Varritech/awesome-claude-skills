@@ -30,16 +30,50 @@ export function createLedger({ path }) {
       persist();
     },
     /**
-     * How many people we SENT to within the last `windowMs`.
+     * A second (or third) message to someone already in the ledger.
+     *
+     * Appended, never overwritten — the original opener has to survive so the
+     * follow-up can reference it and so we can see the whole history later.
+     */
+    recordFollowUp(handle, { at, text }) {
+      const key = normalize(handle);
+      const entry = entries[key];
+      // A follow-up to someone with no opener on record would be a cold DM
+      // wearing a follow-up's clothes. Refuse loudly rather than invent history.
+      if (!entry) throw new Error(`cannot follow up ${key}: no opener on record`);
+      entry.followUps = [...(entry.followUps ?? []), { at, text }];
+      persist();
+    },
+
+    /** They wrote back. Stops the follow-up chain for good. */
+    markReplied(handle) {
+      const key = normalize(handle);
+      if (!entries[key]) return;
+      entries[key].replied = true;
+      persist();
+    },
+
+    /**
+     * How many messages we SENT within the last `windowMs`.
      *
      * Skipped entries (people who already had a thread) deliberately do not
      * count — we never messaged them, so they must not consume send budget.
+     *
+     * ⛔ Follow-ups DO count, each on its own timestamp. They are real DMs from
+     * the same account, and a backlog of them coming due together would
+     * otherwise sail straight past MAX_PER_HOUR in one run.
      */
     sentSince(windowMs, now = Date.now()) {
       const cutoff = now - windowMs;
-      return Object.values(entries).filter(
-        (e) => e.status !== 'skipped' && e.at && Date.parse(e.at) >= cutoff
-      ).length;
+      let n = 0;
+      for (const e of Object.values(entries)) {
+        if (e.status === 'skipped') continue;
+        if (e.at && Date.parse(e.at) >= cutoff) n += 1;
+        for (const f of e.followUps ?? []) {
+          if (f.at && Date.parse(f.at) >= cutoff) n += 1;
+        }
+      }
+      return n;
     },
     size: () => Object.keys(entries).length,
     all: () => Object.values(entries),

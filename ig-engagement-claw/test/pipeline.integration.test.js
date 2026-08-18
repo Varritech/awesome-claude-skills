@@ -135,3 +135,96 @@ describe('commitSend survives a broken handoff', () => {
   });
 });
 
+describe('follow-ups inside planBatch', () => {
+  const DAY = 86400_000;
+  const rows = [{ handle: 'newperson', text: 'newperson liked your photo. 5m', postHref: '/p/P1/' }];
+  const seenReady = () => { const st = createSeenStore({ path: join(dir, 'seen.json') }); st.remember([]); return st; };
+
+  it('plans a follow-up for someone who went silent, alongside new targets', async () => {
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady(), ledger,
+      llm: async () => 'drafted text', cap: 5, now: WORKDAY,
+      rate: { perHour: 10, perDay: 20 },
+    });
+
+    expect(res.followUps).toHaveLength(1);
+    expect(res.followUps[0]).toMatchObject({ handle: 'quietone', followUpNumber: 1, text: 'drafted text' });
+  });
+
+  it('spends budget on follow-ups BEFORE new cold DMs', async () => {
+    // A warm person who already heard from us beats a stranger. With one slot
+    // left, the follow-up takes it and the cold opener waits for the next run.
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady(), ledger,
+      llm: async () => 'drafted text', cap: 1, now: WORKDAY,
+      rate: { perHour: 1, perDay: 20 },
+    });
+
+    expect(res.followUps).toHaveLength(1);
+    expect(res.batch).toHaveLength(0);
+  });
+
+  it('sends no follow-up outside the sending window', async () => {
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+    const threeAm = new Date('2026-08-13T03:00:00-04:00');
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady(), ledger,
+      llm: async () => 'drafted text', cap: 5, now: threeAm,
+      rate: { perHour: 10, perDay: 20 },
+    });
+
+    expect(res.followUps).toEqual([]);
+    expect(res.batch).toEqual([]);
+  });
+
+  it('plans no follow-up at all while the claw is killed', async () => {
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady(), ledger,
+      llm: async () => 'x', cap: 5, now: WORKDAY, killSwitch: true,
+    });
+
+    expect(res.killed).toBe(true);
+    expect(res.followUps).toEqual([]);
+  });
+});
+
+describe('follow-ups must not leak past the hourly cap', () => {
+  const DAY = 86400_000;
+  const seenReady2 = () => { const st = createSeenStore({ path: join(dir, 'seen2.json') }); st.remember([]); return st; };
+
+  it('counts planned follow-ups against MAX_PER_HOUR when picking cold targets', async () => {
+    // The trap: follow-ups are planned but NOT yet in the ledger, so selectBatch
+    // recomputing the budget from the ledger sees zero sends this hour and hands
+    // out the full allowance again. perHour=2 with 1 follow-up must leave room
+    // for exactly ONE cold DM, not two.
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+
+    const rows = [
+      { handle: 'newa', text: 'newa liked your photo. 5m', postHref: '/p/P1/' },
+      { handle: 'newb', text: 'newb liked your photo. 6m', postHref: '/p/P2/' },
+      { handle: 'newc', text: 'newc liked your photo. 7m', postHref: '/p/P3/' },
+    ];
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady2(), ledger,
+      llm: async () => 'drafted text', cap: 5, now: WORKDAY,
+      rate: { perHour: 2, perDay: 20 },
+    });
+
+    expect(res.followUps).toHaveLength(1);
+    expect(res.followUps.length + res.batch.length).toBeLessThanOrEqual(2);
+  });
+});
+

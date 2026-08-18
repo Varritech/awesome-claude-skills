@@ -100,3 +100,36 @@ export async function draftOpener({ target, llm }) {
   // run and picked up next time — they are not marked contacted.
   return hasPlaceholder(text) ? '' : text;
 }
+
+/**
+ * The second knock, for someone who never answered the opener.
+ *
+ * The model is handed what we ALREADY said, because the failure mode here is a
+ * near-duplicate of the opener arriving days later, which reads as a broken bot
+ * rather than a person. It is also told not to chase: "just following up" and
+ * "did you see my message?" make the silence the subject, put the reader on the
+ * back foot, and are the fastest route to a report.
+ */
+export function buildFollowUpPrompt(target) {
+  const last = target.followUpNumber >= 2;
+  return [
+    'You are Cristiano, founder of Varritech, on Instagram.',
+    `You messaged @${target.handle} ${target.silentDays} days ago and they never replied.`,
+    `Your previous message was: "${target.opener}"`,
+    'Write ONE short follow-up, under 30 words.',
+    '⛔ Do not repeat that message or rephrase it — say something DIFFERENT, with a new angle or a lighter question.',
+    '⛔ Never guilt them, never chase. No "just following up", no "did you see my message", no "bumping this". Their silence is not the subject.',
+    'No links, no pitch, no price. Assume they are busy and give them an easy out.',
+    last
+      ? 'This is your LAST message to them. Close it warmly, leave the door open, and ask nothing that demands a reply.'
+      : 'End on one easy, low-effort question.',
+    'Write the FINAL text. Never leave a placeholder like [niche] or {name}.',
+  ].join(' ');
+}
+
+export async function draftFollowUp({ target, llm }) {
+  const raw = await llm({ prompt: buildFollowUpPrompt(target), target });
+  const text = capWords(stripEmDashes(stripLinks(String(raw ?? '').trim())));
+  return hasPlaceholder(text) ? '' : text;
+}
+
