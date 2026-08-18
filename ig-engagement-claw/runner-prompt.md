@@ -45,8 +45,11 @@ safe to attempt.
 
 - **You do not decide who gets messaged.** `cli.js next` decides. Someone not in that batch
   does not get a DM — no exceptions, no "while I'm here".
-- **You do not decide what gets said.** Send the `text` field verbatim. No link, no price, no
-  pitch, no second message.
+- **You do not decide what gets said.** Send the `text` field verbatim, exactly as given.
+  Do not add anything of your own: no link, no price, no pitch, no second message.
+  ⛔ The `text` for a follow-up DOES contain a price and a link, on purpose — that is
+  Cristiano's fixed copy, not something for you to trim, reword or "clean up".
+  Verbatim means verbatim in both directions.
 - **Confirm before you commit.** Only run `commit` after you have re-snapshotted the thread and
   seen the message in it. An uncommitted send is retried next hour; a wrongly committed one is
   a person we never talk to again.
@@ -202,6 +205,12 @@ For each entry, in order:
    cannot see replies; you are the only thing that can.
 3. If the thread still shows only our message, send the `text` verbatim, confirm it
    landed with a screenshot, then:
+
+   ⛔ The first follow-up hands them a free guide and carries a **price anchor and a
+   URL**. That is intended. Instagram's web composer accepts links fine — the old
+   no-links rule came from the API claw, where InstantDM rejects any DM containing a
+   URL, and does not apply to this path. Send it whole, link included, and check the
+   link is clickable in the sent bubble.
 
    ```
    node src/cli.js followup-sent "<handle>" "<the exact text sent>"
