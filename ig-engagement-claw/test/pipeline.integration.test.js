@@ -151,7 +151,10 @@ describe('follow-ups inside planBatch', () => {
     });
 
     expect(res.followUps).toHaveLength(1);
-    expect(res.followUps[0]).toMatchObject({ handle: 'quietone', followUpNumber: 1, text: 'drafted text' });
+    expect(res.followUps[0]).toMatchObject({ handle: 'quietone', followUpNumber: 1 });
+    // Knock one is Cristiano's fixed copy, so the llm stub is deliberately ignored.
+    expect(res.followUps[0].text).toContain('$149.99');
+    expect(res.followUps[0].text).toContain('guide-1');
   });
 
   it('spends budget on follow-ups BEFORE new cold DMs', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { draftOpener, buildPrompt, buildFollowUpPrompt, draftFollowUp } from '../src/opener.js';
+import { draftOpener, buildPrompt, buildFollowUpPrompt, draftFollowUp, ALLOWED_LINK_HOSTS, FOLLOW_UP_GUIDE_TEXT } from '../src/opener.js';
 
 const llmSaying = (text) => async () => text;
 const LIKER = { handle: 'ana', source: 'liker', postId: 'P1', caption: 'how we cut render time' };
@@ -102,7 +102,7 @@ describe('never ships an em dash', () => {
 });
 
 describe('follow-up drafting', () => {
-  const TARGET = { handle: 'ana', source: 'liker', followUpNumber: 1, opener: 'Saw you liked the post. What are you building?', silentDays: 4 };
+  const TARGET = { handle: 'ana', source: 'liker', followUpNumber: 2, opener: 'Saw you liked the post. What are you building?', silentDays: 4 };
 
   it('tells the model what we already said, so the follow-up is not a copy of the opener', () => {
     const prompt = buildFollowUpPrompt(TARGET);
@@ -117,7 +117,7 @@ describe('follow-up drafting', () => {
   });
 
   it('says plainly that this is the last message on the second knock', () => {
-    const prompt = buildFollowUpPrompt({ ...TARGET, followUpNumber: 2 });
+    const prompt = buildFollowUpPrompt(TARGET);
     expect(prompt).toMatch(/last|final/i);
   });
 
@@ -140,3 +140,71 @@ describe('follow-up drafting', () => {
   });
 });
 
+describe('links in follow-ups', () => {
+  // followUpNumber 2 — knock ONE is fixed copy with no model involved, so the
+  // link/em-dash/placeholder guards only have anything to guard on knock two.
+  const T = { handle: 'ana', source: 'liker', followUpNumber: 2, opener: 'hi', silentDays: 4 };
+
+  it('lets OUR link through, because the browser sends a real DM', async () => {
+    // The blanket link strip was inherited from the API claw, where InstantDM
+    // rejects any DM containing a URL. This claw types into the real web
+    // composer, so that constraint simply does not apply here.
+    const text = await draftFollowUp({
+      target: T,
+      llm: async () => 'Here it is: https://varritech-product-playbook.vercel.app/guide-1',
+    });
+    expect(text).toContain('https://varritech-product-playbook.vercel.app/guide-1');
+  });
+
+  it('still strips a link to anywhere we did not authorise', async () => {
+    // An allowlist, not a free-for-all: a hallucinated or mistyped URL in a DM
+    // going out under Cristiano's name is worse than no link at all.
+    const text = await draftFollowUp({
+      target: T,
+      llm: async () => 'Check https://bit.ly/xyz and https://random-site.com/thing',
+    });
+    expect(text).not.toMatch(/bit\.ly|random-site/);
+  });
+
+  it('keeps a COLD opener link-free — first contact with a stranger stays clean', async () => {
+    const text = await draftOpener({
+      target: { handle: 'ana', source: 'liker' },
+      llm: async () => 'Hey, grab it at https://varritech-product-playbook.vercel.app/guide-1',
+    });
+    expect(text).not.toMatch(/https?:\/\//);
+  });
+
+  it('authorises only Varritech hosts', () => {
+    expect(ALLOWED_LINK_HOSTS.every((h) => /varritech/.test(h))).toBe(true);
+  });
+});
+
+describe('the value drop', () => {
+  const T = { handle: 'ana', source: 'liker', followUpNumber: 1, opener: 'hi', silentDays: 4 };
+
+  it('sends Cristiano\'s exact copy: the price anchor, the framing, and the link', async () => {
+    // Fixed copy, not an LLM draft. The price, the programme name and the URL
+    // all have to survive verbatim, and a model paraphrasing any of them is a
+    // worse outcome than no personalisation at all.
+    const text = await draftFollowUp({ target: T, llm: async () => 'IGNORED' });
+    expect(text).toContain('$149.99');
+    expect(text).toMatch(/strategy phase/i);
+    expect(text).toMatch(/scalewright/i);
+    expect(text).toContain('https://varritech-product-playbook.vercel.app/guide-1');
+    expect(text).not.toBe('IGNORED');
+  });
+
+  it('does not truncate the value drop to the opener word cap', () => {
+    expect(FOLLOW_UP_GUIDE_TEXT.split(/\s+/).length).toBeGreaterThan(35);
+  });
+
+  it('carries no em dash, like everything else that goes out under his name', () => {
+    expect(FOLLOW_UP_GUIDE_TEXT).not.toMatch(/[\u2014\u2013]/);
+  });
+
+  it('leaves the final knock as a warm LLM close with no link', async () => {
+    const prompt = buildFollowUpPrompt({ ...T, followUpNumber: 2 });
+    expect(prompt).not.toContain('guide-1');
+    expect(prompt).toMatch(/last|final/i);
+  });
+});

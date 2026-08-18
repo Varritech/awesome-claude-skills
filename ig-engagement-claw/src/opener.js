@@ -2,9 +2,13 @@
 //
 // Two constraints are enforced in CODE, never in the prompt, because prompt
 // rules drift and these two are load-bearing:
-//   1. NO LINKS. A cold opener with a link is both the spammiest possible first
-//      contact and structurally undeliverable downstream — Meta/InstantDM reject
-//      any DM containing a URL. See [[reference_instantdm_blocks_all_links_in_dms]].
+//   1. NO LINKS IN A COLD OPENER. First contact with a stranger stays clean; a
+//      link in message one is the spammiest possible opening.
+//      ⛔ Follow-ups are different and MAY carry a link. The old blanket ban was
+//      inherited from the API claw, where InstantDM rejects any DM containing a
+//      URL ([[reference_instantdm_blocks_all_links_in_dms]]). This claw types
+//      into the real Instagram web composer, so that limit does not apply. It is
+//      an ALLOWLIST though, not a free-for-all — see ALLOWED_LINK_HOSTS.
 //   2. SHORT. Long first DMs read as a broadcast and get ignored or reported.
 //   3. NO EM DASHES. Cristiano's standing rule on everything that goes out under
 //      his name. The model ignores it when it is only in the prompt.
@@ -23,6 +27,26 @@ export function stripEmDashes(text) {
   return text
     .replace(/\s*[\u2014\u2013]\s*/g, ', ')
     .replace(/,\s*,/g, ',')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * The only hosts a drafted message may link to.
+ *
+ * An allowlist rather than "any URL is fine": a hallucinated, mistyped or
+ * model-invented link going out under Cristiano's name is worse than no link.
+ */
+export const ALLOWED_LINK_HOSTS = [
+  'varritech.com',
+  'www.varritech.com',
+  'varritech-product-playbook.vercel.app',
+];
+
+/** Strip every link EXCEPT ones pointing at a host we authorised. */
+export function stripLinksExcept(text, hosts = ALLOWED_LINK_HOSTS) {
+  return text
+    .replace(URL_RE, (m) => (hosts.some((h) => m.toLowerCase().includes(h)) ? m : ''))
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -102,34 +126,51 @@ export async function draftOpener({ target, llm }) {
 }
 
 /**
- * The second knock, for someone who never answered the opener.
+ * Knock one: give them something instead of asking again.
  *
- * The model is handed what we ALREADY said, because the failure mode here is a
- * near-duplicate of the opener arriving days later, which reads as a broken bot
- * rather than a person. It is also told not to chase: "just following up" and
- * "did you see my message?" make the silence the subject, put the reader on the
- * back foot, and are the fastest route to a report.
+ * FIXED COPY, not an LLM draft, and deliberately so. The price anchor, the
+ * programme name and the URL all have to survive verbatim — a model
+ * paraphrasing "$149.99" into "around $150", renaming Scalewright, or mangling
+ * the link is a far worse outcome than zero personalisation. Cristiano wrote
+ * this; it ships as written.
+ */
+export const GUIDE_URL = process.env.GUIDE_URL || 'https://varritech-product-playbook.vercel.app/guide-1';
+
+export const FOLLOW_UP_GUIDE_TEXT =
+  'Hey, we typically charge $149.99 for this guide. It outlines the strategy phase, ' +
+  'the most important part of our Scalewright program, and it is the framework we use ' +
+  `to guarantee people $10k in monthly recurring revenue. Here it is: ${GUIDE_URL}`;
+
+/**
+ * Knock two: the last message, and the only one the model writes.
+ *
+ * No link and nothing to claim — knock one already gave them the thing. This
+ * one exists only to close warmly and stop. It is told not to chase, because
+ * "just following up" makes the silence the subject and is the fastest route to
+ * a report.
  */
 export function buildFollowUpPrompt(target) {
-  const last = target.followUpNumber >= 2;
   return [
     'You are Cristiano, founder of Varritech, on Instagram.',
-    `You messaged @${target.handle} ${target.silentDays} days ago and they never replied.`,
-    `Your previous message was: "${target.opener}"`,
-    'Write ONE short follow-up, under 30 words.',
-    '⛔ Do not repeat that message or rephrase it — say something DIFFERENT, with a new angle or a lighter question.',
+    `You messaged @${target.handle} ${target.silentDays} days ago and sent them a free guide. They never replied.`,
+    `Your first message was: "${target.opener}"`,
+    'Write ONE short message under 30 words. This is your LAST message to them.',
+    'Close it warmly, leave the door open, and ask nothing that demands a reply.',
+    '⛔ Do not repeat or rephrase what you already sent — say something different.',
     '⛔ Never guilt them, never chase. No "just following up", no "did you see my message", no "bumping this". Their silence is not the subject.',
-    'No links, no pitch, no price. Assume they are busy and give them an easy out.',
-    last
-      ? 'This is your LAST message to them. Close it warmly, leave the door open, and ask nothing that demands a reply.'
-      : 'End on one easy, low-effort question.',
-    'Write the FINAL text. Never leave a placeholder like [niche] or {name}.',
+    'No links, no pitch, no price. Write the FINAL text, never a placeholder like [niche] or {name}.',
   ].join(' ');
 }
 
 export async function draftFollowUp({ target, llm }) {
+  // Knock one is the fixed value drop. No model involved, no word cap applied —
+  // it is already the length it needs to be to carry the anchor and the link.
+  if (target.followUpNumber === 1) return FOLLOW_UP_GUIDE_TEXT;
+
   const raw = await llm({ prompt: buildFollowUpPrompt(target), target });
-  const text = capWords(stripEmDashes(stripLinks(String(raw ?? '').trim())));
+  // stripLinksExcept rather than stripLinks: a browser-sent DM carries a URL
+  // fine, so an authorised Varritech link may survive if the model adds one.
+  const text = capWords(stripEmDashes(stripLinksExcept(String(raw ?? '').trim())));
   return hasPlaceholder(text) ? '' : text;
 }
 
