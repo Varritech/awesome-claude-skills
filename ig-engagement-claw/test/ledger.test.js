@@ -39,3 +39,41 @@ describe('contacted ledger', () => {
     expect(led.sentSince(24 * 3600_000, now)).toBe(3);
   });
 });
+
+describe('follow-ups and replies', () => {
+  const p = () => join(dir, 'contacted.json');
+  it('appends a follow-up without destroying the original opener', () => {
+    const led = createLedger({ path: p() });
+    led.record('ana', { at: '2026-08-17T00:00:00.000Z', text: 'the opener' });
+    led.recordFollowUp('ana', { at: '2026-08-20T00:00:00.000Z', text: 'second knock' });
+
+    const e = createLedger({ path: p() }).all().find((x) => x.handle === 'ana');
+    expect(e.text).toBe('the opener');
+    expect(e.followUps).toEqual([{ at: '2026-08-20T00:00:00.000Z', text: 'second knock' }]);
+  });
+
+  it('counts a follow-up against the send budget, because it is a real DM', () => {
+    const led = createLedger({ path: p() });
+    led.record('ana', { at: '2026-08-01T00:00:00.000Z', text: 'old opener' });
+    led.recordFollowUp('ana', { at: '2026-08-17T12:00:00.000Z', text: 'knock' });
+
+    // The opener is ancient; only the follow-up falls inside the window. If
+    // follow-ups did not count, a backlog of them could blow straight past
+    // MAX_PER_HOUR in a single run.
+    const now = Date.parse('2026-08-17T12:30:00.000Z');
+    expect(led.sentSince(3600_000, now)).toBe(1);
+  });
+
+  it('marks a reply so the follow-up chain stops', () => {
+    const led = createLedger({ path: p() });
+    led.record('ana', { at: '2026-08-17T00:00:00.000Z', text: 'the opener' });
+    led.markReplied('ana');
+    expect(createLedger({ path: p() }).all().find((x) => x.handle === 'ana').replied).toBe(true);
+  });
+
+  it('refuses to follow up someone with no opener on record', () => {
+    const led = createLedger({ path: p() });
+    expect(() => led.recordFollowUp('ghost', { at: '2026-08-20T00:00:00.000Z', text: 'x' })).toThrow(/ghost/);
+  });
+});
+

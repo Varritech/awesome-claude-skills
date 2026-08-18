@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { draftOpener, buildPrompt } from '../src/opener.js';
+import { draftOpener, buildPrompt, buildFollowUpPrompt, draftFollowUp } from '../src/opener.js';
 
 const llmSaying = (text) => async () => text;
 const LIKER = { handle: 'ana', source: 'liker', postId: 'P1', caption: 'how we cut render time' };
@@ -98,6 +98,45 @@ describe('never ships an em dash', () => {
     });
     expect(text).not.toMatch(/[\u2014\u2013]/);
     expect(text).toContain('love that energy');
+  });
+});
+
+describe('follow-up drafting', () => {
+  const TARGET = { handle: 'ana', source: 'liker', followUpNumber: 1, opener: 'Saw you liked the post. What are you building?', silentDays: 4 };
+
+  it('tells the model what we already said, so the follow-up is not a copy of the opener', () => {
+    const prompt = buildFollowUpPrompt(TARGET);
+    expect(prompt).toContain('Saw you liked the post. What are you building?');
+    expect(prompt).toMatch(/do not repeat|already sent|different/i);
+  });
+
+  it('never guilt-trips them for not replying', () => {
+    // "just following up" / "did you see my message" is the tell of a bot and
+    // the fastest way to get reported. It has to add something or say nothing.
+    expect(buildFollowUpPrompt(TARGET)).toMatch(/never (?:guilt|shame|nag)|do not.*chase/i);
+  });
+
+  it('says plainly that this is the last message on the second knock', () => {
+    const prompt = buildFollowUpPrompt({ ...TARGET, followUpNumber: 2 });
+    expect(prompt).toMatch(/last|final/i);
+  });
+
+  it('runs a follow-up through the same link, em dash and placeholder guards as an opener', async () => {
+    const text = await draftFollowUp({
+      target: TARGET,
+      llm: async () => 'Still building? Grab it at https://varritech.com/x \u2014 [niche] founders love it',
+    });
+    // Placeholder means drop entirely, same as an opener.
+    expect(text).toBe('');
+  });
+
+  it('keeps a clean follow-up, stripped of links and em dashes', async () => {
+    const text = await draftFollowUp({
+      target: TARGET,
+      llm: async () => 'No worries if the timing is off \u2014 what are you working on this week?',
+    });
+    expect(text).not.toMatch(/[\u2014\u2013]/);
+    expect(text).toContain('what are you working on this week');
   });
 });
 

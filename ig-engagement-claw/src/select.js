@@ -44,16 +44,20 @@ const DAY_MS = 24 * HOUR_MS;
  * us — if the cap were per-run, that polling frequency would silently multiply
  * the daily send volume by however often cron happens to fire.
  */
-export function remainingBudget({ ledger, rate, cap }) {
-  if (!rate) return cap;
-  const perHourLeft = rate.perHour == null ? Infinity : rate.perHour - ledger.sentSince(HOUR_MS);
-  const perDayLeft = rate.perDay == null ? Infinity : rate.perDay - ledger.sentSince(DAY_MS);
-  return Math.max(0, Math.min(cap, perHourLeft, perDayLeft));
+export function remainingBudget({ ledger, rate, cap, alreadyPlanned = 0 }) {
+  if (!rate) return Math.max(0, cap - alreadyPlanned);
+  // ⛔ `alreadyPlanned` is messages decided on THIS run but not yet committed to
+  // the ledger — follow-ups, drafted before cold openers are picked. Without it
+  // the ledger still reads zero sends this hour and hands out the full allowance
+  // a second time, so a run with 1 follow-up and perHour=2 would send 3.
+  const perHourLeft = rate.perHour == null ? Infinity : rate.perHour - ledger.sentSince(HOUR_MS) - alreadyPlanned;
+  const perDayLeft = rate.perDay == null ? Infinity : rate.perDay - ledger.sentSince(DAY_MS) - alreadyPlanned;
+  return Math.max(0, Math.min(cap - alreadyPlanned, perHourLeft, perDayLeft));
 }
 
-export function selectBatch({ targets, ledger, cap, now, window: win, rate, exclude = [] }) {
+export function selectBatch({ targets, ledger, cap, now, window: win, rate, exclude = [], alreadyPlanned = 0 }) {
   if (!isSendingWindow(now, win)) return [];
-  const budget = remainingBudget({ ledger, rate, cap });
+  const budget = remainingBudget({ ledger, rate, cap, alreadyPlanned });
   if (budget <= 0) return [];
   // Own accounts, family, clients — anyone who must never receive a cold opener.
   // Cristiano's personal @varriale.cristiano likes the company posts, so without

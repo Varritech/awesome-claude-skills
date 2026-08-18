@@ -178,6 +178,40 @@ the same interval twice. Uniform timing is the tell.
 If a profile has DMs closed, the Message button is absent, or the thread won't open: **skip and
 do not commit.** If two sends in a row fail, stop the whole run.
 
+## 3b. Follow-ups — people who never answered
+
+`next` also returns a `followUps` array. Each entry is someone we opened days ago
+who has still said nothing. Cadence is 3 days after the opener, then 7 days after
+that, and never again — at most two knocks, ever.
+
+⛔ These are drafted and budgeted BEFORE cold openers, on purpose. There is always
+another liker; a person only goes quiet once.
+
+For each entry, in order:
+
+1. Open their thread the same way as section 3 (profile → 3-dots → **Send message**).
+2. ⛔ **Read the thread before you type anything.** If they replied at ANY point —
+   even one word, even months ago — do NOT send the follow-up. Record it and move on:
+
+   ```
+   node src/cli.js replied "<handle>"
+   ```
+
+   That ends their follow-up chain for good. From there the sales claw owns the
+   conversation, and a second knock from us talks straight over it. The ledger
+   cannot see replies; you are the only thing that can.
+3. If the thread still shows only our message, send the `text` verbatim, confirm it
+   landed with a screenshot, then:
+
+   ```
+   node src/cli.js followup-sent "<handle>" "<the exact text sent>"
+   ```
+
+4. Same pacing as cold sends: **wait 40–90 seconds between people, varied.**
+
+If a thread will not open or the Message action is gone, skip it and do NOT record
+anything — it comes back around next run.
+
 ## 4. Commit — only what you saw land
 
 ```

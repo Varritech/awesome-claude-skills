@@ -44,6 +44,10 @@ export const config = () => ({
     perHour: Number(process.env.MAX_PER_HOUR ?? 4),
     perDay: Number(process.env.MAX_PER_DAY ?? 15),
   },
+  // Days of silence before each follow-up, measured from the previous message.
+  // Two entries = at most two follow-ups. Empty string turns follow-ups OFF.
+  followUpDays: (process.env.FOLLOWUP_DAYS ?? '3,7')
+    .split(',').map((d) => Number(d.trim())).filter((d) => Number.isFinite(d) && d > 0),
   killSwitch: process.env.KILL_SWITCH === '1',
   timeZone: process.env.CLAW_TZ || 'America/New_York',
   startHour: Number(process.env.START_HOUR ?? 9),

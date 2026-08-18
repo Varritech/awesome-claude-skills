@@ -4,8 +4,9 @@
 
 import { parseNotifications } from './notifications.js';
 import { newSince } from './seen.js';
-import { selectBatch } from './select.js';
-import { draftOpener } from './opener.js';
+import { selectBatch, isSendingWindow, remainingBudget } from './select.js';
+import { draftOpener, draftFollowUp } from './opener.js';
+import { dueForFollowUp } from './followups.js';
 import { recordOpener } from './handoff.js';
 
 /**
@@ -17,17 +18,38 @@ import { recordOpener } from './handoff.js';
  * plans nobody, so installing this doesn't cold-DM the entire backlog at once.
  */
 export async function planBatch({
-  notifications, seen, ledger, llm, cap, rate, now, window: win, exclude, killSwitch = false,
+  notifications, seen, ledger, llm, cap, rate, now, window: win, exclude, killSwitch = false, followUpDays,
 }) {
-  if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [] };
+  if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [], followUps: [] };
 
   const wasBaseline = seen.isBaseline();
   const targets = newSince(parseNotifications(notifications), seen);
   if (wasBaseline) {
-    return { killed: false, baseline: true, considered: 0, batch: [] };
+    return { killed: false, baseline: true, considered: 0, batch: [], followUps: [] };
   }
 
-  const batch = selectBatch({ targets, ledger, cap, now, window: win, rate, exclude });
+  // Follow-ups are drafted FIRST and take budget before any cold opener.
+  // Someone who already heard from us is warmer than a stranger, and if new
+  // targets always won the slots the second knock would never happen at all —
+  // there is always another liker, but a person only goes quiet once.
+  const followUps = [];
+  if (isSendingWindow(now, win)) {
+    let left = remainingBudget({ ledger, rate, cap });
+    for (const target of dueForFollowUp({ ledger, now, cadenceDays: followUpDays })) {
+      if (left <= 0) break;
+      const text = await draftFollowUp({ target, llm });
+      if (!text) continue; // unusable draft — they come back around next run
+      followUps.push({ ...target, text });
+      left -= 1;
+    }
+  }
+
+  // Whatever the follow-ups did not use is what cold outreach gets. They are
+  // passed as `alreadyPlanned` because they are NOT in the ledger yet, so the
+  // hourly/daily budget has to be told about them explicitly.
+  const batch = selectBatch({
+    targets, ledger, cap, now, window: win, rate, exclude, alreadyPlanned: followUps.length,
+  });
   const withOpeners = [];
   for (const target of batch) {
     const text = await draftOpener({ target, llm });
@@ -37,7 +59,7 @@ export async function planBatch({
     if (!text) continue;
     withOpeners.push({ ...target, text });
   }
-  return { killed: false, baseline: false, considered: targets.length, batch: withOpeners };
+  return { killed: false, baseline: false, considered: targets.length, batch: withOpeners, followUps };
 }
 
 /**
