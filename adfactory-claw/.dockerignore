@@ -1,0 +1,6 @@
+node_modules
+template/video/node_modules
+template/video/out
+src/**/out
+*.log
+.env
