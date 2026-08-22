@@ -70,8 +70,32 @@ npm run run-once
 
 `/run` invents new creative from scratch (research → video → static) and is slow,
 expensive and gated. The variant loop only ever makes **small variations of creative
-that has already produced sales**, and ships them into **the ad set that earned the
-sales**. It is cheap, safe to run unattended, and it is the loop that compounds.
+that has already converted**, and ships them into **the ad set that earned the
+conversions**. It is cheap, safe to run unattended, and it is the loop that compounds.
+
+### The offer is varritech.com, not the Skills Library
+
+The claw sells **the agency**. Traffic goes to `varritech.com/prepare` — the gated
+discovery-call page that shows past work, the Scalewright Method and the whole price
+ladder in the open — and the conversion is a booked call, not a checkout.
+`offer.goal = "lead"` drives everything downstream: which Meta action counts as a
+conversion, which template renders, and what the copywriter is told to sell.
+
+⛔ Two filters have to BOTH hold, and the second is not optional:
+
+1. the ad converted on a **lead** action (`lead` / `complete_registration` / `schedule_total`)
+2. its destination link contains `offer.linkMatch` (`/prepare`)
+
+Without #2 the lead filter matches the **Skills checkout**, which fires
+`CompleteRegistration` in volume — a live run scored the Skills V2 Ship ad at *85
+conversions* and would have shipped agency variants straight into the Skills ad sets.
+
+⛔ **The MRR guarantee never goes on a creative.** Its only permitted wording is
+"if you're not at $10,000 MRR six months after launch, we keep working free until you
+are" — two clauses that do not survive being squeezed into a badge, and the truncated
+version ("$10K MRR guaranteed") is simultaneously an income claim and a
+misrepresentation of a signed agreement. The unconditional triple guarantee is short
+enough to render honestly, so that is what the template carries.
 
 ### What one cycle does
 
@@ -79,7 +103,13 @@ sales**. It is cheap, safe to run unattended, and it is the loop that compounds.
    `VARIANTS_RETIRE_SPEND_USD` with zero attributed purchases. The live variant count
    stays flat instead of growing every day.
 2. **Find the earners.** 90-day ad-level insights → static image ads with attributed
-   purchases → keep only those whose ad set is **ACTIVE right now**.
+   conversions **for this offer** → keep only those whose ad set is **live right now**.
+   Ranked by cost per conversion, not raw count.
+
+   ⚠️ As of 2026-08-21 this is **empty**: every varritech.com campaign on the account
+   is PAUSED, so the loop no-ops and says so. It will not stand up an ad set to fix
+   that — creating one is a spend decision. Activate an agency ad set, or name the
+   live one with `VARIANTS_TARGET_ADSET_ID`.
 3. **Learn.** Ranks its own past variants in PostHog by conversion signal, attributed
    through `utm_content={{ad.id}}`. Winners and proven non-converters both go into the
    copy prompt: repeat what worked, never restate a losing angle.
