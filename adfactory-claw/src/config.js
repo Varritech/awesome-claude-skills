@@ -5,13 +5,35 @@ export const config = {
   // identity
   clawId: env.CLAW_ID || "adfactory",
 
-  // creative subject (fixed per the engagement): Skills Library offer
+  // Creative subject: the AGENCY, not the Skills Library product.
+  //
+  // The claw used to advertise the $47 Claude Code Skills Library. It sells
+  // varritech.com now — the agency itself — and the conversion is a booked
+  // discovery call, not a checkout. Everything downstream keys off `goal`:
+  // which Meta action counts as "this ad worked", which templates render, and
+  // what the copywriter is told to sell.
   offer: {
-    name: env.OFFER_NAME || "Claude Code Skills Library",
+    name: env.OFFER_NAME || "Varritech",
     pitch:
       env.OFFER_PITCH ||
-      "70+ production Claude Code skills that turn one prompt into shipped work — ads, apps, audits, outreach.",
-    url: env.OFFER_URL || "https://varritech.com/products/claude-skills-library-pro",
+      "The NYC engineering team that ships Series A product with Claude and AI agents. Founders get a working build, not a proposal.",
+    // /prepare is the gated discovery-call page: past work, the method, the
+    // whole pricing ladder, and the guarantees — all in the open, no sales-call
+    // gate. Sending traffic here rather than to a bare Calendly is deliberate,
+    // it does the selling better than any ad ever will.
+    url: env.OFFER_URL || "https://www.varritech.com/prepare",
+    // 'lead' => book-a-call funnel; 'purchase' => a checkout product.
+    goal: env.OFFER_GOAL || "lead",
+    // ⛔ The loop must only ever touch ads that sell THIS offer. Conversion counts
+    // alone are not enough to tell them apart: the Skills checkout fires
+    // `CompleteRegistration` in volume, so a lead-goal filter matched Skills ads
+    // at 85 "conversions" and would have shipped agency variants into the Skills
+    // ad sets. An ad qualifies only if its destination link contains this string.
+    linkMatch: env.OFFER_LINK_MATCH || "/prepare",
+    // Meta call_to_action type. LEARN_MORE is the safe default for a gated
+    // prepare-then-book page; BOOK_NOW reads as harder commitment than /prepare
+    // actually asks for.
+    cta: env.OFFER_CTA || "LEARN_MORE",
     brand: {
       // skills brand = Varritech chartreuse/indigo (same palette as the C-replica)
       accent: env.BRAND_ACCENT || "#99FF32",
@@ -23,7 +45,7 @@ export const config = {
   },
 
   // what to mine each day (niche slug for viral-content-mining)
-  niche: env.MINING_NICHE || "claude-code-skills",
+  niche: env.MINING_NICHE || "ai-agency-founders",
 
   // daily output mix
   counts: {
@@ -42,6 +64,13 @@ export const config = {
     // Composio connected-account id for the raw-Graph proxy path (src/lib/graph.js).
     // Optional — graph.js resolves the ACTIVE metaads connection when this is blank.
     connectedAccountId: env.META_CONNECTED_ACCOUNT_ID || "",
+    // ⛔ The variant loop only ever ships into an ad set that is ALREADY LIVE and
+    // has already converted. As of 2026-08-21 every varritech.com agency campaign
+    // on this account is PAUSED, so there is nothing for it to ship into and it
+    // will correctly no-op. Naming an ad set here is how a human says "this one is
+    // the live agency ad set, use it" — the claw must never stand one up itself,
+    // because creating an ad set is a spend decision.
+    variantsTargetAdsetId: env.VARIANTS_TARGET_ADSET_ID || "",
   },
 
   // PostHog — the variant loop's feedback signal. Project 489511 = varritech /
@@ -92,7 +121,7 @@ export const config = {
   // Claude
   anthropic: {
     apiKey: env.ANTHROPIC_API_KEY || "",
-    model: env.CLAW_MODEL || "claude-opus-4-8",
+    model: env.CLAW_MODEL || "claude-opus-5",
   },
 
   // email — default Composio GMAIL (reuses Composio key); 'smtp' to use nodemailer

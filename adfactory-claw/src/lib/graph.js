@@ -140,7 +140,9 @@ export async function createImageCreative({ name, imageHash, primaryText, headli
       name: headline,
       description,
       image_hash: imageHash,
-      call_to_action: { type: "SHOP_NOW", value: { link } },
+      // CTA comes from the offer: SHOP_NOW sells a checkout, LEARN_MORE opens a
+      // gated prepare-then-book page. Wrong verb kills a lead ad.
+      call_to_action: { type: config.offer.cta || "LEARN_MORE", value: { link } },
     },
   };
   const data = await graph("POST", `/${config.meta.accountId}/adcreatives`, {

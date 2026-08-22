@@ -49,28 +49,68 @@ const MAX_LIVE_VARIANTS = Number(process.env.VARIANTS_MAX_LIVE_PER_ADSET || 6);
 // roughly one conversion at target CPA, with nothing to show.
 const RETIRE_SPEND_USD = Number(process.env.VARIANTS_RETIRE_SPEND_USD || 60);
 
-const PURCHASE_ACTIONS = new Set(["purchase", "offsite_conversion.fb_pixel_purchase"]);
+// What counts as "this ad worked" depends on the offer.
+//
+// The claw sells varritech.com now — the agency — and the conversion is a booked
+// discovery call, not a checkout. Counting purchases against a lead funnel returns
+// zero for every ad, which reads exactly like "no creative works" and would make
+// the loop silently refuse to run forever.
+//
+// ⛔ `lead` and `offsite_conversion.fb_pixel_lead` are the SAME conversion counted
+// twice by Meta, and so are `complete_registration` and its pixel twin — hence the
+// max-per-family instead of a sum. The agency's own history uses both families:
+// the best ad on the account (OpenClaw White Collar, 14 leads at $10.64) reports
+// `lead`, while the Schedule/Quick-Build ads report `complete_registration`.
+const ACTION_FAMILIES = {
+  purchase: [["purchase", "offsite_conversion.fb_pixel_purchase"]],
+  lead: [
+    ["lead", "offsite_conversion.fb_pixel_lead"],
+    ["complete_registration", "offsite_conversion.fb_pixel_complete_registration"],
+    ["schedule_total"],
+  ],
+};
 
-function purchasesOf(row) {
-  let n = 0;
-  for (const a of row.actions || []) if (PURCHASE_ACTIONS.has(a.action_type)) n = Math.max(n, +a.value || 0);
-  let v = 0;
-  for (const a of row.action_values || []) if (PURCHASE_ACTIONS.has(a.action_type)) v = Math.max(v, +a.value || 0);
-  return { purchases: n, value: v };
+function conversionsOf(row, goal = config.offer.goal) {
+  const families = ACTION_FAMILIES[goal] || ACTION_FAMILIES.purchase;
+  const pick = (list, family) => {
+    let n = 0;
+    for (const a of list || []) if (family.includes(a.action_type)) n = Math.max(n, +a.value || 0);
+    return n;
+  };
+  let conversions = 0;
+  let value = 0;
+  for (const family of families) {
+    conversions += pick(row.actions, family);
+    value += pick(row.action_values, family);
+  }
+  return { conversions, value };
 }
 
 /**
- * The ads worth varying: static image ads with attributed purchases that sit in an
- * ad set which is ACTIVE right now. A winner in a paused ad set is not a target —
- * varying it would mean creating the ad set, which is doctrine #1.
+ * The ads worth varying: static image ads with attributed conversions that sit in
+ * an ad set which is LIVE right now.
+ *
+ * ⛔ "Live right now" is the whole safety property. A winner in a paused ad set is
+ * NOT a target — varying it would mean standing the ad set back up, and creating
+ * an ad set is a spend decision the claw must never make unattended (doctrine #1).
+ *
+ * As of 2026-08-21 that means this returns EMPTY for the agency offer: every
+ * varritech.com campaign on the account is paused, so the loop correctly no-ops
+ * and says so rather than inventing somewhere to spend. Set
+ * `VARIANTS_TARGET_ADSET_ID` (or activate an agency ad set) to give it a home.
  */
-export async function findSalesProvenStatics() {
+export async function findProvenStatics() {
   const [rows, live] = await Promise.all([adInsights({ datePreset: "last_90d" }), activeAdsets()]);
   const liveById = new Map(live.map((a) => [a.id, a]));
 
+  // An explicitly named ad set is a human saying "this one is live, use it" — it
+  // counts as a target even if the ACTIVE sweep hasn't caught up.
+  const pinned = config.meta.variantsTargetAdsetId;
+  const isLive = (adsetId) => liveById.has(adsetId) || adsetId === pinned;
+
   const earners = rows
-    .map((r) => ({ ...r, ...purchasesOf(r) }))
-    .filter((r) => r.purchases > 0 && liveById.has(r.adset_id))
+    .map((r) => ({ ...r, ...conversionsOf(r) }))
+    .filter((r) => r.conversions > 0 && isLive(r.adset_id))
     // never treat the loop's own output as a source to copy from
     .filter((r) => !String(r.ad_name).startsWith(OWNED_PREFIX));
 
@@ -84,14 +124,20 @@ export async function findSalesProvenStatics() {
     const ld = oss.link_data || {};
     const isStatic = Boolean(ad.creative?.image_hash || ld.image_hash) && !ld.child_attachments && !oss.video_data;
     if (!isStatic) continue;
+    // ⛔ Sells THIS offer, not merely "converted something". Without this the
+    // lead-goal filter matches the Skills checkout's CompleteRegistration events
+    // and the loop cheerfully varies a product ad into a product ad set.
+    const link = ld.link || "";
+    if (config.offer.linkMatch && !link.includes(config.offer.linkMatch)) continue;
     out.push({
       adId: r.ad_id,
       adName: r.ad_name,
       adsetId: r.adset_id,
       adsetName: r.adset_name,
       spend: +r.spend || 0,
-      purchases: r.purchases,
+      conversions: r.conversions,
       value: r.value,
+      costPerConversion: r.conversions ? (+r.spend || 0) / r.conversions : null,
       imageHash: ad.creative?.image_hash || ld.image_hash,
       control: {
         message: ld.message || "",
@@ -101,7 +147,9 @@ export async function findSalesProvenStatics() {
       },
     });
   }
-  return out.sort((a, b) => b.purchases - a.purchases);
+  // Rank by cost per conversion, not raw count — on a lead funnel a cheap ad
+  // with 6 leads on $56 is a better thing to vary than a dear one with 14 on $333.
+  return out.sort((a, b) => (a.costPerConversion ?? 1e9) - (b.costPerConversion ?? 1e9));
 }
 
 /** Which of the loop's own past variants converted best, per PostHog. */
@@ -122,8 +170,39 @@ const SYSTEM = `You write direct-response ad copy in Alex Hormozi's style.
 - Name the exact pain, then the dream state, then remove the risk with a real guarantee.
 - No hype words, no emoji, no hashtags, no em dashes.
 - Short, punchy, spoken-aloud cadence. Every line earns the next.
-You are writing a VARIANT of a control ad that is already producing sales. Change ONE
+You are writing a VARIANT of a control ad that is already converting. Change ONE
 lever per variant so the test is readable. Never restate a losing angle.`;
+
+// Everything the copywriter is allowed to claim about the agency, and the two
+// things it must never say. This is not style guidance — the MRR guarantee is a
+// signed contractual term and misstating it is both a misrepresentation of the
+// agreement and an income claim, which is a Meta policy violation on top.
+const AGENCY_FACTS = `THE OFFER
+Varritech is an NYC engineering team that ships production software for founders
+using Claude and AI agents. Not a proposal, not a deck: a working build.
+The ad's only job is to get a founder onto varritech.com/prepare.
+
+/prepare shows them, with no sales call first: the Scalewright Method
+(MAP, BLUEPRINT, BUILD, EQUIP), two reels of real past work (Series A enterprise
+and solo-founder MVP), and the full price ladder in the open:
+  Enterprise Tune-Up $999 · MVP Development from $99/mo ·
+  Scalewright Installation $15,000 (3 per quarter, by application) ·
+  Scalewright Managed $8-12K/mo
+Discovery calls are gated behind that page and there is one reschedule per founder.
+That scarcity is real, so it may be stated plainly.
+
+GUARANTEES YOU MAY CITE
+Triple guarantee, unconditional: on time or we work free; production-grade or we
+rebuild free; they ship their next feature solo by day 45 or training continues free.
+
+⛔ THE MRR GUARANTEE — EXACT WORDING, NO PARAPHRASE
+Say it ONLY as: "if you're not at $10,000 MRR six months after launch, we keep
+working free until you are."
+NEVER write "we guarantee $10K MRR", "guaranteed $10K MRR", or any promise of an
+income figure — the promise is continued work, not the outcome.
+NEVER call the remedy a refund or "money back". There is no refund under it.
+
+⛔ Do not invent client names, logos, revenue figures, or headcounts.`;
 
 const VARIANT_SCHEMA = {
   type: "object",
@@ -141,13 +220,17 @@ const VARIANT_SCHEMA = {
             enum: ["hook", "price-frame", "proof", "guarantee", "pain"],
             description: "the ONE thing this variant changes vs the control",
           },
-          family: { type: "string", enum: ["v2ship", "hormozi", "v3"] },
+          family: {
+            type: "string",
+            enum: ["agency"],
+            description: "creative template to render this variant into",
+          },
           onImage: {
             type: "object",
             description: "text that goes ON the creative",
             properties: {
-              big: { type: "string", description: "the huge number/word, <=6 chars e.g. 213 or 200+" },
-              bigWord: { type: "string", description: "second display line, <=16 chars" },
+              big: { type: "string", description: "the huge number/word, <=7 chars e.g. 45 or $999" },
+              bigWord: { type: "string", description: "what that number is, <=18 chars e.g. days to ship" },
               sub: { type: "string", description: "one supporting sentence, <=90 chars" },
               hook: { type: "string", description: "bottom hook line, <=64 chars" },
               cta: { type: "string", description: "2-3 words" },
@@ -182,10 +265,11 @@ ${learning.losers.map((l) => `  ${l.adId}: 0/${l.sessions}`).join("\n") || "  no
     : "No conversion signal available yet; write for breadth of angle, not refinement.";
 
   return askJSON(
-    `Offer: ${config.offer.name}
-URL: ${control.link}
+    `${AGENCY_FACTS}
 
-CONTROL AD (this is producing real sales — do not throw it away, vary it):
+Landing page for every variant: ${control.link}
+
+CONTROL AD (this one is actually converting — do not throw it away, vary it):
   primary: ${control.message}
   headline: ${control.headline}
   description: ${control.description}
@@ -195,10 +279,9 @@ ${rankNote}
 Angles already shipped by this loop (do not repeat): ${alreadyShipped.join(", ") || "none"}
 
 Write ${n} variants. Each changes exactly ONE lever versus the control and keeps
-everything else recognisably the same ad. Keep the current offer facts accurate:
-213 production Claude Code skills, $47 one time, lifetime access, 14-day refund,
-and the guarantee that they ship $10,000 of software by Sunday or get every dollar
-back and one of our engineers finishes their app.`,
+everything else recognisably the same ad. The call to action is always to go to
+/prepare and book a call — never a purchase, never a download. Every claim must
+come from THE OFFER and GUARANTEES above, verbatim where the wording is fixed.`,
     VARIANT_SCHEMA,
     { system: SYSTEM, maxTokens: 4000 },
   );
@@ -214,6 +297,58 @@ function fill(tpl, tokens) {
 
 function tokensFor(family, v) {
   const oi = v.onImage;
+
+  // The agency creative. The Skills templates below sell a price; this one sells
+  // a booked call, so the struck-through price row is replaced by the outcome and
+  // the timebox, and the CTA is always /prepare.
+  //
+  // ⛔ The MRR guarantee is NEVER rendered on the creative. Its correct wording is
+  // two clauses long and does not survive being squeezed into a badge, and the
+  // truncated version ("$10K MRR guaranteed") is exactly the misstatement that is
+  // both an income claim and a misrepresentation of the signed agreement. The
+  // unconditional triple guarantee is short enough to render honestly, so that is
+  // what goes on the image.
+  if (family === "agency") {
+    const rows = [
+      "A production build, not a proposal or a deck",
+      "The Scalewright Method: MAP, BLUEPRINT, BUILD, EQUIP",
+      "Shipped with Claude and AI agents, by an NYC team",
+      "You ship your next feature solo by day 45",
+    ]
+      .map((l) => `<div class="hz-row"><span><span class="ck">&#10003;</span>${l}</span></div>`)
+      .join("\n      ");
+    const stats = [
+      ["On time", "or we work free"],
+      ["Production", "grade or we rebuild"],
+      ["Day 45", "you ship solo"],
+    ]
+      .map(([a, b]) => `<div><div class="v">${a}</div><div class="l">${b}</div></div>`)
+      .join("");
+    const steps = [
+      ["MAP", "week 1"],
+      ["BLUEPRINT", "week 2"],
+      ["BUILD", "weeks 3-6"],
+      ["EQUIP", "by day 45"],
+    ]
+      .map(([k, d], i) => `<div class="s${i === 0 ? " on" : ""}"><div class="k">${k}</div><div class="d">${d}</div></div>`)
+      .join('<span class="ar">&rarr;</span>');
+    return {
+      STEPS: steps,
+      PILL: "NYC · Series A teams",
+      EYEBROW: "Varritech&nbsp;&nbsp;/&nbsp;&nbsp;varritech.com/prepare",
+      H1: oi.hook,
+      SUB: oi.sub,
+      ROWS: rows,
+      BIG: oi.big,
+      BIG_WORD: oi.bigWord,
+      URGENCY: oi.badge,
+      STATS: stats,
+      CTA: oi.cta.toUpperCase(),
+      CHIP: "Triple guarantee",
+      FOOT: "See the work, the method and every price before you book",
+    };
+  }
+
   if (family === "hormozi") {
     const rows = [
       ["213 production-tested Claude Code skills", "$980"],
@@ -403,8 +538,8 @@ export async function retireLosers() {
   const retired = [];
   for (const r of rows) {
     if (!String(r.ad_name).startsWith(OWNED_PREFIX)) continue; // safety rail
-    const { purchases } = purchasesOf(r);
-    if (purchases > 0) continue;
+    const { conversions } = conversionsOf(r);
+    if (conversions > 0) continue;
     if ((+r.spend || 0) < RETIRE_SPEND_USD) continue;
     const ad = await getObject(r.ad_id, "name,status,effective_status");
     if (ad.status !== "ACTIVE") continue;
@@ -427,10 +562,23 @@ export async function runVariantCycle({ batchId, dryRun = false } = {}) {
   fs.mkdirSync(outDir, { recursive: true });
 
   const retired = dryRun ? [] : await retireLosers();
-  const [proven, learning] = await Promise.all([findSalesProvenStatics(), learnFromPostHog()]);
+  const [proven, learning] = await Promise.all([findProvenStatics(), learnFromPostHog()]);
 
   if (!proven.length) {
-    return { batchId, retired, learning, shipped: [], note: "no sales-proven static in an ACTIVE ad set" };
+    // Not an error, and not something to route around by inventing an ad set.
+    // As of 2026-08-21 every varritech.com agency campaign on this account is
+    // PAUSED, so this is the expected state until a human turns one on or names
+    // one via VARIANTS_TARGET_ADSET_ID.
+    return {
+      batchId,
+      retired,
+      learning,
+      shipped: [],
+      note:
+        `no ${config.offer.goal}-proven static sits in a LIVE ad set. ` +
+        `The loop will not create one: standing up an ad set is a spend decision. ` +
+        `Activate an agency ad set, or set VARIANTS_TARGET_ADSET_ID to name the live one.`,
+    };
   }
 
   // One source ad set per cycle, rotated by day so every earner gets refreshed
