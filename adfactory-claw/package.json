@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test tests/",
     "run-once": "node -e \"import('./src/pipeline.js').then(m=>m.runDaily()).then(b=>console.log(JSON.stringify(b,null,2)))\"",
     "mint-veo-token": "node scripts/mint-veo-token.mjs"
   },

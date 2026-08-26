@@ -5,35 +5,34 @@ export const config = {
   // identity
   clawId: env.CLAW_ID || "adfactory",
 
-  // Creative subject: the AGENCY, not the Skills Library product.
+  // Creative subject: the $47 Claude Code Skills Library, not the agency.
   //
-  // The claw used to advertise the $47 Claude Code Skills Library. It sells
-  // varritech.com now — the agency itself — and the conversion is a booked
-  // discovery call, not a checkout. Everything downstream keys off `goal`:
-  // which Meta action counts as "this ad worked", which templates render, and
-  // what the copywriter is told to sell.
+  // Reverted 2026-08-26 (Cristiano: "it needs to be doing it for the skills
+  // library"). The agency pivot (2026-08-21) pointed this at varritech.com/prepare,
+  // but that offer never had an ACTIVE ad set to ship variants into — 5 days live,
+  // 0 shipped, confirmed against the account. Skills has a real ACTIVE campaign
+  // ("US | Claude Skills Library | Purchase") with real purchase history, so this
+  // is what the loop can actually vary starting today. Everything downstream keys
+  // off `goal`: which Meta action counts as "this ad worked", which template
+  // renders, and what the copywriter is told to sell.
   offer: {
-    name: env.OFFER_NAME || "Varritech",
+    name: env.OFFER_NAME || "Claude Code Skills Library",
     pitch:
       env.OFFER_PITCH ||
-      "The NYC engineering team that ships Series A product with Claude and AI agents. Founders get a working build, not a proposal.",
-    // /prepare is the gated discovery-call page: past work, the method, the
-    // whole pricing ladder, and the guarantees — all in the open, no sales-call
-    // gate. Sending traffic here rather than to a bare Calendly is deliberate,
-    // it does the selling better than any ad ever will.
-    url: env.OFFER_URL || "https://www.varritech.com/prepare",
-    // 'lead' => book-a-call funnel; 'purchase' => a checkout product.
-    goal: env.OFFER_GOAL || "lead",
+      "70+ production Claude Code skills that turn one prompt into shipped work — ads, apps, audits, outreach.",
+    // Confirmed live 2026-08-26 across every ACTIVE ad on the Skills campaign —
+    // both the plain and "-pro" product-page variants are in rotation.
+    url: env.OFFER_URL || "https://www.varritech.com/products/claude-skills-library-pro",
+    // 'purchase' => a checkout product; 'lead' => book-a-call funnel (agency-only).
+    goal: env.OFFER_GOAL || "purchase",
     // ⛔ The loop must only ever touch ads that sell THIS offer. Conversion counts
-    // alone are not enough to tell them apart: the Skills checkout fires
-    // `CompleteRegistration` in volume, so a lead-goal filter matched Skills ads
-    // at 85 "conversions" and would have shipped agency variants into the Skills
-    // ad sets. An ad qualifies only if its destination link contains this string.
-    linkMatch: env.OFFER_LINK_MATCH || "/prepare",
-    // Meta call_to_action type. LEARN_MORE is the safe default for a gated
-    // prepare-then-book page; BOOK_NOW reads as harder commitment than /prepare
-    // actually asks for.
-    cta: env.OFFER_CTA || "LEARN_MORE",
+    // alone are not enough to tell them apart — see the agency pivot's own history
+    // in git (5d85e063): a lead-goal filter with no linkMatch happily counted the
+    // Skills checkout's CompleteRegistration events as agency leads. Substring
+    // shared by both live product-page variants, so either qualifies.
+    linkMatch: env.OFFER_LINK_MATCH || "claude-skills-library",
+    // Meta call_to_action type — confirmed live on the account's own Skills ads.
+    cta: env.OFFER_CTA || "SHOP_NOW",
     brand: {
       // skills brand = Varritech chartreuse/indigo (same palette as the C-replica)
       accent: env.BRAND_ACCENT || "#99FF32",
@@ -45,7 +44,7 @@ export const config = {
   },
 
   // what to mine each day (niche slug for viral-content-mining)
-  niche: env.MINING_NICHE || "ai-agency-founders",
+  niche: env.MINING_NICHE || "claude-code-skills",
 
   // daily output mix
   counts: {
@@ -65,11 +64,10 @@ export const config = {
     // Optional — graph.js resolves the ACTIVE metaads connection when this is blank.
     connectedAccountId: env.META_CONNECTED_ACCOUNT_ID || "",
     // ⛔ The variant loop only ever ships into an ad set that is ALREADY LIVE and
-    // has already converted. As of 2026-08-21 every varritech.com agency campaign
-    // on this account is PAUSED, so there is nothing for it to ship into and it
-    // will correctly no-op. Naming an ad set here is how a human says "this one is
-    // the live agency ad set, use it" — the claw must never stand one up itself,
-    // because creating an ad set is a spend decision.
+    // has already converted. Naming an ad set here is how a human says "this one
+    // is the live one, use it" even before the ACTIVE sweep catches up — the claw
+    // must never stand one up itself, because creating an ad set is a spend
+    // decision.
     variantsTargetAdsetId: env.VARIANTS_TARGET_ADSET_ID || "",
   },
 

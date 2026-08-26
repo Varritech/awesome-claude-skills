@@ -51,16 +51,15 @@ const RETIRE_SPEND_USD = Number(process.env.VARIANTS_RETIRE_SPEND_USD || 60);
 
 // What counts as "this ad worked" depends on the offer.
 //
-// The claw sells varritech.com now — the agency — and the conversion is a booked
-// discovery call, not a checkout. Counting purchases against a lead funnel returns
-// zero for every ad, which reads exactly like "no creative works" and would make
-// the loop silently refuse to run forever.
+// The claw sells the $47 Claude Code Skills Library — a checkout, not a booked
+// call. Counting leads against a purchase funnel returns zero for every ad, which
+// reads exactly like "no creative works" and would make the loop silently refuse
+// to run forever.
 //
-// ⛔ `lead` and `offsite_conversion.fb_pixel_lead` are the SAME conversion counted
-// twice by Meta, and so are `complete_registration` and its pixel twin — hence the
-// max-per-family instead of a sum. The agency's own history uses both families:
-// the best ad on the account (OpenClaw White Collar, 14 leads at $10.64) reports
-// `lead`, while the Schedule/Quick-Build ads report `complete_registration`.
+// ⛔ `purchase` and `offsite_conversion.fb_pixel_purchase` are the SAME conversion
+// counted twice by Meta — hence the max-per-family instead of a sum. The `lead`
+// family stays defined for when the agency offer (config.offer.goal="lead") is
+// active again — see git 5d85e063 / project_adfactory_variant_autopilot memory.
 const ACTION_FAMILIES = {
   purchase: [["purchase", "offsite_conversion.fb_pixel_purchase"]],
   lead: [
@@ -70,7 +69,7 @@ const ACTION_FAMILIES = {
   ],
 };
 
-function conversionsOf(row, goal = config.offer.goal) {
+export function conversionsOf(row, goal = config.offer.goal) {
   const families = ACTION_FAMILIES[goal] || ACTION_FAMILIES.purchase;
   const pick = (list, family) => {
     let n = 0;
@@ -94,10 +93,10 @@ function conversionsOf(row, goal = config.offer.goal) {
  * NOT a target — varying it would mean standing the ad set back up, and creating
  * an ad set is a spend decision the claw must never make unattended (doctrine #1).
  *
- * As of 2026-08-21 that means this returns EMPTY for the agency offer: every
- * varritech.com campaign on the account is paused, so the loop correctly no-ops
- * and says so rather than inventing somewhere to spend. Set
- * `VARIANTS_TARGET_ADSET_ID` (or activate an agency ad set) to give it a home.
+ * If no ad set on the account is both ACTIVE and selling this offer (per
+ * linkMatch), this returns EMPTY and the loop correctly no-ops rather than
+ * inventing somewhere to spend. Set `VARIANTS_TARGET_ADSET_ID` to name one
+ * explicitly if the ACTIVE sweep hasn't caught up yet.
  */
 export async function findProvenStatics() {
   const [rows, live] = await Promise.all([adInsights({ datePreset: "last_90d" }), activeAdsets()]);
@@ -173,36 +172,21 @@ const SYSTEM = `You write direct-response ad copy in Alex Hormozi's style.
 You are writing a VARIANT of a control ad that is already converting. Change ONE
 lever per variant so the test is readable. Never restate a losing angle.`;
 
-// Everything the copywriter is allowed to claim about the agency, and the two
-// things it must never say. This is not style guidance — the MRR guarantee is a
-// signed contractual term and misstating it is both a misrepresentation of the
-// agreement and an income claim, which is a Meta policy violation on top.
-const AGENCY_FACTS = `THE OFFER
-Varritech is an NYC engineering team that ships production software for founders
-using Claude and AI agents. Not a proposal, not a deck: a working build.
-The ad's only job is to get a founder onto varritech.com/prepare.
-
-/prepare shows them, with no sales call first: the Scalewright Method
-(MAP, BLUEPRINT, BUILD, EQUIP), two reels of real past work (Series A enterprise
-and solo-founder MVP), and the full price ladder in the open:
-  Enterprise Tune-Up $999 · MVP Development from $99/mo ·
-  Scalewright Installation $15,000 (3 per quarter, by application) ·
-  Scalewright Managed $8-12K/mo
-Discovery calls are gated behind that page and there is one reschedule per founder.
-That scarcity is real, so it may be stated plainly.
+// Everything the copywriter is allowed to claim about the Skills Library, and the
+// one thing it must never do: invent a price, count, or claim not listed here.
+const SKILLS_FACTS = `THE OFFER
+The Claude Code Skills Library: 213 production-tested Claude Code skills, plus the
+OpenClaw autonomous agent, for a one-time $47 (was $1,616). Categories: 15 video +
+ad render skills, 48 growth + outbound workflows, and every future skill added free
+for life. The ad's only job is to get a founder to the checkout page and buy — this
+is a purchase funnel, never a booked call.
 
 GUARANTEES YOU MAY CITE
-Triple guarantee, unconditional: on time or we work free; production-grade or we
-rebuild free; they ship their next feature solo by day 45 or training continues free.
+48-hour fix-or-refund on any skill that doesn't work as documented. 14-day
+money-back, no questions asked, if it doesn't 10x their shipping speed.
 
-⛔ THE MRR GUARANTEE — EXACT WORDING, NO PARAPHRASE
-Say it ONLY as: "if you're not at $10,000 MRR six months after launch, we keep
-working free until you are."
-NEVER write "we guarantee $10K MRR", "guaranteed $10K MRR", or any promise of an
-income figure — the promise is continued work, not the outcome.
-NEVER call the remedy a refund or "money back". There is no refund under it.
-
-⛔ Do not invent client names, logos, revenue figures, or headcounts.`;
+⛔ Do not invent client names, logos, revenue figures, headcounts, or any price/
+count other than the ones listed above.`;
 
 const VARIANT_SCHEMA = {
   type: "object",
@@ -222,7 +206,7 @@ const VARIANT_SCHEMA = {
           },
           family: {
             type: "string",
-            enum: ["agency"],
+            enum: ["hormozi"],
             description: "creative template to render this variant into",
           },
           onImage: {
@@ -265,7 +249,7 @@ ${learning.losers.map((l) => `  ${l.adId}: 0/${l.sessions}`).join("\n") || "  no
     : "No conversion signal available yet; write for breadth of angle, not refinement.";
 
   return askJSON(
-    `${AGENCY_FACTS}
+    `${SKILLS_FACTS}
 
 Landing page for every variant: ${control.link}
 
@@ -279,9 +263,9 @@ ${rankNote}
 Angles already shipped by this loop (do not repeat): ${alreadyShipped.join(", ") || "none"}
 
 Write ${n} variants. Each changes exactly ONE lever versus the control and keeps
-everything else recognisably the same ad. The call to action is always to go to
-/prepare and book a call — never a purchase, never a download. Every claim must
-come from THE OFFER and GUARANTEES above, verbatim where the wording is fixed.`,
+everything else recognisably the same ad. The call to action is always to buy —
+checkout now, never a booked call, never a download. Every claim must come from
+THE OFFER and GUARANTEES above, verbatim where the wording is fixed.`,
     VARIANT_SCHEMA,
     { system: SYSTEM, maxTokens: 4000 },
   );
@@ -566,9 +550,6 @@ export async function runVariantCycle({ batchId, dryRun = false } = {}) {
 
   if (!proven.length) {
     // Not an error, and not something to route around by inventing an ad set.
-    // As of 2026-08-21 every varritech.com agency campaign on this account is
-    // PAUSED, so this is the expected state until a human turns one on or names
-    // one via VARIANTS_TARGET_ADSET_ID.
     return {
       batchId,
       retired,

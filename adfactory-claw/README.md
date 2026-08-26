@@ -73,29 +73,26 @@ expensive and gated. The variant loop only ever makes **small variations of crea
 that has already converted**, and ships them into **the ad set that earned the
 conversions**. It is cheap, safe to run unattended, and it is the loop that compounds.
 
-### The offer is varritech.com, not the Skills Library
+### The offer is the Skills Library
 
-The claw sells **the agency**. Traffic goes to `varritech.com/prepare` — the gated
-discovery-call page that shows past work, the Scalewright Method and the whole price
-ladder in the open — and the conversion is a booked call, not a checkout.
-`offer.goal = "lead"` drives everything downstream: which Meta action counts as a
+The claw sells **the $47 Claude Code Skills Library**. Traffic goes straight to the
+product's checkout page, and the conversion is a purchase, not a booked call.
+`offer.goal = "purchase"` drives everything downstream: which Meta action counts as a
 conversion, which template renders, and what the copywriter is told to sell.
 
 ⛔ Two filters have to BOTH hold, and the second is not optional:
 
-1. the ad converted on a **lead** action (`lead` / `complete_registration` / `schedule_total`)
-2. its destination link contains `offer.linkMatch` (`/prepare`)
+1. the ad converted on a **purchase** action (`purchase` / its pixel twin)
+2. its destination link contains `offer.linkMatch` (`claude-skills-library`)
 
-Without #2 the lead filter matches the **Skills checkout**, which fires
-`CompleteRegistration` in volume — a live run scored the Skills V2 Ship ad at *85
-conversions* and would have shipped agency variants straight into the Skills ad sets.
-
-⛔ **The MRR guarantee never goes on a creative.** Its only permitted wording is
-"if you're not at $10,000 MRR six months after launch, we keep working free until you
-are" — two clauses that do not survive being squeezed into a badge, and the truncated
-version ("$10K MRR guaranteed") is simultaneously an income claim and a
-misrepresentation of a signed agreement. The unconditional triple guarantee is short
-enough to render honestly, so that is what the template carries.
+An agency offer (`varritech.com/prepare`, `offer.goal = "lead"`) was live 2026-08-21
+through 2026-08-26 and reverted — that offer never had an ACTIVE ad set to ship
+variants into, so the loop no-op'd for 5 straight days while the Skills campaign sat
+ACTIVE with real purchase history the whole time. See git `5d85e063`/`d13c5434` and
+`project_adfactory_variant_autopilot` memory if reviving the agency offer later —
+without linkMatch a lead-action filter also matches the Skills checkout's
+`CompleteRegistration` events (scored 85 "conversions" in a live test), which would
+ship the wrong offer's variants into the wrong ad sets.
 
 ### What one cycle does
 
@@ -106,10 +103,10 @@ enough to render honestly, so that is what the template carries.
    conversions **for this offer** → keep only those whose ad set is **live right now**.
    Ranked by cost per conversion, not raw count.
 
-   ⚠️ As of 2026-08-21 this is **empty**: every varritech.com campaign on the account
-   is PAUSED, so the loop no-ops and says so. It will not stand up an ad set to fix
-   that — creating one is a spend decision. Activate an agency ad set, or name the
-   live one with `VARIANTS_TARGET_ADSET_ID`.
+   If no ad set selling this offer is ACTIVE, this is empty and the loop no-ops and
+   says so. It will not stand up an ad set to fix that — creating one is a spend
+   decision. Name the live one with `VARIANTS_TARGET_ADSET_ID` if the ACTIVE sweep
+   hasn't caught up yet.
 3. **Learn.** Ranks its own past variants in PostHog by conversion signal, attributed
    through `utm_content={{ad.id}}`. Winners and proven non-converters both go into the
    copy prompt: repeat what worked, never restate a losing angle.
