@@ -39,7 +39,7 @@ if (cmd === 'next') {
     notifications: JSON.parse(readStdin()),
     seen: createSeenStore({ path: cfg.seenPath }),
     ledger,
-    llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model }),
+    llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId }),
     cap: cfg.cap,
     rate: cfg.rate,
     exclude: cfg.exclude,
