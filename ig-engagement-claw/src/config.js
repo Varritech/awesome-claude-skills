@@ -55,6 +55,9 @@ export const config = () => ({
   anthropicKey: process.env.ANTHROPIC_API_KEY,
   // Only set for identity-linked keys; workspace-scoped keys must omit it.
   anthropicWorkspaceId: process.env.ANTHROPIC_WORKSPACE_ID,
+  // Instagram took link-sharing off @varritech 2026-08-28, ends 2026-09-27.
+  // DMs still send; only URLs are barred. Flip to 0 (or delete) once it lapses.
+  linksBlocked: process.env.LINKS_BLOCKED === '1',
   model: process.env.CLAW_MODEL || 'claude-sonnet-5',
   firestoreCollectionPrefix: process.env.FS_PREFIX || '',
   project: process.env.GOOGLE_CLOUD_PROJECT || 'varritech-dev',

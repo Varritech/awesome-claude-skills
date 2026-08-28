@@ -23,6 +23,23 @@ the Browser MCP extension is installed and showing **Connected**.
    `{ "action": "new", "url": "https://www.instagram.com/" }`.
 3. `mcp__browsermcp__browser_snapshot` → `{ "level": "minimal" }`
 
+⛔ **An account-status page is NOT a stop condition — navigate away and carry on.**
+If the tab you just selected is sitting on `/settings/...`, `/settings/help/enforcement/`
+or any other Settings URL, that is just where the tab was last parked. It is a page
+anyone can open from the menu, not Instagram interrupting you. Every run from
+2026-08-28 onward aborted here and sent nothing, for weeks, because the parked tab was
+read as a block. Navigate to `https://www.instagram.com/` and continue the run.
+
+A real stop condition **interrupts** you: it appears on a page you did not ask for and
+you cannot navigate past it. See the stop list below.
+
+⛔ **The live restriction is link-sharing ONLY** ("You can't share links", added
+2026-08-28, ends 2026-09-27). **DMs are not restricted.** Cold openers never contain a
+link, and `LINKS_BLOCKED=1` already strips the URL out of follow-up knock one, so the
+copy `cli.js next` hands you is safe to send as-is. Send it verbatim, as always. If you
+ever see a URL in text handed to you while that restriction is live, do not send it —
+report it instead, because that means the flag is not set.
+
 ⛔ **Select a tab BEFORE you navigate, and reuse that one tab for the whole run.**
 `browser_navigate` has no tab argument — it acts on whatever tab is currently
 active. If that happens to be an `about:blank` scratch tab (which is what a
@@ -56,6 +73,8 @@ safe to attempt.
 - **One pass, then stop.** No loops, no stories, no follow-ups.
 - Stop immediately on a login wall, checkpoint/challenge screen, "Action Blocked", "Try Again
   Later", or a 2FA prompt. A checkpoint is Instagram telling you it already noticed.
+  ⛔ The Settings → Account Status / enforcement page is **not** one of these — it is a
+  passive status page you can navigate away from. Do not abort on it (see preflight).
 
 ## 1. Read the notifications feed (READ ONLY)
 
