@@ -53,6 +53,8 @@ export const config = () => ({
   startHour: Number(process.env.START_HOUR ?? 9),
   endHour: Number(process.env.END_HOUR ?? 20),
   anthropicKey: process.env.ANTHROPIC_API_KEY,
+  // Only set for identity-linked keys; workspace-scoped keys must omit it.
+  anthropicWorkspaceId: process.env.ANTHROPIC_WORKSPACE_ID,
   model: process.env.CLAW_MODEL || 'claude-sonnet-5',
   firestoreCollectionPrefix: process.env.FS_PREFIX || '',
   project: process.env.GOOGLE_CLOUD_PROJECT || 'varritech-dev',
