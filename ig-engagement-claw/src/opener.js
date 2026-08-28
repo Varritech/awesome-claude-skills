@@ -136,10 +136,29 @@ export async function draftOpener({ target, llm }) {
  */
 export const GUIDE_URL = process.env.GUIDE_URL || 'https://varritech-product-playbook.vercel.app/guide-1';
 
-export const FOLLOW_UP_GUIDE_TEXT =
+const GUIDE_PREAMBLE =
   'Hey, we typically charge $149.99 for this guide. It outlines the strategy phase, ' +
   'the most important part of our Scalewright program, and it is the framework we use ' +
-  `to guarantee people $10k in monthly recurring revenue. Here it is: ${GUIDE_URL}`;
+  'to guarantee people $10k in monthly recurring revenue.';
+
+export const FOLLOW_UP_GUIDE_TEXT = `${GUIDE_PREAMBLE} Here it is: ${GUIDE_URL}`;
+
+/**
+ * Knock one, with the link swapped for a reply-ask when Instagram has taken
+ * link-sharing away.
+ *
+ * @varritech picked up a "you can't share links" restriction on 2026-08-28
+ * (ends 2026-09-27) — DMs still send fine, only URLs are barred. Sending the
+ * normal copy would either be dropped or push a flagged account further, and
+ * sending it with the URL simply deleted leaves "Here it is:" pointing at
+ * nothing. The price anchor and the programme name are Cristiano's and ship
+ * verbatim either way ([[feedback_guide_price_anchor_is_deliberate]]); only the
+ * delivery clause changes.
+ */
+export function followUpGuideText({ linksBlocked = false } = {}) {
+  if (!linksBlocked) return FOLLOW_UP_GUIDE_TEXT;
+  return `${GUIDE_PREAMBLE} I can't send links from this account right now, so just reply here and I'll get it over to you.`;
+}
 
 /**
  * Knock two: the last message, and the only one the model writes.
@@ -162,15 +181,18 @@ export function buildFollowUpPrompt(target) {
   ].join(' ');
 }
 
-export async function draftFollowUp({ target, llm }) {
+export async function draftFollowUp({ target, llm, linksBlocked = false }) {
   // Knock one is the fixed value drop. No model involved, no word cap applied —
   // it is already the length it needs to be to carry the anchor and the link.
-  if (target.followUpNumber === 1) return FOLLOW_UP_GUIDE_TEXT;
+  if (target.followUpNumber === 1) return followUpGuideText({ linksBlocked });
 
   const raw = await llm({ prompt: buildFollowUpPrompt(target), target });
   // stripLinksExcept rather than stripLinks: a browser-sent DM carries a URL
   // fine, so an authorised Varritech link may survive if the model adds one.
-  const text = capWords(stripEmDashes(stripLinksExcept(String(raw ?? '').trim())));
+  const stripped = linksBlocked
+    ? stripLinks(String(raw ?? '').trim())
+    : stripLinksExcept(String(raw ?? '').trim());
+  const text = capWords(stripEmDashes(stripped));
   return hasPlaceholder(text) ? '' : text;
 }
 

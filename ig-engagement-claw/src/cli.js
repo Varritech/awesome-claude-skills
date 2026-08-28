@@ -47,6 +47,7 @@ if (cmd === 'next') {
     window: { timeZone: cfg.timeZone, startHour: cfg.startHour, endHour: cfg.endHour },
     followUpDays: cfg.followUpDays,
     killSwitch: cfg.killSwitch,
+    linksBlocked: cfg.linksBlocked,
   });
   console.log(JSON.stringify(result, null, 2));
 

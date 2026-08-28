@@ -19,6 +19,7 @@ import { recordOpener } from './handoff.js';
  */
 export async function planBatch({
   notifications, seen, ledger, llm, cap, rate, now, window: win, exclude, killSwitch = false, followUpDays,
+  linksBlocked = false,
 }) {
   if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [], followUps: [] };
 
@@ -37,7 +38,7 @@ export async function planBatch({
     let left = remainingBudget({ ledger, rate, cap });
     for (const target of dueForFollowUp({ ledger, now, cadenceDays: followUpDays })) {
       if (left <= 0) break;
-      const text = await draftFollowUp({ target, llm });
+      const text = await draftFollowUp({ target, llm, linksBlocked });
       if (!text) continue; // unusable draft — they come back around next run
       followUps.push({ ...target, text });
       left -= 1;
