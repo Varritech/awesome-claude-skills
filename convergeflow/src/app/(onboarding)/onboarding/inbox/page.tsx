@@ -107,32 +107,29 @@ export default function InboxPage() {
               </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setSelected("yahoo")}
-              className={`flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-pointer transition-all duration-150 border-2 ${
-                selected === "yahoo"
-                  ? "border-cf-orange bg-[#26262C]"
-                  : "border-transparent hover:border-cf-orange/30"
-              }`}
-            >
-              <div
-                className={`w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center ${
-                  selected === "yahoo" ? "bg-cf-orange/10" : "bg-cf-card"
-                }`}
+            <div className="relative">
+              <button
+                type="button"
+                disabled
+                className="flex items-start gap-4 bg-[#222228] rounded-[14px] p-5 cursor-not-allowed transition-all duration-150 border-2 border-transparent opacity-50 w-full"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="16" x="2" y="4" rx="2" />
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-[15px] font-bold mb-1 font-heading">Connect Yahoo</p>
-                <p className="text-[13px] text-white/50 leading-relaxed">
-                  Quick and easy.
-                </p>
-              </div>
-            </button>
+                <div className="w-12 h-12 min-w-[48px] rounded-[14px] flex items-center justify-center bg-cf-card">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[15px] font-bold mb-1 font-heading">Connect Yahoo</p>
+                  <p className="text-[13px] text-white/50 leading-relaxed">
+                    Quick and easy.
+                  </p>
+                </div>
+              </button>
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-[6px] bg-white/10 text-white/40 uppercase tracking-wide">
+                Coming Soon
+              </span>
+            </div>
 
             <button
               type="button"
@@ -180,22 +177,6 @@ export default function InboxPage() {
             </div>
           )}
 
-          {selected === "yahoo" && (
-            <div className="mb-6 text-left animate-[fadeUp_0.3s_ease-out]">
-              <div className="bg-[#222228] rounded-[14px] p-5 flex items-start gap-3.5">
-                <div className="w-10 h-10 min-w-[40px] rounded-[10px] bg-cf-orange/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 3h6v6" />
-                    <path d="M10 14 21 3" />
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  </svg>
-                </div>
-                <p className="text-[13px] text-white/50 leading-relaxed">
-                  You&apos;ll be redirected to Yahoo to connect your account. Takes just a few seconds.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Custom SMTP fields */}
           {selected === "custom" && (

@@ -17,10 +17,32 @@ import {
   HelpIcon,
   ShieldIcon,
 } from "@/components/icons";
+import { NotificationBell } from "@/components/ui/NotificationBell";
+
+// Inbox icon for Replies nav
+function InboxIcon({ size = 18, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  );
+}
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
   { href: "/emails", label: "Emails", icon: MailIcon, matchPrefix: true },
+  { href: "/replies", label: "Replies", icon: InboxIcon, matchPrefix: true },
   { href: "/customers", label: "Customers", icon: UsersIcon, matchPrefix: true },
   { href: "/styles", label: "Styles", icon: PenIcon, matchPrefix: true },
   { href: "/analytics", label: "Analytics", icon: ChartIcon, matchPrefix: true },
@@ -69,16 +91,16 @@ export function Sidebar() {
               {isActive && (
                 <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-[2px] bg-cf-orange" />
               )}
-              <Icon
-                size={18}
-                className={isActive ? "text-cf-orange" : "text-white/20"}
-              />
+              <Icon size={18} className={isActive ? "text-cf-orange" : "text-white/20"} />
             </Link>
           );
         })}
       </nav>
 
       <div className="flex-1" />
+
+      {/* Notification Bell */}
+      <NotificationBell />
 
       {/* Help */}
       <Link
