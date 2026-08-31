@@ -54,6 +54,21 @@ export function createLedger({ path }) {
     },
 
     /**
+     * Delivery is permanently blocked ("can't receive your message... don't
+     * allow new message requests from everyone"). Stops the follow-up chain
+     * for good, same as a reply — but unlike skip(), this is for someone
+     * already in the ledger (an opener or follow-up already went out), so the
+     * existing history is kept rather than overwritten.
+     */
+    markBlocked(handle, reason) {
+      const key = normalize(handle);
+      if (!entries[key]) return;
+      entries[key].blocked = true;
+      entries[key].blockedReason = reason;
+      persist();
+    },
+
+    /**
      * How many messages we SENT within the last `windowMs`.
      *
      * Skipped entries (people who already had a thread) deliberately do not

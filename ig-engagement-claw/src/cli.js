@@ -15,7 +15,7 @@
 import { readFileSync } from 'node:fs';
 import { createLedger } from './ledger.js';
 import { createSeenStore } from './seen.js';
-import { planBatch, commitSend, skipTarget } from './pipeline.js';
+import { planBatch, commitSend, skipTarget, blockTarget } from './pipeline.js';
 import { anthropicLlm } from './llm.js';
 import { firestoreStore, nullStore } from './firestore-store.js';
 import { config } from './config.js';
@@ -63,6 +63,17 @@ if (cmd === 'next') {
   const res = await skipTarget({ ledger, handle, reason });
   console.log(res.recorded ? `skipped: ${handle} (${reason})` : `already known: ${handle}`);
 
+} else if (cmd === 'blocked') {
+  // Someone already messaged (opener or a prior follow-up on record) whose
+  // thread now shows "can't receive your message... not everyone". Unlike
+  // `skip`, this is for a handle that's already in the ledger — `skip` would
+  // refuse it as already-known and the same dead thread would come back due
+  // for a knock every run forever.
+  const [, , , handle, reason = 'message-request-blocked-not-delivered'] = process.argv;
+  if (!handle) { console.error('usage: cli.js blocked <handle> [reason]'); process.exit(1); }
+  const res = await blockTarget({ ledger, handle, reason });
+  console.log(res.recorded ? `blocked: ${handle} (${reason})` : `no opener on record: ${handle}`);
+
 } else if (cmd === 'followup-sent') {
   // A follow-up the agent CONFIRMED landed. Appended to the existing entry, so
   // the original opener and the whole knock history survive.
@@ -83,11 +94,11 @@ if (cmd === 'next') {
   console.log(`${ledger.size()} contacted`);
   for (const e of ledger.all()) {
     const n = (e.followUps ?? []).length;
-    const state = e.status === 'skipped' ? `skipped:${e.reason}` : e.replied ? 'REPLIED' : n ? `${n} follow-up(s)` : 'awaiting reply';
+    const state = e.status === 'skipped' ? `skipped:${e.reason}` : e.blocked ? `BLOCKED:${e.blockedReason}` : e.replied ? 'REPLIED' : n ? `${n} follow-up(s)` : 'awaiting reply';
     console.log(`  ${e.handle.padEnd(26)} ${e.at ?? ''}  ${state}`);
   }
 
 } else {
-  console.error('usage: cli.js next|commit|skip|followup-sent|replied|ledger');
+  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger');
   process.exit(1);
 }

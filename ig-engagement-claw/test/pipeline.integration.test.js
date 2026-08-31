@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLedger } from '../src/ledger.js';
 import { createSeenStore } from '../src/seen.js';
-import { planBatch, commitSend, skipTarget } from '../src/pipeline.js';
+import { planBatch, commitSend, skipTarget, blockTarget } from '../src/pipeline.js';
 
 let dir, path;
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'claw-')); path = join(dir, 'contacted.json'); });
@@ -80,6 +80,25 @@ describe('plan -> send -> commit -> replan', () => {
 
     const plan = await planAfterBaseline({ notifications: NOTIFS, ledger: led, llm, cap: 10, now: WORKDAY });
     expect(plan.batch.map((t) => t.handle)).not.toContain('ana');
+  });
+
+  it('never re-offers a follow-up to someone already contacted whose delivery is permanently blocked', async () => {
+    // Live recurrence on pbjoel across three separate runs: the agent opens
+    // the follow-up thread, sees "can't receive your message... not everyone",
+    // and skipTarget can't record it because the handle is already contacted
+    // (ledger.has === true). Without blockTarget the same dead thread comes
+    // back due for a knock every run forever.
+    const opened = createLedger({ path });
+    opened.record('ana', { at: '2026-08-01T00:00:00.000Z', text: 'the opener' });
+
+    await blockTarget({ ledger: createLedger({ path }), handle: 'ana', reason: 'message-request-blocked-not-delivered', now: WORKDAY });
+
+    const led = createLedger({ path });
+    expect(led.has('ana')).toBe(true);
+    expect(led.all().find((e) => e.handle === 'ana').text).toBe('the opener');
+
+    const plan = await planAfterBaseline({ notifications: [], ledger: led, llm, cap: 10, now: WORKDAY });
+    expect(plan.followUps.map((f) => f.handle)).not.toContain('ana');
   });
 
   it('drops anyone whose opener came back unusable rather than sending an empty DM', async () => {
