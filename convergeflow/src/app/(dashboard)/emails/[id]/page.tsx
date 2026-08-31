@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, Skeleton } from "@/components/ui";
 import { ChevronLeftIcon } from "@/components/icons";
-import { apiGet, apiStream } from "@/lib/api-client";
+import { apiGet, apiPost, apiStream } from "@/lib/api-client";
 
 type EmailStatus = "replied" | "opened" | "sent" | "bounced";
 
@@ -58,6 +58,7 @@ export default function EmailDetailPage() {
   const [filter, setFilter] = useState("All");
   const [regenerating, setRegenerating] = useState(false);
   const [regenerated, setRegenerated] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -100,6 +101,32 @@ export default function EmailDetailPage() {
       console.error("Regenerate failed", err);
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  const handleStart = async () => {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+    try {
+      await apiPost(`/api/campaigns/${id}/start`, {});
+      setCampaign((prev) => prev ? { ...prev, status: "active" } : prev);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePause = async () => {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+    try {
+      await apiPost(`/api/campaigns/${id}/pause`, {});
+      setCampaign((prev) => prev ? { ...prev, status: "paused" } : prev);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -172,6 +199,15 @@ export default function EmailDetailPage() {
             >
               {regenerating ? "Regenerating..." : "Regenerate"}
             </button>
+            {campaign.status === "active" ? (
+              <button onClick={handlePause} disabled={actionLoading} className="px-3 py-1.5 rounded-[var(--radius-pill)] text-[11px] font-medium bg-cf-amber/15 text-cf-amber hover:bg-cf-amber/25 transition-colors disabled:opacity-60">
+                {actionLoading ? "..." : "Pause"}
+              </button>
+            ) : campaign.status !== "done" ? (
+              <button onClick={handleStart} disabled={actionLoading} className="px-3 py-1.5 rounded-[var(--radius-pill)] text-[11px] font-medium bg-cf-green/15 text-cf-green hover:bg-cf-green/25 transition-colors disabled:opacity-60">
+                {actionLoading ? "..." : "Start"}
+              </button>
+            ) : null}
             <span className={`px-3 py-1 rounded-[var(--radius-pill)] text-[11px] font-medium ${badge.bg} ${badge.text}`}>
               {badge.label}
             </span>
