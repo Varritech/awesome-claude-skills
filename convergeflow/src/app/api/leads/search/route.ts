@@ -9,24 +9,68 @@
  * If a real provider is requested but its env vars are absent, falls back to mock.
  */
 
-import { NextResponse, type NextRequest } from 'next/server';
-import {
-  logRequest,
-  parseAndValidate,
-  requireUser,
-} from '@/lib/api/helpers';
-import { leadSearchSchema } from '@/lib/schemas';
-import * as aleads from '@/lib/aleads/client';
-import * as snov from '@/lib/snov/client';
+import { NextResponse, type NextRequest } from "next/server";
+import { jsonError, logRequest, parseAndValidate, requireUser } from "@/lib/api/helpers";
+import { leadSearchSchema } from "@/lib/schemas";
+import * as aleads from "@/lib/aleads/client";
+import * as snov from "@/lib/snov/client";
+import { LeadsGorillaClient } from "@/lib/leads-gorilla/client";
+import { checkRateLimit } from "@/lib/rate-limit";
 
-export const dynamic = 'force-dynamic';
+// Rate limit: 10 searches per minute per user
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+
+export const dynamic = "force-dynamic";
 
 // ─── Mock data (fallback) ────────────────────────────────────────────────────
 
-const FIRST_NAMES = ['Alex', 'Jordan', 'Sam', 'Taylor', 'Riley', 'Morgan', 'Casey', 'Drew', 'Jamie', 'Avery'];
-const LAST_NAMES = ['Chen', 'Patel', 'Rivera', 'Nguyen', 'Kim', 'Walker', 'Brooks', 'Ortiz', 'Kumar', 'Foster'];
-const COMPANIES = ['Acme', 'Northside', 'Hawk', 'Quill', 'Vanta', 'Riverside', 'Halo', 'Beacon', 'Lumen', 'Forge'];
-const TITLES = ['Head of Growth', 'VP Marketing', 'Founder', 'Chief of Staff', 'Director of Sales', 'Practice Owner', 'Managing Partner', 'Operations Lead'];
+const FIRST_NAMES = [
+  "Alex",
+  "Jordan",
+  "Sam",
+  "Taylor",
+  "Riley",
+  "Morgan",
+  "Casey",
+  "Drew",
+  "Jamie",
+  "Avery",
+];
+const LAST_NAMES = [
+  "Chen",
+  "Patel",
+  "Rivera",
+  "Nguyen",
+  "Kim",
+  "Walker",
+  "Brooks",
+  "Ortiz",
+  "Kumar",
+  "Foster",
+];
+const COMPANIES = [
+  "Acme",
+  "Northside",
+  "Hawk",
+  "Quill",
+  "Vanta",
+  "Riverside",
+  "Halo",
+  "Beacon",
+  "Lumen",
+  "Forge",
+];
+const TITLES = [
+  "Head of Growth",
+  "VP Marketing",
+  "Founder",
+  "Chief of Staff",
+  "Director of Sales",
+  "Practice Owner",
+  "Managing Partner",
+  "Operations Lead",
+];
 
 function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length]!;
@@ -37,14 +81,14 @@ function mockResults(industry: string, location: string, count: number, titles?:
   return Array.from({ length: total }, (_, i) => {
     const firstName = pick(FIRST_NAMES, i);
     const lastName = pick(LAST_NAMES, i + 3);
-    const company = `${pick(COMPANIES, i + 1)} ${['Labs', 'Group', 'Partners', 'Health', 'Capital'][i % 5]}`;
+    const company = `${pick(COMPANIES, i + 1)} ${["Labs", "Group", "Partners", "Health", "Capital"][i % 5]}`;
     const title = titles && titles.length > 0 ? pick(titles, i) : pick(TITLES, i);
     return {
       externalId: `mock_${Date.now()}_${i}`,
       firstName,
       lastName,
       fullName: `${firstName} ${lastName}`,
-      email: `${firstName}.${lastName}@${company.toLowerCase().replace(/\s+/g, '')}.com`,
+      email: `${firstName}.${lastName}@${company.toLowerCase().replace(/\s+/g, "")}.com`,
       company,
       title,
       industry,
@@ -76,7 +120,7 @@ async function fetchFromALeads(
   industry: string,
   location: string,
   count: number,
-  titles?: string[],
+  titles?: string[]
 ): Promise<{ results: NormalizedLead[]; total: number }> {
   const res = await aleads.searchContacts({
     industry,
@@ -89,7 +133,7 @@ async function fetchFromALeads(
     externalId: c.id,
     firstName: c.first_name,
     lastName: c.last_name,
-    fullName: [c.first_name, c.last_name].filter(Boolean).join(' '),
+    fullName: [c.first_name, c.last_name].filter(Boolean).join(" "),
     email: c.email,
     company: c.company,
     title: c.title,
@@ -107,7 +151,7 @@ async function fetchFromSnov(
   industry: string,
   location: string,
   count: number,
-  titles?: string[],
+  titles?: string[]
 ): Promise<{ results: NormalizedLead[]; total: number }> {
   const res = await snov.searchProspects({
     industry: [industry],
@@ -120,7 +164,7 @@ async function fetchFromSnov(
     externalId: p.id ?? `snov_${i}`,
     firstName: p.firstName,
     lastName: p.lastName,
-    fullName: [p.firstName, p.lastName].filter(Boolean).join(' '),
+    fullName: [p.firstName, p.lastName].filter(Boolean).join(" "),
     email: p.email,
     company: p.currentCompany,
     title: p.currentTitle,
@@ -140,34 +184,76 @@ export async function POST(req: NextRequest) {
   if (auth.response) return auth.response;
   const { userId } = auth;
 
+  // Rate limit: 10 searches per minute per user
+  const rateCheck = checkRateLimit(userId, "leads:search", RATE_LIMIT, RATE_WINDOW_MS);
+  if (!rateCheck.allowed) {
+    const response = jsonError("Too many requests", 429);
+    response.headers.set("Retry-After", String(rateCheck.retryAfterSeconds));
+    return response;
+  }
+
   const parsed = await parseAndValidate(req, leadSearchSchema);
   if (parsed.response) return parsed.response;
-  const { provider, industry, location, count, titles } = parsed.data;
+  const { provider, industry, location, count, titles, keyword } = parsed.data;
 
-  logRequest('leads.search.POST', userId, { provider, industry, location, count });
+  logRequest("leads.search.POST", userId, { provider, industry, location, count });
 
   // Auto-downgrade to mock if the requested provider isn't configured
   const effectiveProvider =
-    provider === 'aleads' && !aleads.isConfigured() ? 'mock' :
-    provider === 'snov' && !snov.isConfigured() ? 'mock' :
-    provider;
+    provider === "aleads" && !aleads.isConfigured()
+      ? "mock"
+      : provider === "snov" && !snov.isConfigured()
+        ? "mock"
+        : provider === "leadsgorilla" && !process.env.LEADS_GORILLA_API_KEY
+          ? "mock"
+          : provider;
 
   if (effectiveProvider !== provider) {
     console.warn(`[api:leads.search] ${provider} not configured, falling back to mock`);
   }
 
   try {
-    if (effectiveProvider === 'aleads') {
+    if (effectiveProvider === "aleads") {
       const { results, total } = await fetchFromALeads(industry, location, count, titles);
       return NextResponse.json({
-        data: { provider: 'aleads', query: { industry, location, count, titles }, total, results },
+        data: { provider: "aleads", query: { industry, location, count, titles }, total, results },
       });
     }
 
-    if (effectiveProvider === 'snov') {
+    if (effectiveProvider === "snov") {
       const { results, total } = await fetchFromSnov(industry, location, count, titles);
       return NextResponse.json({
-        data: { provider: 'snov', query: { industry, location, count, titles }, total, results },
+        data: { provider: "snov", query: { industry, location, count, titles }, total, results },
+      });
+    }
+
+    if (effectiveProvider === "leadsgorilla") {
+      const client = new LeadsGorillaClient();
+      const searchKeyword = keyword ?? industry;
+      const { businesses } = await client.searchBusinesses({
+        keyword: searchKeyword,
+        location,
+        limit: count,
+      });
+      const results: NormalizedLead[] = businesses.map((b, i) => ({
+        externalId: `lg_${Date.now()}_${i}`,
+        firstName: undefined,
+        lastName: undefined,
+        fullName: b.name,
+        email: b.email,
+        company: b.name,
+        title: b.category,
+        industry,
+        location: b.address,
+        phone: b.phone,
+      }));
+      return NextResponse.json({
+        data: {
+          provider: "leadsgorilla",
+          query: { industry, location, count, keyword },
+          total: results.length,
+          results,
+        },
       });
     }
   } catch (err) {
@@ -177,6 +263,11 @@ export async function POST(req: NextRequest) {
   // Mock fallback
   const results = mockResults(industry, location, count, titles);
   return NextResponse.json({
-    data: { provider: 'mock', query: { industry, location, count, titles }, total: results.length, results },
+    data: {
+      provider: "mock",
+      query: { industry, location, count, titles },
+      total: results.length,
+      results,
+    },
   });
 }

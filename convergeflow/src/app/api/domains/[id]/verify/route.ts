@@ -53,7 +53,7 @@ async function checkTxt(host: string, expected: string): Promise<{ status: DnsSt
   try {
     const records = await dns.resolveTxt(host);
     const flat = records.map((r) => r.join('')).filter(Boolean);
-    const matched = flat.some((r) => r.includes(expected) || expected.includes(r.slice(0, 20)));
+    const matched = flat.some((r) => r.trim() === expected.trim());
     return { status: matched ? 'green' : 'red', found: flat };
   } catch {
     return { status: 'red', found: [] };
