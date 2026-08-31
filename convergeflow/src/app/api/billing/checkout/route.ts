@@ -26,6 +26,13 @@ const PRICE_LOOKUP: Record<string, string | null> = {
   enterprise: null, // sales-led
 };
 
+/** Map UI planId → internal tier name */
+const PLAN_ID_TO_TIER: Record<string, string> = {
+  starter: 'self_serve',
+  pro: 'openclaw_dwy',
+  scale: 'enterprise',
+};
+
 const SALES_URL = 'https://cal.com/varritech/convergeflow-intro';
 
 export async function POST(req: NextRequest) {
@@ -35,7 +42,11 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseAndValidate(req, checkoutSchema);
   if (parsed.response) return parsed.response;
-  const { tier, successUrl, cancelUrl } = parsed.data;
+  const { successUrl, cancelUrl } = parsed.data;
+
+  // Normalise planId → tier; tier takes precedence if both are present
+  const tier: string =
+    parsed.data.tier ?? PLAN_ID_TO_TIER[parsed.data.planId ?? ''] ?? 'self_serve';
 
   logRequest('billing.checkout.POST', userId, { tier });
 

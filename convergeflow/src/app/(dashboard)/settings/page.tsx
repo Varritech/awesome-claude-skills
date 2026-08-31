@@ -55,6 +55,10 @@ export default function SettingsPage() {
   });
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [addingInbox, setAddingInbox] = useState(false);
+  const [inboxEmail, setInboxEmail] = useState("");
+  const [inboxProvider, setInboxProvider] = useState("gmail");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +70,7 @@ export default function SettingsPage() {
           fullName: data?.fullName ?? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim(),
           email: data?.email ?? "",
           company: data?.company ?? "",
-          phone: data?.phone ?? "",
+          phone: ((data as Record<string, unknown>)?.phone as string) ?? "",
         });
       })
       .catch((err) => console.error("Failed to load profile", err))
@@ -82,7 +86,14 @@ export default function SettingsPage() {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = await apiPatch<UserProfile>("/api/user/profile", form);
+      const [firstName, ...rest] = form.fullName.trim().split(" ");
+      const lastName = rest.join(" ");
+      const updated = await apiPatch<UserProfile>("/api/user/profile", {
+        firstName: firstName ?? "",
+        lastName: lastName ?? "",
+        company: form.company,
+        phone: form.phone,
+      });
       setProfile(updated ?? profile);
       setEditing(false);
     } catch (err) {
@@ -138,7 +149,9 @@ export default function SettingsPage() {
             {initials || "??"}
           </div>
           <div>
-            <h3 className="text-[15px] font-bold font-heading">{profile?.fullName ?? (form.fullName || "Your Profile")}</h3>
+            <h3 className="text-[15px] font-bold font-heading">
+              {profile?.fullName ?? (form.fullName || "Your Profile")}
+            </h3>
             <p className="text-[12px] text-white/25">{profile?.email ?? form.email}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -215,7 +228,12 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <p className="text-[13px] font-medium">{inbox.email}</p>
                 <p className="text-[11px] text-white/20">
-                  {inbox.provider} &middot; {inbox.status === "connected" ? "Connected" : inbox.status === "pending" ? "Pending" : "Error"}
+                  {inbox.provider} &middot;{" "}
+                  {inbox.status === "connected"
+                    ? "Connected"
+                    : inbox.status === "pending"
+                      ? "Pending"
+                      : "Error"}
                 </p>
               </div>
               <span
@@ -223,14 +241,59 @@ export default function SettingsPage() {
                   inbox.status === "connected"
                     ? "bg-cf-green"
                     : inbox.status === "pending"
-                    ? "bg-cf-amber"
-                    : "bg-red-400"
+                      ? "bg-cf-amber"
+                      : "bg-red-400"
                 }`}
               />
             </div>
           ))}
         </div>
-        <button className="mt-4 px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors">
+        {addingInbox && (
+          <div className="mt-3 p-3 bg-cf-elevated rounded-[var(--radius-button)]">
+            <div className="flex gap-2 mb-2">
+              <select
+                value={inboxProvider}
+                onChange={(e) => setInboxProvider(e.target.value)}
+                className="bg-cf-card rounded-[var(--radius-button)] px-3 py-2 text-[13px] text-white/70 outline-none"
+              >
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="smtp">Custom SMTP</option>
+              </select>
+              <input
+                type="email"
+                value={inboxEmail}
+                onChange={(e) => setInboxEmail(e.target.value)}
+                placeholder="you@yourdomain.com"
+                className="flex-1 bg-cf-card rounded-[var(--radius-button)] px-3 py-2 text-[13px] text-white/70 outline-none focus:ring-1 focus:ring-cf-orange/50"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setAddingInbox(false);
+                  setInboxEmail("");
+                }}
+                className="flex-1 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setAddingInbox(false);
+                  setInboxEmail("");
+                }}
+                className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold"
+              >
+                Connect
+              </button>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => setAddingInbox(true)}
+          className="mt-4 px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors"
+        >
           + Add Inbox
         </button>
       </Card>
@@ -247,7 +310,11 @@ export default function SettingsPage() {
               <div>
                 <p className="text-[13px] font-medium">{domain.domain}</p>
                 <p className="text-[11px] text-white/20">
-                  {domain.status === "verified" ? "Verified" : domain.status === "pending" ? "Pending" : "Failed"}
+                  {domain.status === "verified"
+                    ? "Verified"
+                    : domain.status === "pending"
+                      ? "Pending"
+                      : "Failed"}
                 </p>
               </div>
               <span
@@ -255,11 +322,15 @@ export default function SettingsPage() {
                   domain.status === "verified"
                     ? "bg-cf-green/15 text-cf-green"
                     : domain.status === "pending"
-                    ? "bg-cf-amber/15 text-cf-amber"
-                    : "bg-red-500/15 text-red-400"
+                      ? "bg-cf-amber/15 text-cf-amber"
+                      : "bg-red-500/15 text-red-400"
                 }`}
               >
-                {domain.status === "verified" ? "Verified" : domain.status === "pending" ? "Pending" : "Failed"}
+                {domain.status === "verified"
+                  ? "Verified"
+                  : domain.status === "pending"
+                    ? "Pending"
+                    : "Failed"}
               </span>
             </div>
           ))}
@@ -283,7 +354,9 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[13px] font-medium">Auto-follow up</p>
-              <p className="text-[11px] text-white/20">Send follow-ups automatically after 3 days</p>
+              <p className="text-[11px] text-white/20">
+                Send follow-ups automatically after 3 days
+              </p>
             </div>
             <Toggle
               checked={preferences.autoFollowUp ?? false}
@@ -333,11 +406,38 @@ export default function SettingsPage() {
               Permanently delete your account and all data
             </p>
           </div>
-          <Button variant="danger" size="sm">
+          <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
             Delete
           </Button>
         </div>
       </Card>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-cf-card rounded-[var(--radius-button)] p-6 max-w-sm w-full">
+            <h3 className="text-[16px] font-bold font-heading mb-2">Delete Account?</h3>
+            <p className="text-[13px] text-white/40 mb-5">
+              This permanently deletes all your data and cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                }}
+                className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-red-500 text-white text-[13px] font-bold"
+              >
+                Delete Forever
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

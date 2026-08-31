@@ -6,6 +6,7 @@ import Link from "next/link";
 import { OnboardingLayout } from "@/components/layout";
 import { LogoIcon } from "@/components/icons";
 import { apiGet, apiPost } from "@/lib/api-client";
+import { HelpTooltip } from "@/components/ui";
 
 type DomainOption = "own" | "convergeflow" | null;
 type DnsStatus = "checking" | "valid" | "invalid";
@@ -164,8 +165,7 @@ export default function DomainPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-[30px] font-bold tracking-tight leading-tight mb-2 font-heading">
-            First step.{" "}
-            <span className="text-cf-orange">Connect your website.</span>
+            First step. <span className="text-cf-orange">Connect your website.</span>
           </h1>
           <p className="text-[15px] text-white/30 leading-relaxed">
             This makes sure your emails land in the inbox, not spam.
@@ -208,13 +208,10 @@ export default function DomainPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2.5 mb-1">
-                    <span className="text-[15px] font-bold font-heading">
-                      Use my own website
-                    </span>
+                    <span className="text-[15px] font-bold font-heading">Use my own website</span>
                   </div>
                   <p className="text-[13px] text-white/50 leading-relaxed">
-                    You&apos;ll copy a few settings to your website host. Takes
-                    about 5 minutes.
+                    You&apos;ll copy a few settings to your website host. Takes about 5 minutes.
                   </p>
                 </div>
               </button>
@@ -252,9 +249,15 @@ export default function DomainPage() {
 
               {selected === "own" && (
                 <div className="animate-[fadeUp_0.3s_ease-out]">
-                  <label className="text-[11px] font-medium text-white/35 mb-1.5 block">
-                    Your website domain
-                  </label>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <label className="text-[11px] font-medium text-white/35">
+                      Your website domain
+                    </label>
+                    <HelpTooltip
+                      content="Enter just the root domain, e.g. acme.com — no https:// or www."
+                      position="right"
+                    />
+                  </div>
                   <input
                     type="text"
                     value={domainInput}
@@ -267,9 +270,7 @@ export default function DomainPage() {
             </div>
           )}
 
-          {error && (
-            <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>
-          )}
+          {error && <p className="text-[12px] text-red-400 mb-3 text-left">{error}</p>}
 
           {/* Default Next Button */}
           {!showDns && (
@@ -302,8 +303,8 @@ export default function DomainPage() {
                 Add these records to your website host
               </p>
               <p className="text-[13px] text-white/50 leading-relaxed mb-5">
-                Copy each record below and add them where you manage your website.
-                Most hosts have a &quot;DNS&quot; or &quot;Records&quot; section.
+                Copy each record below and add them where you manage your website. Most hosts have a
+                &quot;DNS&quot; or &quot;Records&quot; section.
               </p>
 
               <div className="flex flex-col gap-2.5 mb-5">
@@ -325,7 +326,9 @@ export default function DomainPage() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
-                          <span className={`text-xs ${statusStyle.color}`}>{statusStyle.label}</span>
+                          <span className={`text-xs ${statusStyle.color}`}>
+                            {statusStyle.label}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-1.5">

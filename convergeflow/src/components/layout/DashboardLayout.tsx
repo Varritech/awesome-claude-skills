@@ -17,6 +17,7 @@ import {
   HelpIcon,
   ShieldIcon,
 } from "@/components/icons";
+import { FeedbackWidget } from "@/components/ui";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
@@ -69,10 +70,7 @@ export function Sidebar() {
               {isActive && (
                 <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-[2px] bg-cf-orange" />
               )}
-              <Icon
-                size={18}
-                className={isActive ? "text-cf-orange" : "text-white/20"}
-              />
+              <Icon size={18} className={isActive ? "text-cf-orange" : "text-white/20"} />
             </Link>
           );
         })}
@@ -168,6 +166,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <MobileNav />
+      <FeedbackWidget />
     </div>
   );
 }
