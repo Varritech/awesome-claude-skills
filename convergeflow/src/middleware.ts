@@ -40,6 +40,14 @@ export default clerkMiddleware((auth, req) => {
     auth().protect();
   }
 
+  // Server-side session timeout: enforce 30-minute max session age.
+  // Defense-in-depth complement to the client-side SessionTimeout component.
+  const { sessionClaims } = auth();
+  const iat = sessionClaims?.iat as number | undefined;
+  if (iat && Date.now() / 1000 - iat > 1800) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
   return NextResponse.next();
 });
 

@@ -11,6 +11,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { ZodSchema } from 'zod';
+import { ForbiddenError } from '@/lib/security/data-isolation';
 
 export type UserResult =
   | { userId: string; response?: undefined }
@@ -30,6 +31,18 @@ export function jsonError(message: string, status = 500, details?: unknown) {
   const payload: Record<string, unknown> = { error: message };
   if (details !== undefined) payload.details = details;
   return NextResponse.json(payload, { status });
+}
+
+/**
+ * Converts an unknown thrown value into a NextResponse.
+ * Handles ForbiddenError (403) and generic errors (500).
+ */
+export function handleError(err: unknown): NextResponse {
+  if (err instanceof ForbiddenError) {
+    return jsonError(err.message, 403);
+  }
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  return jsonError(message, 500);
 }
 
 export async function parseJson<T>(req: NextRequest): Promise<T | null> {

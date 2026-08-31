@@ -3,13 +3,36 @@ import { render, screen } from "@testing-library/react";
 
 // Mock Next.js modules before importing the components
 vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
-    <a href={href} {...props}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+}));
+
+vi.mock("@clerk/nextjs", () => ({
+  useUser: () => ({ user: { firstName: "John", lastName: "Roe", imageUrl: null }, isLoaded: true, isSignedIn: true }),
+  useAuth: () => ({ isSignedIn: true }),
+  useClerk: () => ({ signOut: vi.fn() }),
+}));
+
+vi.mock("@/lib/api-client", () => ({
+  apiGet: vi.fn().mockResolvedValue(null),
+  apiPost: vi.fn().mockResolvedValue(null),
+  apiPatch: vi.fn().mockResolvedValue(null),
 }));
 
 import { DashboardLayout, Sidebar, MobileNav } from "./DashboardLayout";
@@ -120,13 +143,9 @@ describe("Sidebar", () => {
     const { container } = render(<Sidebar />);
     // The active link should have bg-cf-orange/10 class
     const links = container.querySelectorAll("a");
-    const dashboardLinks = Array.from(links).filter(
-      (l) => l.getAttribute("href") === "/dashboard"
-    );
+    const dashboardLinks = Array.from(links).filter((l) => l.getAttribute("href") === "/dashboard");
     // At least one dashboard link should have active styling
-    const hasActive = dashboardLinks.some((l) =>
-      l.className.includes("bg-cf-orange/10")
-    );
+    const hasActive = dashboardLinks.some((l) => l.className.includes("bg-cf-orange/10"));
     expect(hasActive).toBe(true);
   });
 });
