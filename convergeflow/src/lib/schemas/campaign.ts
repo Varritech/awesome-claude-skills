@@ -23,6 +23,15 @@ export const emailStatusSchema = z.enum([
 ]);
 export type EmailStatus = z.infer<typeof emailStatusSchema>;
 
+export const replyCategorySchema = z.enum([
+  'interested',
+  'booked',
+  'question',
+  'not_interested',
+  'auto_reply',
+]);
+export type ReplyCategory = z.infer<typeof replyCategorySchema>;
+
 export const campaignSchema = z.object({
   id: z.string().min(1),
   userId: z.string().min(1),
@@ -71,6 +80,10 @@ export const emailSchema = z.object({
   sentAt: z.string().datetime().nullable().optional(),
   openedAt: z.string().datetime().nullable().optional(),
   repliedAt: z.string().datetime().nullable().optional(),
+  replyCategory: replyCategorySchema.optional(),
+  replyText: z.string().max(10_000).optional(),
+  replyClassifiedAt: z.string().datetime().nullable().optional(),
+  replyFromEmail: z.string().email().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -89,6 +102,10 @@ export const updateEmailSchema = z.object({
   subject: z.string().max(200).optional(),
   body: z.string().max(20_000).optional(),
   status: emailStatusSchema.optional(),
+  replyCategory: replyCategorySchema.optional(),
+  replyText: z.string().max(10_000).optional(),
+  replyClassifiedAt: z.string().datetime().nullable().optional(),
+  replyFromEmail: z.string().email().optional(),
 });
 export type UpdateEmailInput = z.infer<typeof updateEmailSchema>;
 

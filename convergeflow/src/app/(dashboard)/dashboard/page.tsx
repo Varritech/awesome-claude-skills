@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { MetricCard, ActionCard, Card, Skeleton } from "@/components/ui";
 import { MiniRing, Sparkline, BarChart, Gauge, RingProgress } from "@/components/charts";
@@ -10,6 +11,11 @@ import {
   PenIcon,
 } from "@/components/icons";
 import { apiGet } from "@/lib/api-client";
+
+interface OnboardingState {
+  completed?: boolean;
+  onboardingSkipped?: boolean;
+}
 
 interface WeekdayDatum {
   label: string;
@@ -94,6 +100,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSetupBanner, setShowSetupBanner] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +115,17 @@ export default function DashboardPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    // Check onboarding status for setup banner
+    apiGet<OnboardingState>("/api/user/onboarding")
+      .then((state) => {
+        if (cancelled) return;
+        if (!state?.completed && !state?.onboardingSkipped) {
+          setShowSetupBanner(true);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -143,6 +161,27 @@ export default function DashboardPage() {
       <p className="text-[13px] text-white/25 mt-1 mb-7">
         Your emails are working. Here&apos;s what happened today.
       </p>
+
+      {/* Setup banner */}
+      {showSetupBanner && (
+        <div className="bg-cf-orange/10 border border-cf-orange/20 rounded-[var(--radius-button)] px-5 py-3.5 flex items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <path d="M12 9v4M12 17h.01" />
+            </svg>
+            <p className="text-[13px] text-white/70">
+              Complete your setup to unlock sending.
+            </p>
+          </div>
+          <Link
+            href="/onboarding"
+            className="shrink-0 px-3.5 py-1.5 rounded-[var(--radius-pill)] bg-cf-orange text-white text-[12px] font-bold whitespace-nowrap"
+          >
+            Finish Setup
+          </Link>
+        </div>
+      )}
 
       {/* Inline tip */}
       <div className="bg-cf-elevated rounded-[var(--radius-button)] pl-5 pr-4 py-3.5 border-l-[3px] border-cf-orange flex items-start gap-2.5 mb-5">
@@ -346,9 +385,14 @@ export default function DashboardPage() {
             Book a quick call and we&apos;ll set you up with a bigger plan.
           </p>
         </div>
-        <button className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-heading uppercase tracking-wide shrink-0 hover:opacity-90 transition-opacity">
+        <a
+          href="https://cal.com/varritech/convergeflow-intro"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-7 py-3 rounded-[var(--radius-button)] bg-gradient-to-br from-cf-orange to-cf-orange-dark text-white text-sm font-bold font-heading uppercase tracking-wide shrink-0 hover:opacity-90 transition-opacity"
+        >
           Book a Call
-        </button>
+        </a>
       </Card>
     </>
   );

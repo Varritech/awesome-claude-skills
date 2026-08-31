@@ -78,14 +78,11 @@ export default function PathPage() {
           </button>
 
           {/* OpenClaw DWY */}
+          <div className="relative">
           <button
             type="button"
-            onClick={() => setSelected("dwy")}
-            className={`text-left rounded-[24px] p-8 cursor-pointer transition-all duration-150 border-2 relative overflow-hidden ${
-              selected === "dwy"
-                ? "border-cf-orange bg-[#26262C]"
-                : "border-transparent bg-gradient-to-br from-[#1E1B10] to-cf-card hover:border-cf-orange/30"
-            }`}
+            disabled
+            className="text-left rounded-[24px] p-8 cursor-not-allowed transition-all duration-150 border-2 border-transparent bg-gradient-to-br from-[#1E1B10] to-cf-card opacity-50 relative overflow-hidden w-full"
           >
             {/* Orange accent stripe */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cf-orange to-cf-orange-dark" />
@@ -119,6 +116,10 @@ export default function PathPage() {
               </span>
             </div>
           </button>
+            <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-[6px] bg-white/10 text-white/40 uppercase tracking-wide">
+              Coming Soon
+            </span>
+          </div>
         </div>
 
         {/* Continue button */}
