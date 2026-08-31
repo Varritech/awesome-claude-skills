@@ -17,6 +17,7 @@ import {
   HelpIcon,
   ShieldIcon,
 } from "@/components/icons";
+import { SessionTimeout } from "@/components/ui";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon, matchPrefix: false },
@@ -168,6 +169,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <MobileNav />
+      <SessionTimeout />
     </div>
   );
 }

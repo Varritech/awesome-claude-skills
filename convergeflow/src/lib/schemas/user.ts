@@ -58,6 +58,15 @@ export const updateProfileSchema = z.object({
   role: z.string().max(80).optional(),
   timezone: z.string().max(60).optional(),
   preferredStyle: z.string().max(40).optional(),
+  phone: z.string().max(30).optional(),
+  tourCompleted: z.boolean().optional(),
+  preferences: z
+    .object({
+      emailNotifications: z.boolean().optional(),
+      autoFollowUp: z.boolean().optional(),
+      weeklyReport: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 

@@ -3,13 +3,43 @@
 import { useEffect, useState } from "react";
 import { Card, Button, Input, Toggle, Skeleton } from "@/components/ui";
 import { MailIcon } from "@/components/icons";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 
 interface InboxConnection {
   id: string;
   email: string;
   provider: string;
   status: "connected" | "pending" | "error";
+}
+
+/** Raw inbox record shape returned by GET /api/inboxes. */
+interface InboxApiRecord {
+  id: string;
+  email?: string;
+  provider?: string;
+  status?: string;
+}
+
+/**
+ * Map a backend inbox lifecycle status onto the three states the Settings UI
+ * renders. connected/warming/active are all "live" from the user's POV;
+ * connecting is still pending; anything else is an error.
+ */
+function toInboxStatus(status?: string): InboxConnection["status"] {
+  if (status === "connected" || status === "warming" || status === "active") {
+    return "connected";
+  }
+  if (status === "connecting") return "pending";
+  return "error";
+}
+
+function mapInboxRecords(records: InboxApiRecord[] | null | undefined): InboxConnection[] {
+  return (records ?? []).map((r) => ({
+    id: r.id,
+    email: r.email ?? "",
+    provider: r.provider ?? "",
+    status: toInboxStatus(r.status),
+  }));
 }
 
 interface DomainConnection {
@@ -46,6 +76,7 @@ interface UserProfile {
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [inboxes, setInboxes] = useState<InboxConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     fullName: "",
@@ -55,6 +86,10 @@ export default function SettingsPage() {
   });
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [addingInbox, setAddingInbox] = useState(false);
+  const [inboxEmail, setInboxEmail] = useState("");
+  const [inboxProvider, setInboxProvider] = useState("gmail");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +108,15 @@ export default function SettingsPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    // Connected inboxes live in the inboxes collection, not on the profile doc.
+    apiGet<InboxApiRecord[]>("/api/inboxes")
+      .then((records) => {
+        if (cancelled) return;
+        setInboxes(mapInboxRecords(records));
+      })
+      .catch((err) => console.error("Failed to load inboxes", err));
+
     return () => {
       cancelled = true;
     };
@@ -82,13 +126,41 @@ export default function SettingsPage() {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = await apiPatch<UserProfile>("/api/user/profile", form);
+      const [firstName, ...rest] = form.fullName.trim().split(" ");
+      const lastName = rest.join(" ");
+      const updated = await apiPatch<UserProfile>("/api/user/profile", {
+        firstName: firstName ?? "",
+        lastName: lastName ?? "",
+        company: form.company,
+        phone: form.phone,
+      });
       setProfile(updated ?? profile);
       setEditing(false);
     } catch (err) {
       console.error(err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConnectInbox = async () => {
+    try {
+      const data = await apiPost<{ authUrl?: string | null }>("/api/inboxes", {
+        provider: inboxProvider,
+      });
+      // Gmail returns a Google consent URL — hand off to OAuth.
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      }
+      // Otherwise refresh the list from the source of truth.
+      const records = await apiGet<InboxApiRecord[]>("/api/inboxes");
+      setInboxes(mapInboxRecords(records));
+    } catch (err) {
+      console.error("Failed to connect inbox", err);
+    } finally {
+      setAddingInbox(false);
+      setInboxEmail("");
     }
   };
 
@@ -114,7 +186,6 @@ export default function SettingsPage() {
     );
   }
 
-  const inboxes = profile?.inboxes ?? [];
   const domains = profile?.domains ?? [];
   const preferences = profile?.preferences ?? {};
   const plan = profile?.plan;
@@ -230,7 +301,35 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
-        <button className="mt-4 px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors">
+        {addingInbox && (
+          <div className="mt-3 p-3 bg-cf-elevated rounded-[var(--radius-button)]">
+            <div className="flex gap-2 mb-2">
+              <select
+                value={inboxProvider}
+                onChange={(e) => setInboxProvider(e.target.value)}
+                className="bg-cf-card rounded-[var(--radius-button)] px-3 py-2 text-[13px] text-white/70 outline-none"
+              >
+                <option value="gmail">Gmail</option>
+                <option value="smtp_imap">Custom SMTP</option>
+              </select>
+              <input
+                type="email"
+                value={inboxEmail}
+                onChange={(e) => setInboxEmail(e.target.value)}
+                placeholder="you@yourdomain.com"
+                className="flex-1 bg-cf-card rounded-[var(--radius-button)] px-3 py-2 text-[13px] text-white/70 outline-none focus:ring-1 focus:ring-cf-orange/50"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setAddingInbox(false); setInboxEmail(""); }} className="flex-1 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
+              <button onClick={handleConnectInbox} className="flex-1 py-2 rounded-[var(--radius-button)] bg-cf-orange text-white text-[13px] font-bold">Connect</button>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => setAddingInbox(true)}
+          className="mt-4 px-4 py-2 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50 hover:bg-white/[0.08] transition-colors"
+        >
           + Add Inbox
         </button>
       </Card>
@@ -333,11 +432,24 @@ export default function SettingsPage() {
               Permanently delete your account and all data
             </p>
           </div>
-          <Button variant="danger" size="sm">
+          <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
             Delete
           </Button>
         </div>
       </Card>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-cf-card rounded-[var(--radius-button)] p-6 max-w-sm w-full">
+            <h3 className="text-[16px] font-bold font-heading mb-2">Delete Account?</h3>
+            <p className="text-[13px] text-white/40 mb-5">This permanently deletes all your data and cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-white/[0.04] text-[13px] text-white/50">Cancel</button>
+              <button onClick={() => { setConfirmDelete(false); }} className="flex-1 py-2.5 rounded-[var(--radius-button)] bg-red-500 text-white text-[13px] font-bold">Delete Forever</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
