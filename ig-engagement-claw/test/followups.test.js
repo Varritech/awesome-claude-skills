@@ -31,6 +31,17 @@ describe('dueForFollowUp', () => {
     expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([]);
   });
 
+  it('never follows up someone whose delivery is permanently blocked', () => {
+    // "Can't receive your message... don't allow new message requests from
+    // everyone" is a permanent wall, not a delay — re-knocking just reopens
+    // a dead thread and burns a batch slot forever if this isn't excluded.
+    const led = ledgerOf({
+      handle: 'ana', at: ago(30), text: 'hi',
+      blocked: true, blockedReason: 'message-request-blocked-not-delivered',
+    });
+    expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([]);
+  });
+
   it('measures the second step from the LAST follow-up, not the original opener', () => {
     // Sent day 0, followed up day 3. The second step is 7 days after THAT,
     // so at day 8 overall it is not due yet — measuring from the opener would

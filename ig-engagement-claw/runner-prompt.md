@@ -83,12 +83,31 @@ newest first.
 Do NOT scrape the followers list — 674 rows, virtualized, and it cannot tell a
 follower from 2024 apart from one from two minutes ago.
 
-`browser_navigate` → `https://www.instagram.com/varritech/`, then open
-**Notifications** from the left rail (`browser_snapshot` → click its ref).
+⛔ **Check the tab you already selected in preflight BEFORE navigating anywhere.**
+If its URL is already `/notifications/` and the snapshot shows real rows (named
+handles, text like "started following you" / "liked your photo"), you are
+already there — extract right now and skip the rest of this section. Do not
+assume it's stale or empty without reading the snapshot content first. This
+exact mistake — re-navigating away from a tab that was already correct — has
+burned 10-15 tool calls on three separate runs.
+
+Only if the current tab is NOT on `/notifications/`, or its snapshot is
+genuinely empty: `browser_navigate` → `https://www.instagram.com/` (the HOME
+feed, not the profile page — on narrow viewports the notifications icon lives
+in the home header, not the profile's left rail), then click **Notifications**
+in the header (`browser_snapshot` → click its ref).
+
+⛔ Known decoys — do not click these while hunting for notifications: the "3"
+badge near the avatar (Threads unread count, opens threads.com), "Professional
+dashboard" in the left rail (opens `/ad_tools/`, the ads dashboard), and the
+left-rail heart icon on the **profile** page (can open a Messages panel
+instead).
 
 ⛔ Do NOT navigate straight to `/varritech/followers/` or a notifications URL —
 Instagram renders those panels only via the in-app click path. A direct
 navigation gives you a page with no dialog on it and looks like "no results".
+This does not apply to a tab already parked on `/notifications/` at preflight
+— see above.
 
 Extract rows with `mcp__browsermcp__browser_execute_js` (unsafe mode, IIFE):
 
@@ -171,6 +190,22 @@ For each entry in order:
    thing that can see them. A skip costs no send budget. (Live 2026-08-17: 2 of 4
    planned targets were caught here, both already opened by the sales claw.)
 
+   ⛔ **If the thread shows this exact banner: "This account can't receive your
+   message because they don't allow new message requests from everyone" —** that
+   is a permanent delivery block, not a delay warning. It can appear before you've
+   typed anything (a dead composer) or right under a bubble you just sent (a send
+   that silently failed). Either way, record it immediately so it never comes back:
+
+   ```
+   node src/cli.js skip "<handle>" message-request-blocked-not-delivered
+   ```
+
+   Do NOT leave this one unrecorded "to retry next run" — that's the §3b anti-pattern
+   below, and it means every future run re-opens the same dead thread forever,
+   burning a batch slot each time (recurred on `pbjoel` across three separate runs,
+   2026-08-17 discovery on `davemiz`, 2026-08-28, and again 2026-08-31 because this
+   run followed the generic "skip, don't record" line instead).
+
 4. The composer is a **Lexical** editor. It is not exposed as a snapshot ref until
    you take a full `browser_snapshot` with `viewportOnly: false`, so put the text
    in with an insertText command instead:
@@ -212,7 +247,22 @@ another liker; a person only goes quiet once.
 For each entry, in order:
 
 1. Open their thread the same way as section 3 (profile → 3-dots → **Send message**).
-2. ⛔ **Read the thread before you type anything.** If they replied at ANY point —
+2. ⛔ **Check for the "can't receive your message... don't allow new message
+   requests from everyone" banner before typing anything.** If it's there, run:
+
+   ```
+   node src/cli.js blocked "<handle>" message-request-blocked-not-delivered
+   ```
+
+   ⛔ **This is `blocked`, not `skip`.** A follow-up target is by definition
+   already in the ledger (that's why they were due a second knock), and `skip`
+   silently refuses to touch anyone already known — it prints "already known"
+   and does nothing, leaving the dead thread to come due again next run. This
+   exact mistake recurred on `pbjoel` across three separate runs (2026-08-17,
+   2026-08-28, 2026-08-31) before `blocked` existed to fix it. Use `skip` only
+   in §3, for a handle that was never contacted before. Then move to the next
+   entry.
+3. ⛔ **Read the thread before you type anything.** If they replied at ANY point —
    even one word, even months ago — do NOT send the follow-up. Record it and move on:
 
    ```
@@ -222,22 +272,24 @@ For each entry, in order:
    That ends their follow-up chain for good. From there the sales claw owns the
    conversation, and a second knock from us talks straight over it. The ledger
    cannot see replies; you are the only thing that can.
-3. If the thread still shows only our message, send the `text` verbatim, confirm it
+4. If the thread still shows only our message, send the `text` verbatim, confirm it
    landed with a screenshot, then:
 
-   ⛔ The first follow-up hands them a free guide and carries a **price anchor and a
-   URL**. That is intended. Instagram's web composer accepts links fine — the old
-   no-links rule came from the API claw, where InstantDM rejects any DM containing a
-   URL, and does not apply to this path. Send it whole, link included, and check the
-   link is clickable in the sent bubble.
+   ⛔ The first follow-up normally hands them a free guide with a **price anchor and a
+   URL**. Instagram's web composer accepts links fine — the old no-links rule came from
+   the API claw, where InstantDM rejects any DM containing a URL, and does not apply to
+   this path. But while `LINKS_BLOCKED=1` is set (see §1 above), `cli.js next` has
+   already stripped the URL out of this `text` before you see it — send it verbatim,
+   whatever it contains. Do not add a link back in yourself if it's missing.
 
    ```
    node src/cli.js followup-sent "<handle>" "<the exact text sent>"
    ```
 
-4. Same pacing as cold sends: **wait 40–90 seconds between people, varied.**
+5. Same pacing as cold sends: **wait 40–90 seconds between people, varied.**
 
-If a thread will not open or the Message action is gone, skip it and do NOT record
+If a thread will not open or the Message action is gone for a reason OTHER than the
+"can't receive your message" banner (step 2 above), skip it and do NOT record
 anything — it comes back around next run.
 
 ## 4. Commit — only what you saw land

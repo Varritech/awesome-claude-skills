@@ -31,10 +31,12 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
   const cadence = cadenceDays ?? DEFAULT_CADENCE_DAYS;
   const due = [];
   for (const e of ledger.all()) {
-    // Never messaged them (existing thread, DMs closed, blocked) — nothing to follow up ON.
+    // Never messaged them (existing thread, DMs closed) — nothing to follow up ON.
     if (e.status === 'skipped') continue;
     // They answered. The sales claw owns this conversation now; barging in talks over it.
     if (e.replied) continue;
+    // We messaged them, but delivery is permanently blocked. Re-knocking just reopens a dead thread.
+    if (e.blocked) continue;
     if (!e.at) continue;
 
     const sent = e.followUps ?? [];

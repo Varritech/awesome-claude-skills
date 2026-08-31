@@ -71,6 +71,20 @@ describe('follow-ups and replies', () => {
     expect(createLedger({ path: p() }).all().find((x) => x.handle === 'ana').replied).toBe(true);
   });
 
+  it('marks a delivery block so the follow-up chain stops, without erasing the opener history', () => {
+    // Unlike skip (never messaged), this is someone we DID message, whose
+    // thread later showed "can't receive your message... not everyone".
+    // The opener and any follow-ups already sent must survive on record.
+    const led = createLedger({ path: p() });
+    led.record('ana', { at: '2026-08-17T00:00:00.000Z', text: 'the opener' });
+    led.markBlocked('ana', 'message-request-blocked-not-delivered');
+
+    const e = createLedger({ path: p() }).all().find((x) => x.handle === 'ana');
+    expect(e.blocked).toBe(true);
+    expect(e.blockedReason).toBe('message-request-blocked-not-delivered');
+    expect(e.text).toBe('the opener');
+  });
+
   it('refuses to follow up someone with no opener on record', () => {
     const led = createLedger({ path: p() });
     expect(() => led.recordFollowUp('ghost', { at: '2026-08-20T00:00:00.000Z', text: 'x' })).toThrow(/ghost/);

@@ -82,6 +82,21 @@ export async function skipTarget({ ledger, handle, reason, now = new Date() }) {
 }
 
 /**
+ * The opposite case from skipTarget: someone we DID already message (an
+ * opener or a follow-up is on record), whose thread now shows "can't receive
+ * your message... don't allow new message requests from everyone" — a
+ * permanent wall, not a delay. skipTarget can't record this because
+ * ledger.has() is already true; without this, the same dead thread comes due
+ * for another knock every run forever (recurred on pbjoel three separate
+ * times before this existed).
+ */
+export async function blockTarget({ ledger, handle, reason, now = new Date() }) {
+  if (!ledger.has(handle)) return { recorded: false, reason: 'no-opener-on-record' };
+  ledger.markBlocked(handle, reason);
+  return { recorded: true };
+}
+
+/**
  * A send the agent CONFIRMED landed. Only now does the person become contacted.
  *
  * ⛔ The ledger write comes FIRST and the handoff is never allowed to throw past
