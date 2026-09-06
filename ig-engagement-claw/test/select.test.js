@@ -59,12 +59,28 @@ describe('selectBatch', () => {
     expect(batch).toEqual([]);
   });
 
-  it('sends nothing on a Sunday', () => {
+  it('sends on a Sunday inside business hours', () => {
+    // Cristiano, 2026-09-06: "it needs to be everyday". The claw used to sit out
+    // Sat/Sun entirely — two eligible new followers arrived on a Sunday and were
+    // refused by the weekday gate, not by budget. Weekends now send.
     const batch = selectBatch({
       targets: targets('ana'),
       ledger: ledgerOf(),
       cap: 10,
       now: new Date('2026-08-16T14:00:00-04:00'), // Sunday 2pm
+    });
+    expect(batch.map((t) => t.handle)).toEqual(['ana']);
+  });
+
+  it('still respects an explicit days restriction when one is configured', () => {
+    // The 7-day default is a default, not a removal — SEND_DAYS can still pin it
+    // back to a subset without another code change.
+    const batch = selectBatch({
+      targets: targets('ana'),
+      ledger: ledgerOf(),
+      cap: 10,
+      now: new Date('2026-08-16T14:00:00-04:00'), // Sunday 2pm
+      window: { days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] },
     });
     expect(batch).toEqual([]);
   });

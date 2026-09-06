@@ -44,7 +44,7 @@ if (cmd === 'next') {
     rate: cfg.rate,
     exclude: cfg.exclude,
     now: new Date(),
-    window: { timeZone: cfg.timeZone, startHour: cfg.startHour, endHour: cfg.endHour },
+    window: { timeZone: cfg.timeZone, startHour: cfg.startHour, endHour: cfg.endHour, ...(cfg.sendDays.length ? { days: cfg.sendDays } : {}) },
     followUpDays: cfg.followUpDays,
     killSwitch: cfg.killSwitch,
     linksBlocked: cfg.linksBlocked,
