@@ -52,6 +52,11 @@ export const config = () => ({
   timeZone: process.env.CLAW_TZ || 'America/New_York',
   startHour: Number(process.env.START_HOUR ?? 9),
   endHour: Number(process.env.END_HOUR ?? 20),
+  // Days the claw may send on, short names as Intl reports them (Mon..Sun).
+  // Default is ALL SEVEN — set SEND_DAYS='Mon,Tue,Wed,Thu,Fri' to go back to
+  // weekdays only. An empty/blank value falls back to the default rather than
+  // silently making every day inert.
+  sendDays: (process.env.SEND_DAYS ?? '').split(',').map((d) => d.trim()).filter(Boolean),
   anthropicKey: process.env.ANTHROPIC_API_KEY,
   // Only set for identity-linked keys; workspace-scoped keys must omit it.
   anthropicWorkspaceId: process.env.ANTHROPIC_WORKSPACE_ID,

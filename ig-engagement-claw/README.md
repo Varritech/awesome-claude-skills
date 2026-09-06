@@ -86,7 +86,7 @@ is prevented by the **ledger** (keyed by person), not the snapshot (keyed by eve
 |---|---|
 | Never message the same person twice | `ledger.js` (persisted to `state/contacted.json`) |
 | Cap per run | `select.js` |
-| Business hours + weekdays only | `select.js` `isSendingWindow()` |
+| Business hours, ALL 7 days (`SEND_DAYS` to restrict) | `select.js` `isSendingWindow()` |
 | No links in a cold opener | `opener.js` `stripLinks()` |
 | Openers stay short | `opener.js` `capWords()` |
 | A failed send is never marked contacted | `pipeline.js` — send, *then* record |

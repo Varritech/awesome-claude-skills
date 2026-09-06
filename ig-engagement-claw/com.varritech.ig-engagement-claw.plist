@@ -29,11 +29,21 @@
     <key>END_HOUR</key><string>20</string>
   </dict>
 
+  <!-- ⛔ --model is PINNED here on purpose. `claude -p` otherwise inherits
+       ~/.claude/settings.json's global "model", which is the llm-router's
+       Ollama lane (glm-5.3-flash:cloud). Claude Code does not know that id and
+       hard-fails the run with "There's an issue with the selected model" —
+       596 such lines accumulated in state/run.log, i.e. that many dead runs.
+       The claw must not be hostage to whatever lane the router is pointed at. -->
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "$(cat runner-prompt.md)" --allowedTools "mcp__browsermcp__browser_tab,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
+    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "Execute an ig-engagement-claw run NOW, following the runbook below as instructions to carry out, not as a document to summarise. Start at the preflight step and finish with the one-line report.
+
+=== RUNBOOK ===
+
+$(cat runner-prompt.md)" --model claude-sonnet-5 --allowedTools "mcp__browsermcp__browser_tab,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
   </array>
 
   <key>RunAtLoad</key><false/>

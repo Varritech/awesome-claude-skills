@@ -29,28 +29,15 @@ export async function planBatch({
     return { killed: false, baseline: true, considered: 0, batch: [], followUps: [] };
   }
 
-  // Follow-ups are drafted FIRST and take budget before any cold opener.
-  // Someone who already heard from us is warmer than a stranger, and if new
-  // targets always won the slots the second knock would never happen at all —
-  // there is always another liker, but a person only goes quiet once.
-  const followUps = [];
-  if (isSendingWindow(now, win)) {
-    let left = remainingBudget({ ledger, rate, cap });
-    for (const target of dueForFollowUp({ ledger, now, cadenceDays: followUpDays })) {
-      if (left <= 0) break;
-      const text = await draftFollowUp({ target, llm, linksBlocked });
-      if (!text) continue; // unusable draft — they come back around next run
-      followUps.push({ ...target, text });
-      left -= 1;
-    }
-  }
-
-  // Whatever the follow-ups did not use is what cold outreach gets. They are
-  // passed as `alreadyPlanned` because they are NOT in the ledger yet, so the
-  // hourly/daily budget has to be told about them explicitly.
-  const batch = selectBatch({
-    targets, ledger, cap, now, window: win, rate, exclude, alreadyPlanned: followUps.length,
-  });
+  // ⛔ Cold openers are picked FIRST and take budget before any follow-up.
+  // REVERSED 2026-09-04 on Cristiano's instruction. It used to be the other way
+  // round, on the reasoning that "there is always another liker, but a person
+  // only goes quiet once" — in practice that starved cold outreach completely:
+  // the claw went 2026-08-31 → 09-04 without opening a single new person while
+  // still knocking on people from August. Reaching someone in the minutes after
+  // they follow or like is the entire reason this polls every 5 minutes; a
+  // second knock on a 5-day-old silence keeps just as well on a quieter run.
+  const batch = selectBatch({ targets, ledger, cap, now, window: win, rate, exclude });
   const withOpeners = [];
   for (const target of batch) {
     const text = await draftOpener({ target, llm });
@@ -59,6 +46,21 @@ export async function planBatch({
     // around next poll with a fresh draft.
     if (!text) continue;
     withOpeners.push({ ...target, text });
+  }
+
+  // Follow-ups get whatever cold outreach did not use. `alreadyPlanned` counts
+  // the DRAFTED openers, not the selected ones — a target whose draft came back
+  // unusable is not going to be sent, so it must not hold a slot hostage.
+  const followUps = [];
+  if (isSendingWindow(now, win)) {
+    let left = remainingBudget({ ledger, rate, cap, alreadyPlanned: withOpeners.length });
+    for (const target of dueForFollowUp({ ledger, now, cadenceDays: followUpDays })) {
+      if (left <= 0) break;
+      const text = await draftFollowUp({ target, llm, linksBlocked });
+      if (!text) continue; // unusable draft — they come back around next run
+      followUps.push({ ...target, text });
+      left -= 1;
+    }
   }
   return { killed: false, baseline: false, considered: targets.length, batch: withOpeners, followUps };
 }

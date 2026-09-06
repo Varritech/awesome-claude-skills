@@ -53,8 +53,10 @@ If `list` shows more than one Instagram tab, close the extras
 (`{ "action": "close", "index": <n> }`, **highest index first** so the indices
 below don't shift under you) and keep one.
 
-If that errors, times out, or comes back with no extension connected, **stop and report it** —
-do not retry more than twice, and do not fall back to another browser tool. If the snapshot
+If that errors, times out, or comes back with no extension connected, **stop and report it
+after the FIRST failure** — the MCP client already retried 3x internally, so an error string
+containing `No extension connected` IS the abort. One call, then abort; never re-call it, and
+do not fall back to another browser tool. If the snapshot
 shows a logged-out page or a login form, **stop**: the session isn't live and nothing below is
 safe to attempt.
 
@@ -91,7 +93,16 @@ assume it's stale or empty without reading the snapshot content first. This
 exact mistake — re-navigating away from a tab that was already correct — has
 burned 10-15 tool calls on three separate runs.
 
-Only if the current tab is NOT on `/notifications/`, or its snapshot is
+⛔ **The panel is often open at URL `https://www.instagram.com/` — the URL does
+NOT change to `/notifications/`.** Judge by the snapshot, not the URL: several
+"Follow Back" buttons plus bare handles means the Notifications panel is already
+sitting over the home feed. It is NOT a `div[role="dialog"]` either, so a
+`querySelector('div[role="dialog"]')` probe returning null proves nothing. The
+one cheap check that settles it is `browser_screenshot` — if you can read the
+"Notifications" heading, extract immediately.
+
+Only if the current tab is NOT on `/notifications/`, has no notifications panel
+open, or its snapshot is
 genuinely empty: `browser_navigate` → `https://www.instagram.com/` (the HOME
 feed, not the profile page — on narrow viewports the notifications icon lives
 in the home header, not the profile's left rail), then click **Notifications**
@@ -152,6 +163,11 @@ everyone who ever liked a post. Report it and stop.
 
 An empty batch is the NORMAL outcome — nothing new, budget spent, or outside sending
 hours. **If the batch is empty, stop.** Never go hunting for people to fill a quota.
+
+⛔ **Stop means stop at `next` — no post-`next` archaeology.** Do not read the ledger,
+`state/*.json`, `src/config.js` or `date` to explain the empty batch. `next` already applied
+the budget and the send window; the reason adds nothing and each probe costs a call. There is
+also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|followup-sent|replied|ledger`.
 
 ## 3. Send — one at a time
 
@@ -241,8 +257,12 @@ do not commit.** If two sends in a row fail, stop the whole run.
 who has still said nothing. Cadence is 3 days after the opener, then 7 days after
 that, and never again — at most two knocks, ever.
 
-⛔ These are drafted and budgeted BEFORE cold openers, on purpose. There is always
-another liker; a person only goes quiet once.
+⛔ These are budgeted AFTER cold openers, and get only what section 3 did not use
+(changed 2026-09-04 — it used to be the other way round, and cold outreach starved:
+four days passed without opening a single new person). Someone who just followed or
+liked is the time-critical one; a second knock on a days-old silence keeps. So an
+empty `followUps` on a busy day is CORRECT, not a bug — do not go hunting for people
+to knock on because this array came back short.
 
 For each entry, in order:
 
@@ -310,3 +330,7 @@ Omit the argument if it comes back null. Do not guess one.
 ## 5. Report
 
 One line: considered / selected / sent / skipped, plus anything that looked off.
+
+⛔ **Stray `about:blank` tabs: state the count in one clause and move on.** Never call them
+orphaned, leaked, clutter or a bug, never infer a cause, never offer to close them. The count
+churns up and down on its own; a new number is not a finding.

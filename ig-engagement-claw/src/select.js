@@ -10,7 +10,12 @@ import { normalizeHandle } from './handle.js';
 
 const PRIORITY = { commenter: 0, liker: 1, follower: 2 };
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+// Every day, including weekends (changed 2026-09-06 on Cristiano's instruction:
+// "it needs to be everyday"). It used to be Mon-Fri, which meant a follower who
+// arrived on a Saturday waited until Monday — on 09-06 two eligible new followers
+// were refused by this gate alone, with full budget and the claw otherwise healthy.
+// Still overridable: SEND_DAYS pins it back to a subset without a code change.
+export const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // Hour + weekday as they read in Cristiano's timezone, not the server's.
 function localClock(now, timeZone) {
@@ -26,10 +31,11 @@ function localClock(now, timeZone) {
   return { hour: Number(get('hour')), weekday: get('weekday') };
 }
 
-// A cold DM at 3am is a bot tell to Instagram and a bad look to the human.
-export function isSendingWindow(now, { timeZone = 'America/New_York', startHour = 9, endHour = 20 } = {}) {
+// A cold DM at 3am is a bot tell to Instagram and a bad look to the human. The
+// HOURS still hold every day — going 24/7 is the bot tell, not going 7-day.
+export function isSendingWindow(now, { timeZone = 'America/New_York', startHour = 9, endHour = 20, days = ALL_DAYS } = {}) {
   const { hour, weekday } = localClock(now, timeZone);
-  if (!WEEKDAYS.includes(weekday)) return false;
+  if (!days.includes(weekday)) return false;
   return hour >= startHour && hour < endHour;
 }
 

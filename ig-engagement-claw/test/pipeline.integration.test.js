@@ -176,20 +176,21 @@ describe('follow-ups inside planBatch', () => {
     expect(res.followUps[0].text).toContain('guide-1');
   });
 
-  it('spends budget on follow-ups BEFORE new cold DMs', async () => {
-    // A warm person who already heard from us beats a stranger. With one slot
-    // left, the follow-up takes it and the cold opener waits for the next run.
+  it('still knocks on a quiet person when nobody new has arrived', async () => {
+    // The other half of the 2026-09-04 priority flip: cold outreach goes first,
+    // but follow-ups must not be dead. With an empty notifications feed there is
+    // nothing fresher to spend the slot on, so the quiet person gets it.
     const ledger = createLedger({ path });
     ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
 
     const res = await planBatch({
-      notifications: rows, seen: seenReady(), ledger,
+      notifications: [], seen: seenReady(), ledger,
       llm: async () => 'drafted text', cap: 1, now: WORKDAY,
       rate: { perHour: 1, perDay: 20 },
     });
 
-    expect(res.followUps).toHaveLength(1);
     expect(res.batch).toHaveLength(0);
+    expect(res.followUps.map((f) => f.handle)).toEqual(['quietone']);
   });
 
   it('sends no follow-up outside the sending window', async () => {
@@ -225,19 +226,17 @@ describe('follow-ups must not leak past the hourly cap', () => {
   const DAY = 86400_000;
   const seenReady2 = () => { const st = createSeenStore({ path: join(dir, 'seen2.json') }); st.remember([]); return st; };
 
-  it('counts planned follow-ups against MAX_PER_HOUR when picking cold targets', async () => {
-    // The trap: follow-ups are planned but NOT yet in the ledger, so selectBatch
-    // recomputing the budget from the ledger sees zero sends this hour and hands
-    // out the full allowance again. perHour=2 with 1 follow-up must leave room
-    // for exactly ONE cold DM, not two.
+  it('counts planned cold openers against MAX_PER_HOUR when picking follow-ups', async () => {
+    // The trap, mirrored after the 2026-09-04 priority flip: cold openers are
+    // drafted but NOT yet in the ledger, so the follow-up pass recomputing the
+    // budget off the ledger sees zero sends this hour and hands out the full
+    // allowance a second time. perHour=2 with 1 cold opener must leave room for
+    // exactly ONE follow-up, not two — two people are due here on purpose.
     const ledger = createLedger({ path });
     ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+    ledger.record('quiettwo', { at: new Date(WORKDAY.getTime() - 6 * DAY).toISOString(), text: 'the opener' });
 
-    const rows = [
-      { handle: 'newa', text: 'newa liked your photo. 5m', postHref: '/p/P1/' },
-      { handle: 'newb', text: 'newb liked your photo. 6m', postHref: '/p/P2/' },
-      { handle: 'newc', text: 'newc liked your photo. 7m', postHref: '/p/P3/' },
-    ];
+    const rows = [{ handle: 'newa', text: 'newa liked your photo. 5m', postHref: '/p/P1/' }];
 
     const res = await planBatch({
       notifications: rows, seen: seenReady2(), ledger,
@@ -245,8 +244,30 @@ describe('follow-ups must not leak past the hourly cap', () => {
       rate: { perHour: 2, perDay: 20 },
     });
 
+    expect(res.batch.map((t) => t.handle)).toEqual(['newa']);
     expect(res.followUps).toHaveLength(1);
-    expect(res.followUps.length + res.batch.length).toBeLessThanOrEqual(2);
+    expect(res.followUps.length + res.batch.length).toBe(2);
+  });
+
+  it('gives the last slot to a NEW follower/liker, not to a follow-up', async () => {
+    // Cristiano, 2026-09-04: the claw had gone 4 days without opening anyone new
+    // while still knocking on people from August. Reaching someone who just
+    // followed or liked, while they still remember doing it, is the whole point
+    // of polling every 5 minutes — a second knock on a 5-day-old silence is not
+    // time-critical and can wait for a quieter run.
+    const ledger = createLedger({ path });
+    ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
+
+    const rows = [{ handle: 'freshliker', text: 'freshliker liked your photo. 2m', postHref: '/p/P1/' }];
+
+    const res = await planBatch({
+      notifications: rows, seen: seenReady2(), ledger,
+      llm: async () => 'drafted text', cap: 5, now: WORKDAY,
+      rate: { perHour: 1, perDay: 20 },
+    });
+
+    expect(res.batch.map((t) => t.handle)).toEqual(['freshliker']);
+    expect(res.followUps).toEqual([]);
   });
 });
 
