@@ -29,6 +29,13 @@ export async function smsTick({
   rate = { perHour: 8, perDay: 40 },
   window = SEND_WINDOW,
   killSwitch = false,
+  /*
+   * How far back a conversation stays worth polling. The reply pass costs one
+   * OpenPhone call per person, so unbounded it grows with the ledger until a
+   * tick is nothing but polling people who went quiet in June. Measured from
+   * the LAST message either side sent, so an active thread never ages out.
+   */
+  threadLookbackDays = Number(process.env.SMS_THREAD_LOOKBACK_DAYS ?? 14),
   log = () => {},
 }) {
   const report = { enabled, firstTouches: 0, replies: 0, held: 0, optedOut: 0, errors: [] };
@@ -47,9 +54,15 @@ export async function smsTick({
    * they texted US. Waiting until 9am to answer somebody who wrote at 8:40pm
    * is worse behaviour than replying, and it is not a marketing message.
    */
+  const lookbackCutoff = now.getTime() - threadLookbackDays * 86_400_000;
+
   for (const entry of ledger.all()) {
     if (entry.status === 'opted-out') continue;
     if (!entry.at) continue;
+
+    const follows = entry.followUps ?? [];
+    const lastSpoke = Date.parse(follows.length ? follows[follows.length - 1].at : entry.at);
+    if (!Number.isFinite(lastSpoke) || lastSpoke < lookbackCutoff) continue;
 
     let thread;
     try {
