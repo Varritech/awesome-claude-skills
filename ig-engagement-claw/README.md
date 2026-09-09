@@ -142,6 +142,68 @@ most runs correctly do nothing. If the cap were per-run, this cadence would mult
 volume by 12. `launchd` needs the Mac awake, and the run aborts unless Dia is open,
 logged in, and the Browser MCP extension is Connected.
 
+## The SMS concierge (`sms-tick`)
+
+The second half of the free-pack funnel, and a **completely separate run** from the
+Instagram one. No browser, no agent, no `mcp__browsermcp__*` — just Node.
+
+```
+node src/cli.js sms-tick     # one tick: answer replies, then text new leads
+node src/cli.js sms-ledger   # who has been texted, who opted out
+```
+
+Someone types their phone number into the Skills landing page to get the free 5-skill
+pack. The pack is emailed. Then this texts them from the Quo (OpenPhone) line as
+Cristiano, asks what they are building, and answers their questions about the skills.
+
+**Where the people come from.** `GET /api/nurture/sms-queue` on varritech.com, behind
+`SMS_LEADS_TOKEN`. ⛔ Deliberately *not* a direct Supabase connection — the service-role
+key writes every table in production and this process runs on a laptop. The endpoint
+returns `email, phone, created_at` and nothing else.
+
+**Where the facts come from.** `src/offers.js`, and only there. It holds the live tiers,
+the catalogue size, the three guarantees, the objections we have actually been hit with,
+and three real closed threads including the one that refunded. Print it with:
+
+```
+node -e "import('./src/offers.js').then(m=>console.log(m.offerBriefing()))"
+```
+
+⛔ **Re-verify it against the live LP before trusting it.** That page has repriced three
+times in six weeks, and a claw quoting a retired price in front of somebody who just read
+the page has already happened once.
+
+### What stops this going wrong
+
+It texts real phone numbers from the number the whole business texts from, so:
+
+- **Off by default.** Nothing sends unless `SMS_ENABLED=1`.
+- **Only people who asked.** A number has to be on a real capture row. Nothing else can
+  enter a batch.
+- **One first touch per number, ever**, enforced by `state/sms-contacted.json`.
+- **STOP is absolute** and is checked before anything else. No confirmation text back,
+  because that is one more unwanted message to someone who just said stop.
+- **9am to 8pm ET for cold touches**, tighter than the legal 8pm-9pm window because we
+  only know a number, not a timezone. Replies to somebody who just texted us are not
+  held for it.
+- **Caps**: `SMS_RUN_CAP`, `SMS_MAX_PER_HOUR`, `SMS_MAX_PER_DAY`, plus `KILL_SWITCH=1`.
+- **The model writes replies, Node decides everything else.** A draft is dropped, not
+  patched, if it quotes a price we do not charge, attaches the $299 add-on price to the
+  library, promises a discount, or still has a placeholder in it. An empty draft means
+  the thread waits for a human, which always beats a text that merely sounds safe.
+- **The first text is fixed copy**, not a draft. Identity, reason and opt-out line all
+  have to survive verbatim.
+
+### Env
+
+```
+SMS_ENABLED=1
+QUO_API_KEY=...            # OpenPhone. RAW key in Authorization, never "Bearer ..."
+QUO_FROM_NUMBER=+13658250303
+SMS_LEADS_TOKEN=...        # must match the same var on Vercel
+SMS_LEADS_BASE_URL=https://www.varritech.com
+```
+
 ## ⛔ Read before turning it on
 
 This is cold outreach at cadence on a **personal logged-in session**. Instagram's

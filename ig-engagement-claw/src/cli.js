@@ -93,6 +93,54 @@ if (cmd === 'next') {
   ledger.markReplied(handle);
   console.log(`marked replied: ${handle}`);
 
+} else if (cmd === 'sms-tick') {
+  /*
+   * The SMS concierge: one tick. Fully autonomous — no browser, no agent.
+   * Answers anyone mid-conversation, then introduces itself to new free-pack
+   * leads within the caps. Prints a report and exits.
+   *
+   * ⛔ Does nothing unless SMS_ENABLED=1. See src/sms-run.js for why.
+   */
+  const { createQuo } = await import('./quo.js');
+  const { createLeadSource } = await import('./leads.js');
+  const { smsTick } = await import('./sms-run.js');
+
+  const s = cfg.sms;
+  if (!s.enabled) {
+    console.log('[sms] SMS_ENABLED is not 1 — nothing sent.');
+    process.exit(0);
+  }
+  // Fail loudly on a half-configured run rather than reporting a quiet zero,
+  // which is indistinguishable from "no leads today".
+  for (const [name, value] of [['QUO_API_KEY', s.apiKey], ['SMS_LEADS_TOKEN', s.leadsToken]]) {
+    if (!value) { console.error(`[sms] ${name} is not set`); process.exit(1); }
+  }
+
+  const report = await smsTick({
+    enabled: true,
+    killSwitch: cfg.killSwitch,
+    leadSource: createLeadSource({ baseUrl: s.leadsBaseUrl, token: s.leadsToken }),
+    quo: createQuo({ apiKey: s.apiKey, from: s.from, phoneNumberId: s.phoneNumberId }),
+    ledger: createLedger({ path: s.statePath }),
+    llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId }),
+    now: new Date(),
+    cap: s.cap,
+    rate: s.rate,
+    log: (m) => console.error(m),
+  });
+  console.log(JSON.stringify(report, null, 2));
+  // A tick that could not read its own inputs must not look like a quiet run.
+  if (report.errors.length) process.exit(1);
+
+} else if (cmd === 'sms-ledger') {
+  const smsLedger = createLedger({ path: cfg.sms.statePath });
+  console.log(`${smsLedger.size()} texted`);
+  for (const e of smsLedger.all()) {
+    const n = (e.followUps ?? []).length;
+    const state = e.status === 'opted-out' ? 'OPTED OUT' : n ? `${n} repl(y|ies)` : 'awaiting reply';
+    console.log(`  ${String(e.handle).padEnd(18)} ${e.at ?? ''}  ${state}`);
+  }
+
 } else if (cmd === 'ledger') {
   console.log(`${ledger.size()} contacted`);
   for (const e of ledger.all()) {
@@ -102,6 +150,6 @@ if (cmd === 'next') {
   }
 
 } else {
-  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger');
+  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger|sms-tick|sms-ledger');
   process.exit(1);
 }
