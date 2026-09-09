@@ -238,3 +238,63 @@ describe('smsTick — STOP', () => {
     expect(quo.sent).toEqual([]);
   });
 });
+
+describe('smsTick — the thread poll is bounded', () => {
+  /*
+   * The reply pass asks OpenPhone for a thread per person. Unbounded, that is
+   * one API call per number the claw has EVER texted, on every tick, forever —
+   * so the cost of a tick grows with the ledger and eventually the run is all
+   * polling. Someone who has not been texted or replied in weeks is not about
+   * to start; stop asking about them.
+   */
+  it('does not poll a conversation that went quiet weeks ago', async () => {
+    const polled = [];
+    const quo = fakeQuo();
+    quo.thread = async (p) => {
+      polled.push(p);
+      return [];
+    };
+    const ledger = fakeLedger([
+      { handle: '+16477048645', at: '2026-09-08T12:00:00.000Z' },
+      { handle: '+16477048600', at: '2026-06-01T12:00:00.000Z' },
+    ]);
+
+    await smsTick({
+      enabled: true,
+      leadSource: leadSource([]),
+      quo,
+      ledger,
+      llm: async () => '',
+      now: NOON_ET,
+    });
+
+    expect(polled).toEqual(['+16477048645']);
+  });
+
+  it('keeps polling a quiet thread if they replied to us recently', async () => {
+    const polled = [];
+    const quo = fakeQuo();
+    quo.thread = async (p) => {
+      polled.push(p);
+      return [];
+    };
+    const ledger = fakeLedger([
+      {
+        handle: '+16477048600',
+        at: '2026-06-01T12:00:00.000Z',
+        followUps: [{ at: '2026-09-08T12:00:00.000Z', text: 'sure' }],
+      },
+    ]);
+
+    await smsTick({
+      enabled: true,
+      leadSource: leadSource([]),
+      quo,
+      ledger,
+      llm: async () => '',
+      now: NOON_ET,
+    });
+
+    expect(polled).toEqual(['+16477048600']);
+  });
+});

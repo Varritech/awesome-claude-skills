@@ -187,6 +187,9 @@ It texts real phone numbers from the number the whole business texts from, so:
   only know a number, not a timezone. Replies to somebody who just texted us are not
   held for it.
 - **Caps**: `SMS_RUN_CAP`, `SMS_MAX_PER_HOUR`, `SMS_MAX_PER_DAY`, plus `KILL_SWITCH=1`.
+- **Bounded polling**: the reply pass costs one OpenPhone call per person, so it only looks
+  at threads with a message in the last `SMS_THREAD_LOOKBACK_DAYS` (14). Otherwise a tick
+  grows with the ledger until it is nothing but polling people who went quiet in June.
 - **The model writes replies, Node decides everything else.** A draft is dropped, not
   patched, if it quotes a price we do not charge, attaches the $299 add-on price to the
   library, promises a discount, or still has a placeholder in it. An empty draft means
