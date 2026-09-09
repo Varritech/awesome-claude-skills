@@ -25,8 +25,8 @@
     <key>MAX_PER_HOUR</key><string>4</string>
     <key>MAX_PER_DAY</key><string>15</string>
     <key>CLAW_TZ</key><string>America/New_York</string>
-    <key>START_HOUR</key><string>9</string>
-    <key>END_HOUR</key><string>20</string>
+    <key>START_HOUR</key><string>0</string>
+    <key>END_HOUR</key><string>24</string>
   </dict>
 
   <!-- ⛔ --model is PINNED here on purpose. `claude -p` otherwise inherits
