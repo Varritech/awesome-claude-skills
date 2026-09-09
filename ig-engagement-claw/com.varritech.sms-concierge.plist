@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.varritech.sms-concierge</string>
+
+  <!-- ⛔ NOT INSTALLED. This file is a template, deliberately not loaded.
+       Installing it starts texting real phone numbers from the number the whole
+       business texts from, so it is a decision someone makes on purpose:
+
+         cp com.varritech.sms-concierge.plist ~/Library/LaunchAgents/
+         launchctl load ~/Library/LaunchAgents/com.varritech.sms-concierge.plist
+
+       Before that: SMS_LEADS_TOKEN must exist in Vercel (Production) AND here,
+       QUO_API_KEY must be in .env, and PR #486 on vds-marketing-core must be
+       merged so /api/nurture/sms-queue exists. Until all three hold, a tick
+       correctly does nothing. -->
+
+  <!-- Every 10 minutes. Someone who texts a question should not wait an hour
+       for an answer. Polling is not sending: SMS_MAX_PER_HOUR / SMS_MAX_PER_DAY
+       are wall-clock and enforced in sms.js against the ledger, and the cold
+       send window is 9am-8pm ET, so most ticks correctly do nothing. -->
+  <key>StartInterval</key><integer>600</integer>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- ⛔ THE MASTER SWITCH. 0/absent = every tick is inert. Set to 1 only when
+         you actually want it texting people. -->
+    <key>SMS_ENABLED</key><string>0</string>
+    <!-- Independent of the Instagram claw's own kill switch. -->
+    <key>KILL_SWITCH</key><string>0</string>
+    <!-- Start conservative and watch the first week, same as the IG side. -->
+    <key>SMS_RUN_CAP</key><string>3</string>
+    <key>SMS_MAX_PER_HOUR</key><string>6</string>
+    <key>SMS_MAX_PER_DAY</key><string>25</string>
+    <key>SMS_LEADS_DAYS</key><string>14</string>
+    <key>SMS_THREAD_LOOKBACK_DAYS</key><string>14</string>
+  </dict>
+
+  <!-- Plain Node. No `claude -p`, no browser, no agent: every decision here is
+       Node's, and the only model call is the wording of a reply to a question
+       somebody asked us first. That is why this job needs none of the IG
+       runner's tool allowlist or model pinning. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; node src/cli.js sms-tick &gt;&gt; state/sms.log 2&gt;&amp;1</string>
+  </array>
+
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/tmp/sms-concierge.err</string>
+</dict>
+</plist>

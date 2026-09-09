@@ -197,6 +197,21 @@ It texts real phone numbers from the number the whole business texts from, so:
 - **The first text is fixed copy**, not a draft. Identity, reason and opt-out line all
   have to survive verbatim.
 
+### Scheduling it
+
+`com.varritech.sms-concierge.plist` is a **template, deliberately not installed** — loading
+it starts texting real people, so that is a decision someone makes on purpose:
+
+```
+cp com.varritech.sms-concierge.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.varritech.sms-concierge.plist
+```
+
+Every 10 minutes, and it ships with `SMS_ENABLED=0` so even once loaded it does nothing
+until you flip that. Three things must be true before a tick can send anything:
+`SMS_LEADS_TOKEN` set in Vercel **and** here, `QUO_API_KEY` in `.env`, and
+`/api/nurture/sms-queue` merged on vds-marketing-core (PR #486).
+
 ### Env
 
 ```
