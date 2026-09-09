@@ -33,7 +33,16 @@ function localClock(now, timeZone) {
 
 // A cold DM at 3am is a bot tell to Instagram and a bad look to the human. The
 // HOURS still hold every day — going 24/7 is the bot tell, not going 7-day.
-export function isSendingWindow(now, { timeZone = 'America/New_York', startHour = 9, endHour = 20, days = ALL_DAYS } = {}) {
+/*
+ * ⛔ NO SEND WINDOW by default (Cristiano, 2026-09-09: "there is no send
+ * window"). The claw polls every 5 minutes precisely to reach someone in the
+ * minutes after they follow or comment, and a 9-to-20 gate threw away every
+ * overnight engagement. Instagram does not keep office hours.
+ *
+ * The parameters stay, so a window can be reimposed with START_HOUR/END_HOUR
+ * without a code change — but the DEFAULT is now the full day, every day.
+ */
+export function isSendingWindow(now, { timeZone = 'America/New_York', startHour = 0, endHour = 24, days = ALL_DAYS } = {}) {
   const { hour, weekday } = localClock(now, timeZone);
   if (!days.includes(weekday)) return false;
   return hour >= startHour && hour < endHour;

@@ -193,7 +193,7 @@ describe('follow-ups inside planBatch', () => {
     expect(res.followUps.map((f) => f.handle)).toEqual(['quietone']);
   });
 
-  it('sends no follow-up outside the sending window', async () => {
+  it('sends a follow-up at 3am unless a window is explicitly set', async () => {
     const ledger = createLedger({ path });
     ledger.record('quietone', { at: new Date(WORKDAY.getTime() - 5 * DAY).toISOString(), text: 'the opener' });
     const threeAm = new Date('2026-08-13T03:00:00-04:00');
@@ -204,8 +204,17 @@ describe('follow-ups inside planBatch', () => {
       rate: { perHour: 10, perDay: 20 },
     });
 
-    expect(res.followUps).toEqual([]);
-    expect(res.batch).toEqual([]);
+    // No window by default (2026-09-09) — 3am is a normal sending time now.
+    expect(res.followUps.map((f) => f.handle)).toEqual(['quietone']);
+
+    const gated = await planBatch({
+      notifications: rows, seen: seenReady(), ledger,
+      llm: async () => 'drafted text', cap: 5, now: threeAm,
+      rate: { perHour: 10, perDay: 20 },
+      window: { timeZone: 'America/New_York', startHour: 9, endHour: 20 },
+    });
+    expect(gated.followUps).toEqual([]);
+    expect(gated.batch).toEqual([]);
   });
 
   it('plans no follow-up at all while the claw is killed', async () => {

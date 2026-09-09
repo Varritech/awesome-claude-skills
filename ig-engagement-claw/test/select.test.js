@@ -49,12 +49,26 @@ describe('selectBatch', () => {
     expect(batch.map((t) => t.handle)).toEqual(['carl']);
   });
 
-  it('sends nothing outside business hours', () => {
+  it('sends at 3am, because there is no send window any more', () => {
+    // Cristiano, 2026-09-09: "there is no send window." The claw polls every 5
+    // minutes to catch someone right after they engage; a business-hours gate
+    // threw away every overnight follow. This used to assert the opposite.
     const batch = selectBatch({
       targets: targets('ana', 'bob'),
       ledger: ledgerOf(),
       cap: 10,
       now: new Date('2026-08-13T03:00:00-04:00'), // 3am
+    });
+    expect(batch.map((t) => t.handle)).toEqual(['ana', 'bob']);
+  });
+
+  it('still honours a window when one is explicitly configured', () => {
+    const batch = selectBatch({
+      targets: targets('ana', 'bob'),
+      ledger: ledgerOf(),
+      cap: 10,
+      now: new Date('2026-08-13T03:00:00-04:00'),
+      window: { timeZone: 'America/New_York', startHour: 9, endHour: 20 },
     });
     expect(batch).toEqual([]);
   });
