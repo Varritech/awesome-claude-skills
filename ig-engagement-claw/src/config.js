@@ -66,4 +66,29 @@ export const config = () => ({
   model: process.env.CLAW_MODEL || 'claude-sonnet-5',
   firestoreCollectionPrefix: process.env.FS_PREFIX || '',
   project: process.env.GOOGLE_CLOUD_PROJECT || 'varritech-dev',
+
+  /*
+   * The SMS concierge (src/sms-run.js). Separate ledger, separate caps, and
+   * OFF unless SMS_ENABLED=1 — this half texts real phone numbers from the
+   * number the whole business texts from, so it ships inert on purpose. There
+   * is no default that starts it by accident.
+   */
+  sms: {
+    enabled: process.env.SMS_ENABLED === '1',
+    statePath: process.env.SMS_STATE || new URL('../state/sms-contacted.json', import.meta.url).pathname,
+    apiKey: process.env.QUO_API_KEY,
+    from: process.env.QUO_FROM_NUMBER || '+13658250303',
+    // Optional. Only needed if the account ever has more than one number.
+    phoneNumberId: process.env.QUO_PHONE_NUMBER_ID,
+    // The authenticated capture-row endpoint on varritech.com. A direct
+    // Supabase connection would mean the service-role key lives on a laptop.
+    leadsBaseUrl: process.env.SMS_LEADS_BASE_URL || 'https://www.varritech.com',
+    leadsToken: process.env.SMS_LEADS_TOKEN,
+    leadsDays: Number(process.env.SMS_LEADS_DAYS ?? 14),
+    cap: Number(process.env.SMS_RUN_CAP ?? 5),
+    rate: {
+      perHour: Number(process.env.SMS_MAX_PER_HOUR ?? 8),
+      perDay: Number(process.env.SMS_MAX_PER_DAY ?? 40),
+    },
+  },
 });

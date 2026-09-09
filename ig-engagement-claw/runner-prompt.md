@@ -92,6 +92,62 @@ safe to attempt.
   ⛔ The Settings → Account Status / enforcement page is **not** one of these — it is a
   passive status page you can navigate away from. Do not abort on it (see preflight).
 
+## Offer memory — what we sell, and what we have sold
+
+⛔ **`src/offers.js` is the single source of truth for every offer fact in this repo.**
+Prices, tier names, the catalogue size, the guarantees and the past-sales record all live
+there, and `node -e "import('./src/offers.js').then(m=>console.log(m.offerBriefing()))"`
+prints the whole thing. Never quote a number from this file, from a screenshot, or from
+memory — read it from there. It carries a re-verify instruction against the live landing
+page, because this page has repriced three times in six weeks.
+
+The short version, read off the live LP **2026-09-09**:
+
+| | |
+|---|---|
+| Free 5-skill starter pack | `grand-slam-offer`, `static-ads-creator`, `meta-ads-account-architecture`, `inert-funnel-audit`, `email-deliverability-audit` |
+| Essential | **$47** one time, curated set, no course, no onboarding |
+| Premium | **$197** one time, the ENTIRE vault, **268 skills**, six departments, plus the Ship-With-Claude course, onboarding with the team, weekly office hours |
+| AI Employee Pack | **$299**, a SEPARATE add-on. ⛔ Autonomous agents are NOT in the $47 or the $197 |
+| Scalewright | Revenue share, nothing upfront, "free until you are". Never priced over text, always a call |
+
+Three guarantees, and they are the close: **72-Hour Takeover**, **First-Hire** (ten hours off
+your plate in 30 days), and a **48-hour fix-or-refund**. Plus pay-once and a 30-second
+self-serve refund.
+
+⛔ **No discounts. For anyone, including long term clients.** The Fast Movers window moves the
+price UP when it lapses; it is not a coupon. A prospect asking for the price they saw earlier
+gets "that is the fast movers pricing" and an honest no.
+
+⛔ **Retired numbers that are still all over older assets and WILL be wrong:** 170 / 213 / 191
+skills, $97, $299-as-the-library, $999, $149.99, $15k. If a draft contains one, it is stale.
+
+### What we have actually sold
+
+Three real closed threads are recorded in `PAST_SALES` in `src/offers.js`, including the one
+that refunded. Read them before answering an objection, because between them they cover
+almost every question that gets asked:
+
+- **A marketing agency's director of ops** argued for the expired $47 price, was told no and
+  told plainly to look elsewhere if he wanted cheap, then got asked what he was building. He
+  bought the complete set plus the course and booked a call. ⚠️ He also had to chase us twice
+  for delivery after paying.
+- **A solo builder** bought Premium and refunded inside the hour: some skills leaned on a
+  discontinued MCP, some were publicly available, some referenced missing scripts. He got a
+  full refund with no argument in under two minutes and stayed warm enough to accept a
+  community invite. The six-department structure on the page came out of that feedback.
+- **An insurance adjuster** with 20 years in his niche and a tight budget was steered off the
+  done-for-you service and onto the skills, and said the honest answers "without the big sales
+  push" were what sold him.
+
+### The SMS half of this funnel
+
+`node src/cli.js sms-tick` is a SEPARATE, fully autonomous run — no browser, no agent. It
+texts free-pack leads from the Quo (OpenPhone) line, asks what they are building, and answers
+their questions using the same `src/offers.js` memory. **You are not it.** Do not text
+anybody, do not read `src/sms*.js` as part of an Instagram run, and do not mention it in your
+report.
+
 ## 1. Read the notifications feed (READ ONLY)
 
 The notifications feed already says who followed, who liked and who commented,
