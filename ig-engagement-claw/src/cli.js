@@ -52,9 +52,12 @@ if (cmd === 'next') {
   console.log(JSON.stringify(result, null, 2));
 
 } else if (cmd === 'commit') {
-  const [, , , handle, text = '', igUserId] = process.argv;
-  if (!handle) { console.error('usage: cli.js commit <handle> <text> [igUserId]'); process.exit(1); }
-  const res = await commitSend({ ledger, store: await getStore(), handle, text, igUserId: igUserId || null });
+  const [, , , handle, text = '', igUserId, source] = process.argv;
+  if (!handle) { console.error('usage: cli.js commit <handle> <text> [igUserId] [source]'); process.exit(1); }
+  // ⛔ `source` was accepted by commitSend and never passed here, so every row
+  // in the ledger recorded source:null — which made knock one unable to tell a
+  // commenter from a follower. Pass it.
+  const res = await commitSend({ ledger, store: await getStore(), handle, text, igUserId: igUserId || null, source: source || null });
   console.log(res.recorded ? `recorded: ${handle}` : `already recorded: ${handle}`);
 
 } else if (cmd === 'skip') {

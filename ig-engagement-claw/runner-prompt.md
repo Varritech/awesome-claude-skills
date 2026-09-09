@@ -8,11 +8,22 @@ and report "nothing to do". Never go looking for more people to fill a quota.
 You are driving Cristiano's already-logged-in Instagram session to open ONE conversation
 each with a handful of people who just engaged with @varritech.
 
+⛔ **Do not orient on the repo first.** No `pwd`, `ls`, `cat package.json`, or any other
+"let me see what's here" call. The run shape is fixed and fully described in this file —
+go straight to the `ToolSearch` call below, then preflight. A repo-orientation call has
+recurred multiple times as pure waste on scheduled runs; it teaches you nothing this file
+doesn't already state.
+
 ## Browser access
 
 **Use `mcp__browsermcp__*` ONLY.** Not claude-in-chrome, not CDP, not port 9222, never a
 scripted login. You are borrowing a session that is already signed in, in the browser where
 the Browser MCP extension is installed and showing **Connected**.
+
+⛔ **`mcp__browsermcp__*` tools are deferred in this session and only appear as names.**
+Calling one directly fails with `InputValidationError`. Load them all in ONE batched call
+before preflight, not one ToolSearch per tool as you reach for it:
+`ToolSearch({query:"select:mcp__browsermcp__browser_tab,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_execute_js,mcp__browsermcp__browser_screenshot,mcp__browsermcp__browser_click"})`.
 
 **Preflight — do this first, and abort the run if it fails:**
 
@@ -21,7 +32,10 @@ the Browser MCP extension is installed and showing **Connected**.
    `mcp__browsermcp__browser_tab` → `{ "action": "select", "index": <n> }`.
    Only if there is no Instagram tab at all, open one:
    `{ "action": "new", "url": "https://www.instagram.com/" }`.
-3. `mcp__browsermcp__browser_snapshot` → `{ "level": "minimal" }`
+3. `mcp__browsermcp__browser_snapshot` → `{ "level": "minimal" }` — **skip this call if the
+   `select` result from step 2 already came back with `Follow Back` buttons and bare handles**
+   (it returns an enhanced scaffold, not just a URL). That scaffold already IS the snapshot;
+   calling `browser_snapshot` again on top of it is a wasted call, not a safety check.
 
 ⛔ **An account-status page is NOT a stop condition — navigate away and carry on.**
 If the tab you just selected is sitting on `/settings/...`, `/settings/help/enforcement/`
@@ -97,9 +111,12 @@ burned 10-15 tool calls on three separate runs.
 NOT change to `/notifications/`.** Judge by the snapshot, not the URL: several
 "Follow Back" buttons plus bare handles means the Notifications panel is already
 sitting over the home feed. It is NOT a `div[role="dialog"]` either, so a
-`querySelector('div[role="dialog"]')` probe returning null proves nothing. The
-one cheap check that settles it is `browser_screenshot` — if you can read the
-"Notifications" heading, extract immediately.
+`querySelector('div[role="dialog"]')` probe returning null proves nothing.
+⛔ **Do NOT call `browser_screenshot` to confirm this.** The `select` snapshot you
+already have IS the check — if it shows `Follow Back` buttons plus bare handles,
+the panel is open, extract immediately. A screenshot call here is pure waste: it
+was suggested as "one cheap check" in an earlier version of this file and burned
+an extra tool call on well over a dozen consecutive runs before anyone removed it.
 
 Only if the current tab is NOT on `/notifications/`, has no notifications panel
 open, or its snapshot is
@@ -315,8 +332,14 @@ anything — it comes back around next run.
 ## 4. Commit — only what you saw land
 
 ```
-node src/cli.js commit "<handle>" "<the exact text sent>" "<igUserId or omit>"
+node src/cli.js commit "<handle>" "<the exact text sent>" "<igUserId or omit>" "<source>"
 ```
+
+⛔ **Pass `source`** — it is the 4th argument and it is `follower`, `liker` or `commenter`, exactly
+as `next` gave it to you in that person's batch entry. It decides what knock one says days later:
+a **commenter** gets the Claude Skills Library pitch, everyone else gets the strategy guide. This
+was silently dropped for months, so every ledger row reads `source:null` and every commenter got
+the wrong follow-up. If you genuinely do not have it, pass `""` rather than guessing.
 
 If you can read the person's numeric IG id off the page, pass it — that is what lets the sales
 claw pick the reply up with history instead of re-introducing the founder. Try:

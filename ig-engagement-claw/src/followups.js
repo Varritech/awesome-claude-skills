@@ -50,6 +50,10 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
       followUpNumber: sent.length + 1,
       opener: e.text,
       silentDays: daysBetween(e.at, now),
+      // ⛔ Load-bearing: knock one branches on this. A commenter gets the Skills
+      // Library, everyone else gets the guide. Dropping it here silently sent
+      // every commenter the wrong pitch.
+      source: e.source ?? null,
     });
   }
   // Longest-silent first: without this the same fresh names win every run and
