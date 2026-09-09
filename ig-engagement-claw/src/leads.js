@@ -11,6 +11,9 @@
 
 import { isPlausiblePhone } from './sms.js';
 
+/** The founder's first text waits a day after capture. */
+const MIN_AGE_MS = 24 * 60 * 60 * 1000;
+
 export function createLeadSource({ baseUrl, token, fetchImpl = fetch }) {
   if (!baseUrl) throw new Error('createLeadSource: baseUrl is required');
   if (!token) throw new Error('createLeadSource: token is required');
@@ -34,7 +37,18 @@ export function createLeadSource({ baseUrl, token, fetchImpl = fetch }) {
         throw new Error(`sms-queue: response carried no leads array: ${JSON.stringify(body).slice(0, 200)}`);
       }
 
-      return body.leads.filter((l) => isPlausiblePhone(l?.phone));
+      /*
+       * ⛔ Hold every lead for a full day before the founder opener goes out.
+       * `days` above is only a LOOKBACK window — without this floor the claw
+       * texts somebody who is still reading the email it is asking them about,
+       * which is exactly what makes a personal message read as automated.
+       */
+      const readyBefore = Date.now() - MIN_AGE_MS;
+      return body.leads.filter(
+        (l) =>
+          isPlausiblePhone(l?.phone) &&
+          Date.parse(l?.created_at ?? '') <= readyBefore,
+      );
     },
   };
 }

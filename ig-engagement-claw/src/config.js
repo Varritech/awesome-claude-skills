@@ -77,7 +77,15 @@ export const config = () => ({
     enabled: process.env.SMS_ENABLED === '1',
     statePath: process.env.SMS_STATE || new URL('../state/sms-contacted.json', import.meta.url).pathname,
     apiKey: process.env.QUO_API_KEY,
-    from: process.env.QUO_FROM_NUMBER || '+13658250303',
+    /*
+     * ⛔ The CONVERSATION line, deliberately not the follow-up line.
+     * +1 365 825 0303 sends the automated nurture touches (vds lib/quo-sms).
+     * +1 332 279 5265 is where Cristiano's opener goes out and where replies
+     * come back, so the sales claw owns one clean thread per lead. Sharing a
+     * number would drop answers to "what are you building?" into the broadcast
+     * thread, where nothing is listening.
+     */
+    from: process.env.QUO_FROM_NUMBER || '+13322795265',
     // Optional. Only needed if the account ever has more than one number.
     phoneNumberId: process.env.QUO_PHONE_NUMBER_ID,
     // The authenticated capture-row endpoint on varritech.com. A direct
