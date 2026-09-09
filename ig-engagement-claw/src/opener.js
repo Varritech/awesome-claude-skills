@@ -144,6 +144,25 @@ const GUIDE_PREAMBLE =
 export const FOLLOW_UP_GUIDE_TEXT = `${GUIDE_PREAMBLE} Here it is: ${GUIDE_URL}`;
 
 /**
+ * The commenter branch of knock one: the Skills Library, not the guide.
+ *
+ * FIXED COPY for the same reason the guide text is — the vault size, both
+ * prices and the URL have to survive verbatim. Numbers re-curled from the live
+ * LP 2026-09-09: 268 skills, $47 Essential / $197 Premium, both one time.
+ * ⛔ If the LP changes, change it here too; a claw quoting a retired price is
+ * exactly the defect that had the sales claw arguing "the 268 isn't a number we
+ * quote" at a prospect who had just read the page.
+ */
+export const SKILLS_LP_URL =
+  process.env.SKILLS_LP_URL || 'https://www.varritech.com/products/claude-skills-library-pro';
+
+const SKILLSMITH_PREAMBLE =
+  'Since you commented, this is the thing behind that post. The Claude Skills Library is the ' +
+  'skill set that automated my seven-figure agency, 268 of them, and it lets you replace whole ' +
+  'departments through prompting instead of hiring them. $47 to start or $197 for the entire ' +
+  'vault, one time either way.';
+
+/**
  * Knock one, with the link swapped for a reply-ask when Instagram has taken
  * link-sharing away.
  *
@@ -155,7 +174,19 @@ export const FOLLOW_UP_GUIDE_TEXT = `${GUIDE_PREAMBLE} Here it is: ${GUIDE_URL}`
  * verbatim either way ([[feedback_guide_price_anchor_is_deliberate]]); only the
  * delivery clause changes.
  */
-export function followUpGuideText({ linksBlocked = false } = {}) {
+export function followUpGuideText({ linksBlocked = false, source = null } = {}) {
+  // A COMMENTER told us what they care about in their own words, which makes
+  // them the warmest source we get and the one worth pointing at the product
+  // rather than the strategy guide. Cristiano, 2026-09-09: "if it commented it
+  // should gear towards selling them the skillssmith."
+  //
+  // ⛔ The $149.99 anchor and the Scalewright wording below are UNTOUCHED for
+  // followers and likers — queried and overridden once already. This is a new
+  // branch, not a correction of that one.
+  if (source === 'commenter') {
+    if (!linksBlocked) return `${SKILLSMITH_PREAMBLE} Here it is: ${SKILLS_LP_URL}`;
+    return `${SKILLSMITH_PREAMBLE} I can't send links from this account right now, so just reply here and I'll get it over to you.`;
+  }
   if (!linksBlocked) return FOLLOW_UP_GUIDE_TEXT;
   return `${GUIDE_PREAMBLE} I can't send links from this account right now, so just reply here and I'll get it over to you.`;
 }
@@ -184,7 +215,7 @@ export function buildFollowUpPrompt(target) {
 export async function draftFollowUp({ target, llm, linksBlocked = false }) {
   // Knock one is the fixed value drop. No model involved, no word cap applied —
   // it is already the length it needs to be to carry the anchor and the link.
-  if (target.followUpNumber === 1) return followUpGuideText({ linksBlocked });
+  if (target.followUpNumber === 1) return followUpGuideText({ linksBlocked, source: target.source });
 
   const raw = await llm({ prompt: buildFollowUpPrompt(target), target });
   // stripLinksExcept rather than stripLinks: a browser-sent DM carries a URL
