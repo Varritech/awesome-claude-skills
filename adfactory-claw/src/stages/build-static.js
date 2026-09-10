@@ -5,6 +5,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config.js";
+import { editCreative } from "../lib/higgsfield.js";
+import { adImagesByHash } from "../lib/graph.js";
 import { sh } from "../lib/sh.js";
 import { uploadPublic } from "../lib/gcs.js";
 
@@ -60,6 +62,64 @@ async function screenshot(htmlPath, outPath) {
   ]);
 }
 
+/*
+ * The proven controls this stage varies, newest winner first. Higgsfield EDITS an
+ * existing ad rather than inventing a poster: these hashes are the statics with
+ * real purchases on act_1058527832767816 (see docs/higgsfield-static-variant-prompts.md).
+ * A hash is resolved to a live URL through the adimages endpoint at run time —
+ * never a remembered URL, they expire.
+ */
+const CONTROL_HASHES = (process.env.HF_CONTROL_HASHES ||
+  "86db8cd2e9c61b798e462bc19b316ef0,acc13c3002f021aa22d26c5be1f173a0")
+  .split(",").map((h) => h.trim()).filter(Boolean);
+
+/*
+ * ⛔ Locks the whole layout and permits exactly one change. Copied verbatim from
+ * scripts/higgsfield.py, where it is the proven preamble — nano_banana_pro will
+ * happily rewrite headline copy without it.
+ */
+const LOCK =
+  "This is an existing finished advertisement. Keep it EXACTLY as it is: identical " +
+  "layout, identical composition, identical framing, identical fonts, identical " +
+  "colours, identical spacing, identical logo. Reproduce every text label, number and " +
+  "word EXACTLY as in the source, character for character, with no rewording and no " +
+  "new text anywhere. Do not crop, do not zoom, do not re-render the layout. " +
+  "Change ONE thing only: ";
+
+// One visual lever per variant — the copy levers live in stages/variants.js.
+const LEVERS = [
+  "the flat background becomes a deep near-black charcoal. KEEP all text character for character.",
+  "the background becomes a soft warm off-white and the type stays its existing colour. KEEP all text character for character.",
+  "a subtle vertical gradient replaces the flat background, darkest at the bottom. KEEP all text character for character.",
+  "the accent colour used for the highlight becomes a brighter lime. KEEP all text character for character.",
+];
+
+async function higgsfieldStatic({ dir, variant }) {
+  const hash = CONTROL_HASHES[variant % CONTROL_HASHES.length];
+  const [img] = await adImagesByHash([hash]);
+  if (!img?.url) throw new Error(`no live URL for control hash ${hash}`);
+
+  const outUrl = await editCreative(img.url, LOCK + LEVERS[variant % LEVERS.length]);
+
+  // Pull the result down so it is uploaded to our own bucket — the Higgsfield
+  // CDN URL is not something a live ad should depend on.
+  const res = await fetch(outUrl);
+  if (!res.ok) throw new Error(`higgsfield fetch ${res.status}`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+
+  /*
+   * ⛔ Name the file for what it CONTAINS. Higgsfield returns a JPEG
+   * (`..._resize.jpg`); writing those bytes to `ad.png` and uploading them as
+   * image/png hands Meta a file whose extension, Content-Type and magic bytes
+   * all disagree. Sniff the magic number instead of trusting either the URL or
+   * the previous stage's habit of always saying PNG.
+   */
+  const isPng = bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50;
+  const out = path.join(dir, isPng ? "ad.png" : "ad.jpg");
+  fs.writeFileSync(out, bytes);
+  return out;
+}
+
 export async function buildStatic({ batchId, variant, copy }) {
   const dir = path.join(config.workdir, `${batchId}-static-${variant}`);
   fs.mkdirSync(dir, { recursive: true });
@@ -68,10 +128,27 @@ export async function buildStatic({ batchId, variant, copy }) {
     subhead: copy.meta.primaryText,
     cta: copy.endCardCta,
   };
-  const htmlPath = path.join(dir, "ad.html");
-  fs.writeFileSync(htmlPath, posterHtml(poster, variant));
-  const png = path.join(dir, "ad.png");
-  await screenshot(htmlPath, png);
-  const url = await uploadPublic(png, `${config.gcs.prefix}/${batchId}/static-${variant}.png`, "image/png");
+  /*
+   * Higgsfield is the generator (standing rule: creative is never silently
+   * substituted). The HTML+Chromium poster remains ONLY as a fallback — losing a
+   * day's creative because an image API had a bad minute is worse than shipping
+   * the older-style poster, and the failure is logged loudly either way.
+   */
+  let png;
+  try {
+    png = await higgsfieldStatic({ dir, variant });
+  } catch (e) {
+    console.error("[static] higgsfield failed, falling back to HTML render:", e.message);
+    const htmlPath = path.join(dir, "ad.html");
+    fs.writeFileSync(htmlPath, posterHtml(poster, variant));
+    png = path.join(dir, "ad.png");
+    await screenshot(htmlPath, png);
+  }
+  const ext = path.extname(png) === ".jpg" ? "jpg" : "png";
+  const url = await uploadPublic(
+    png,
+    `${config.gcs.prefix}/${batchId}/static-${variant}.${ext}`,
+    ext === "jpg" ? "image/jpeg" : "image/png",
+  );
   return { kind: "static", variant, imageUrl: url, posterUrl: url, copy };
 }
