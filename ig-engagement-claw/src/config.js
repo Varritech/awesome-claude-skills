@@ -30,6 +30,15 @@ function loadDotEnv(path) {
 
 loadDotEnv(new URL('../.env', import.meta.url).pathname);
 
+/** A limit env var: unset falls back, 0/empty/"off" means no limit at all. */
+function limitOrNull(raw, fallback) {
+  if (raw === undefined || String(raw).trim() === '') return fallback;
+  const t = String(raw).trim().toLowerCase();
+  if (t === '0' || t === 'off' || t === 'none' || t === 'unlimited') return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 export const config = () => ({
   statePath: process.env.CLAW_STATE || new URL('../state/contacted.json', import.meta.url).pathname,
   seenPath: process.env.CLAW_SEEN || new URL('../state/seen-notifications.json', import.meta.url).pathname,
@@ -40,9 +49,20 @@ export const config = () => ({
   // company posts. Comma-separated in CLAW_EXCLUDE.
   exclude: (process.env.CLAW_EXCLUDE ?? 'varriale.cristiano,jess_varriale,varritech')
     .split(',').map((h) => h.trim()).filter(Boolean),
+  /*
+   * ⛔ NO DAILY CAP by default (Cristiano, 2026-09-10: "there should not be any
+   * daily window"). It hit 15/day and went silent for the rest of the day with
+   * people still to reach.
+   *
+   * `0`, empty or absent means UNLIMITED — remainingBudget() reads null as
+   * Infinity. A real number still caps, so one can be put back from env with no
+   * code change. perHour stays as the pacing valve: it is what stops a burst
+   * that looks like a bot to Instagram, and removing the DAILY ceiling does not
+   * require removing the rate.
+   */
   rate: {
-    perHour: Number(process.env.MAX_PER_HOUR ?? 4),
-    perDay: Number(process.env.MAX_PER_DAY ?? 15),
+    perHour: limitOrNull(process.env.MAX_PER_HOUR, 4),
+    perDay: limitOrNull(process.env.MAX_PER_DAY, null),
   },
   // Days of silence before each follow-up, measured from the previous message.
   // Two entries = at most two follow-ups. Empty string turns follow-ups OFF.

@@ -31,8 +31,17 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
   const cadence = cadenceDays ?? DEFAULT_CADENCE_DAYS;
   const due = [];
   for (const e of ledger.all()) {
-    // Never messaged them (existing thread, DMs closed) — nothing to follow up ON.
-    if (e.status === 'skipped') continue;
+    /*
+     * ⛔ REOPENED 2026-09-10 (Cristiano: "it should follow up with literally
+     * everyone who we've ever talked to on IG"). A `skipped` row is someone who
+     * ALREADY had a DM thread with him before this claw existed — 34 of them,
+     * and the claw had never messaged a single one. They are the closest thing
+     * we have to "everyone we've ever talked to", so they are now in scope.
+     *
+     * The one skip we keep: DMs actually shut. That is a wall, not a choice.
+     */
+    const reopen = e.status === 'skipped';
+    if (reopen && /dms?-closed|closed|blocked|restrict/i.test(String(e.reason ?? ''))) continue;
     // They answered. The sales claw owns this conversation now; barging in talks over it.
     if (e.replied) continue;
     // We messaged them, but delivery is permanently blocked. Re-knocking just reopens a dead thread.
@@ -40,10 +49,17 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
     if (!e.at) continue;
 
     const sent = e.followUps ?? [];
-    if (sent.length >= cadence.length) continue; // cadence exhausted, stop for good
+
+    /*
+     * ⛔ No retirement. This used to stop for good once the named cadence was
+     * spent, which had frozen out 36 people permanently. Past the last named
+     * step the FINAL interval repeats forever, so an exhausted thread is never
+     * knocked faster than a fresh one — it just never stops being knocked.
+     */
+    const step = sent.length < cadence.length ? cadence[sent.length] : cadence[cadence.length - 1];
 
     const lastAt = sent.length ? sent[sent.length - 1].at : e.at;
-    if (daysBetween(lastAt, now) < cadence[sent.length]) continue;
+    if (daysBetween(lastAt, now) < step) continue;
 
     due.push({
       handle: e.handle,
@@ -54,6 +70,9 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
       // Library, everyone else gets the guide. Dropping it here silently sent
       // every commenter the wrong pitch.
       source: e.source ?? null,
+      // No opener exists for a reopened thread — we never sent one. The copy
+      // must not say "following up on my message".
+      reopen,
     });
   }
   // Longest-silent first: without this the same fresh names win every run and
