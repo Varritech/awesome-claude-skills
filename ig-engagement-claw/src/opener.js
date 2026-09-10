@@ -212,7 +212,37 @@ export function buildFollowUpPrompt(target) {
   ].join(' ');
 }
 
+/**
+ * Reopening a thread with someone Cristiano has ALREADY spoken to on Instagram,
+ * sometimes a long time ago. 34 of these sat permanently frozen until
+ * 2026-09-10.
+ *
+ * ⛔ This is NOT knock one. There is no opener of ours to follow up on and no
+ * guide we sent them, so the standard follow-up prompt would assert something
+ * that never happened. And leading months of silence with a price is the wrong
+ * first move on someone who already knows him — the pitch comes after they
+ * answer, through the normal ladder.
+ */
+export function buildReopenPrompt(target) {
+  return [
+    "You are Cristiano, founder of Varritech, on Instagram.",
+    `You and @${target.handle} have spoken in this thread before, but it has gone quiet.`,
+    "Write ONE short message under 30 words that reopens it warmly.",
+    "⛔ Do NOT reference any specific past message, guide or offer — you do not remember the details and inventing one is worse than saying nothing.",
+    "⛔ No links, no pitch, no price. Do not sell anything in this message.",
+    "Ask a genuine question about what they are building or working on now.",
+    "Sound like a person picking a conversation back up, not a brand running a campaign.",
+    "Write the FINAL text, never a placeholder like [niche] or {name}.",
+  ].join(" ");
+}
+
 export async function draftFollowUp({ target, llm, linksBlocked = false }) {
+  // An old thread being reopened gets a human re-open, never the fixed pitch.
+  if (target.reopen) {
+    const raw = await llm({ prompt: buildReopenPrompt(target), target });
+    return capWords(stripEmDashes(stripLinks(String(raw ?? "").trim())), 30);
+  }
+
   // Knock one is the fixed value drop. No model involved, no word cap applied —
   // it is already the length it needs to be to carry the anchor and the link.
   if (target.followUpNumber === 1) return followUpGuideText({ linksBlocked, source: target.source });

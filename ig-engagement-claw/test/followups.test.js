@@ -15,7 +15,7 @@ describe('dueForFollowUp', () => {
   it('surfaces someone who has been silent past the first cadence step', () => {
     const led = ledgerOf({ handle: 'ana', at: ago(4), text: 'hi' });
     expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([
-      { handle: 'ana', followUpNumber: 1, opener: 'hi', silentDays: 4, source: null },
+      { handle: 'ana', followUpNumber: 1, opener: 'hi', silentDays: 4, source: null, reopen: false },
     ]);
   });
 
@@ -26,8 +26,20 @@ describe('dueForFollowUp', () => {
     expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([]);
   });
 
-  it('never follows up someone we never actually messaged', () => {
+  it('DOES reopen someone we already had a thread with', () => {
+    // ⛔ REVERSED 2026-09-10 (Cristiano: "it should follow up with literally
+    // everyone who we've ever talked to on IG"). An existing-thread contact is
+    // precisely someone he HAS talked to — 34 of them sat permanently frozen.
+    // They come back marked `reopen` so the copy can differ: there is no opener
+    // of ours to follow up on.
     const led = ledgerOf({ handle: 'ana', at: ago(30), status: 'skipped', reason: 'existing-thread' });
+    const due = dueForFollowUp({ ledger: led, now: NOW });
+    expect(due).toHaveLength(1);
+    expect(due[0].reopen).toBe(true);
+  });
+
+  it('still refuses someone whose DMs are actually shut', () => {
+    const led = ledgerOf({ handle: 'ana', at: ago(30), status: 'skipped', reason: 'dms-closed' });
     expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([]);
   });
 
@@ -57,17 +69,22 @@ describe('dueForFollowUp', () => {
       followUps: [{ at: ago(9), text: 'still around?' }],
     });
     expect(dueForFollowUp({ ledger: older, now: NOW })).toEqual([
-      { handle: 'ana', followUpNumber: 2, opener: 'hi', silentDays: 12, source: null },
+      { handle: 'ana', followUpNumber: 2, opener: 'hi', silentDays: 12, source: null, reopen: false },
     ]);
   });
 
-  it('stops for good after the cadence runs out, however long they stay silent', () => {
+  it('never stops for good — the last interval just repeats', () => {
+    // ⛔ REVERSED 2026-09-10 (Cristiano: "follow up with literally everyone").
+    // This used to retire a thread once the named cadence was spent, which had
+    // frozen out 36 people permanently. Now the FINAL interval repeats, so they
+    // keep getting knocked without ever being knocked faster than a fresh lead.
     const led = ledgerOf({
-      handle: 'ana', at: ago(400), text: 'hi',
-      followUps: [{ at: ago(397), text: 'a' }, { at: ago(390), text: 'b' }],
+      handle: 'ana', at: ago(60), text: 'hi',
+      followUps: [{ at: ago(50) }, { at: ago(40) }],
     });
-    expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([]);
-    expect(DEFAULT_CADENCE_DAYS).toHaveLength(2);
+    const due = dueForFollowUp({ ledger: led, now: NOW });
+    expect(due).toHaveLength(1);
+    expect(due[0].followUpNumber).toBe(3);
   });
 
   it('puts the longest-silent person first, so nobody rots at the back of the queue', () => {

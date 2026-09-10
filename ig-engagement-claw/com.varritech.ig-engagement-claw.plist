@@ -23,7 +23,7 @@
     <key>KILL_SWITCH</key><string>0</string>
     <key>RUN_CAP</key><string>2</string>
     <key>MAX_PER_HOUR</key><string>4</string>
-    <key>MAX_PER_DAY</key><string>15</string>
+    <key>MAX_PER_DAY</key><string>0</string>
     <key>CLAW_TZ</key><string>America/New_York</string>
     <key>START_HOUR</key><string>0</string>
     <key>END_HOUR</key><string>24</string>
