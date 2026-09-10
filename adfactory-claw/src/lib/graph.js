@@ -169,3 +169,19 @@ export async function setAdStatus(adId, status) {
 export async function deleteObject(id) {
   return graph("DELETE", `/${id}`);
 }
+
+/**
+ * Resolve ad-image hashes to live URLs.
+ *
+ * ⛔ Always resolve at run time. The URLs Meta returns are signed and expire, so a
+ * hash is the only durable handle for a creative — never cache the URL.
+ */
+export async function adImagesByHash(hashes) {
+  const data = await graph("GET", `/${config.meta.accountId}/adimages`, {
+    params: {
+      hashes: JSON.stringify(hashes),
+      fields: JSON.stringify(["hash", "url", "width", "height"]),
+    },
+  });
+  return data.data || [];
+}
