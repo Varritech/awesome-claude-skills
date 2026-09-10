@@ -2,6 +2,7 @@
 // fixed test campaign, builds a creative per ad (video or image), and launches
 // PAUSED ads (the gate flips them ACTIVE on approval). Honors the $50/day cap.
 import { config } from "../config.js";
+import { graph } from "./graph.js";
 
 const BASE = "https://backend.composio.dev/api/v3";
 
@@ -19,36 +20,52 @@ async function execTool(slug, args) {
   return json.data ?? json;
 }
 
-// Daily test adset: Purchase-optimized (never LINK_CLICKS — house rule), paused.
+// Daily test adset: Purchase-optimized (never LINK_CLICKS — house rule).
+//
+// ⛔ Created via RAW GRAPH, not Composio's METAADS_CREATE_AD_SET.
+//
+// That tool failed every run with `(#100) Object with ID '<campaign_id>' does not
+// exist, cannot be loaded due to missing permissions, or does not support this
+// operation` (subcode 33), and the old comment here read that as a read-limited
+// Meta role. It is not a permissions problem: an ad set is created at
+// `/act_<account>/adsets` with `campaign_id` in the BODY, and posting to
+// `/<campaign_id>/adsets` returns exactly that error. Confirmed by hand against
+// this same account on 2026-09-10 — the identical call succeeded the moment the
+// endpoint changed. Every other write in graph.js (createAd, createImageCreative,
+// uploadImageBytes) already uses this shape and has always worked.
 export async function createDailyAdset(dateStr) {
   if (!config.meta.testCampaignId) throw new Error("META_TEST_CAMPAIGN_ID not set");
+
+  // Four ads share one small budget (Cristiano, 2026-09-10). Cap defensively so a
+  // bad env value cannot quietly spend more than the test is meant to.
   const capped = Math.min(config.meta.dailyBudgetCapUsd, 50);
-  // Composio's CREATE_AD_SET takes a FLATTENED targeting (locations[] +
-  // location_type), not Meta's raw geo_locations. bid_amount is only required for
-  // bid-cap strategies, so use LOWEST_COST_WITHOUT_CAP (auto-bid) to omit it.
-  const data = await execTool("METAADS_CREATE_AD_SET", {
-    account_id: config.meta.accountId,
-    campaign_id: config.meta.testCampaignId,
-    name: `AdFactory ${dateStr} TEST`,
-    daily_budget: Math.round(capped * 100), // cents
-    billing_event: "IMPRESSIONS",
-    optimization_goal: "OFFSITE_CONVERSIONS",
-    // Composio's validator requires bid_amount; Meta forbids it under WITHOUT_CAP.
-    // So use WITH_BID_CAP + a deliberately HIGH cap (cents) — high enough not to
-    // throttle a small $50/day test, while satisfying both validators.
-    bid_strategy: "LOWEST_COST_WITH_BID_CAP",
-    bid_amount: 5000,
-    promoted_object: { pixel_id: config.meta.pixelId, custom_event_type: "PURCHASE" },
-    status: "PAUSED",
-    targeting: {
-      locations: ["US"],
-      location_type: "countries",
-      age_min: 22,
-      age_max: 65,
-      targeting_automation: { advantage_audience: 0 },
+
+  const data = await graph("POST", `/${config.meta.accountId}/adsets`, {
+    body: {
+      name: `AdFactory ${dateStr} TEST`,
+      campaign_id: config.meta.testCampaignId,
+      daily_budget: Math.round(capped * 100), // cents
+      billing_event: "IMPRESSIONS",
+      optimization_goal: "OFFSITE_CONVERSIONS",
+      // Raw Graph takes auto-bid without a bid_amount. The old WITH_BID_CAP +
+      // bid_amount:5000 pair existed only to satisfy Composio's validator, which
+      // demanded a field Meta itself forbids under WITHOUT_CAP.
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+      promoted_object: JSON.stringify({
+        pixel_id: config.meta.pixelId,
+        custom_event_type: "PURCHASE",
+      }),
+      status: "PAUSED",
+      // Meta's own targeting shape, not Composio's flattened locations[] form.
+      targeting: JSON.stringify({
+        geo_locations: { countries: ["US"] },
+        age_min: 22,
+        age_max: 65,
+        targeting_automation: { advantage_audience: 0 },
+      }),
     },
   });
-  return data.id || data.ad_set_id || data.adset_id;
+  return data.id;
 }
 
 // Video creative. video_id must already be uploaded to the ad account.
