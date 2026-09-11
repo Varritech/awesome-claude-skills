@@ -12,8 +12,10 @@
  *
  * ⛔ RE-VERIFY AGAINST THE LIVE PAGE BEFORE TRUSTING THIS FILE.
  *   curl -s https://www.varritech.com/products/claude-skills-library-pro
- * Numbers below were read off the live LP on 2026-09-09. This page has
- * repriced three times in six weeks. A number in here is a snapshot, not a
+ * Numbers below follow the 2026-09-11 reprice (Cristiano: the $47 tier is
+ * gone; Essential $299 for the whole vault, Premium $999 with five custom
+ * skills), shipped in vds-marketing-core PR #494. This page has repriced four
+ * times in seven weeks. A number in here is a snapshot, not a
  * standing fact, and `quotesOnlyKnownPrices` below is only as honest as the
  * table it reads.
  */
@@ -49,26 +51,36 @@ export const OFFERS = [
     id: 'skills-essential',
     kind: 'product',
     name: 'Claude Skills Library, Essential',
-    price: '$47',
-    summary: 'A curated set of production skills, one time, no subscription and no renewal.',
-    includes: ['Ready-to-run ZIP', 'Free lifetime updates to the skills in it'],
+    price: '$299',
+    summary: 'Every skill in the vault, all 268, one time, no subscription and no renewal.',
+    includes: [
+      'All 268 skills across six departments: growth and outbound 102, dev/infra/QA 45, video and ad production 38, internal ops 35, AI infra and memory 25, product and strategy docs 23',
+      'Ready-to-run ZIP, free updates to every skill',
+      'Priority support from Varritech engineers',
+      'One 30-minute install session with the founder',
+    ],
     // ⛔ No autonomous agents. Stripped off six surfaces of the LP by PR #483.
-    excludes: ['Autonomous AI agents', 'The video course', 'Onboarding with the team'],
+    excludes: [
+      'Autonomous AI agents',
+      'The five custom skills',
+      'The video course',
+      'Onboarding and weekly calls with the team',
+    ],
   },
   {
     id: 'skills-premium',
     kind: 'product',
     name: 'Claude Skills Library, Premium',
-    price: '$197',
+    price: '$999',
     summary:
-      'The ENTIRE vault, all 268 skills, one time. This is the one Cristiano recommends by default.',
+      'Everything in Essential, all 268 skills, plus five custom skills our team builds for their stack. This is the one Cristiano recommends by default.',
     includes: [
-      'All 268 skills across six departments: growth and outbound 102, dev/infra/QA 45, video and ad production 38, internal ops 35, AI infra and memory 25, product and strategy docs 23',
+      'Five custom skills our team builds for their stack',
+      'Every skill in Essential, all 268',
       'The Ship-With-Claude video course',
       'Onboarding with the team, a guided install with a Varritech engineer',
-      'Weekly office hours',
-      'A window into the Scalewright Circle',
-      'Bonus: one 30-minute founder install session',
+      'Weekly calls with the team for as long as they are in',
+      'A strategy call, and a window into the Scalewright Circle',
     ],
     excludes: ['Autonomous AI agents, which are the AI Employee Pack add-on'],
   },
@@ -78,7 +90,7 @@ export const OFFERS = [
     name: 'AI Employee Pack',
     price: '$299',
     summary:
-      'The autonomous agents. A separate add-on on top of a Library purchase, NOT part of the $47 or the $197.',
+      'The autonomous agents. A separate add-on on top of a Library purchase, NOT part of Essential or Premium.',
     includes: ['Reached by an ?addon= deep link or the upsell email, never a checkout bump'],
   },
   {
@@ -117,9 +129,9 @@ export const PAST_SALES = [
   {
     id: 'black-stag-digital',
     who: 'Director of operations at a marketing agency (paid ads, email, SEO, web dev, GHL automations, brand kits) with overseas staff',
-    channel: 'WhatsApp, off a $47 checkout that had already rolled to fast-movers pricing',
+    channel: 'WhatsApp, off a checkout whose launch price had already expired',
     asked: [
-      'Can I still get the $47 price I was about to pay',
+      'Can I still get the lower price I was about to pay',
       'Do you have the list of skills in the pack',
       'Is the 200+ pack worth it, what is your opinion before I buy',
     ],
@@ -177,7 +189,7 @@ How you write:
 
 How you sell:
 - Qualify before you recommend. Your actual line is "tell me what you're building and I'll give you my honest opinion on what you should do". Ask it early, ask it once.
-- Once you know what they are building, recommend the premium set by default, because the whole point is that they get all of them.
+- Once you know what they are building, recommend Premium by default, because it is the only tier where the team builds skills for their exact stack. Essential already gets them every skill in the vault.
 - Be honest to the point of turning money away. You have said "I'd recommend to look somewhere else if you're looking for something cheap" and it closed the sale.
 - Use real proof, not adjectives: you automated about 90 percent of your own agency with these, they cover proposals, client comms, drafting emails, project management. Ten years in the business. Enterprise clients.
 - No discounts. Ever, for anyone, including long term clients. Say it plainly and move on.
@@ -188,7 +200,7 @@ How you sell:
 What you never do:
 - Never invent a price, a skill name, a guarantee or a catalogue number that is not in the offer memory.
 - Never promise a discount code, a special link or a bonus that does not exist.
-- Never claim autonomous agents are included in the $47 or the $197.
+- Never claim autonomous agents are included in Essential or Premium.
 - Never argue with a refund request. Give it, ask what would have made it worth it, and stay warm.`;
 
 /**
@@ -197,8 +209,8 @@ What you never do:
  */
 export const OBJECTIONS = [
   {
-    q: 'The price changed on me / can I have the $47 I saw',
-    a: 'That is the fast movers window. It expires. We do not do discounts, for anyone, including long term clients.',
+    q: 'The price changed on me / can I have the lower price I saw',
+    a: 'The old entry tier is retired, it does not come back. Essential is $299 now and it is every skill in the vault. We do not do discounts, for anyone, including long term clients.',
   },
   {
     q: 'Can I get a discount',
@@ -248,16 +260,33 @@ export function quotesOnlyKnownPrices(text) {
 }
 
 /**
- * Catch the one wrong price a numeric allowlist can never catch.
+ * Catch the wrong price a numeric allowlist can never catch: a real price
+ * attached to the wrong tier.
  *
- * $299 is a real price we charge, so `quotesOnlyKnownPrices` passes it. But
- * $299 belongs to the AI Employee Pack add-on, and attaching it to the library
- * or the vault is the retired-tier claim that PR #483 stripped off six
- * surfaces of the landing page. The vault is $197. Full stop.
+ * $299 and $999 are both live, so `quotesOnlyKnownPrices` passes "the vault is
+ * $999" and "Premium is $299". Both are wrong: the vault is Essential at $299
+ * (so is the AI Employee Pack), and $999 is Premium, the vault plus five
+ * custom skills. Until 2026-09-11 this guard rejected "the library is $299",
+ * which is now the correct price.
+ *
+ * Judged per clause, so "$299 for the vault or $999 with five custom skills"
+ * is read as two correct pairs. A clause is flagged only when it names tier
+ * words and none of them belongs to the one price it quotes.
  */
+const TIER_WORDS = [
+  { re: /\b(premium|custom)\b/i, price: '999' },
+  { re: /\b(essential|library|vault)\b/i, price: '299' },
+  { re: /\b(pack|agents?|employee)\b/i, price: '299' },
+];
+
 export function misattributesVaultPrice(text) {
-  const t = String(text ?? '');
-  return /\b(library|vault)\b[^.!?]{0,40}\$\s?299/i.test(t) || /\$\s?299[^.!?]{0,40}\b(library|vault)\b/i.test(t);
+  const clauses = String(text ?? '').split(/[.!?;,]|\s(?:or|and|but)\s/i);
+  return clauses.some((clause) => {
+    const prices = (clause.match(/\$\s?[0-9][0-9,]*/g) ?? []).map((p) => p.replace(/[$,\s]/g, ''));
+    if (prices.length !== 1) return false;
+    const tiers = TIER_WORDS.filter((w) => w.re.test(clause)).map((w) => w.price);
+    return tiers.length > 0 && !tiers.includes(prices[0]);
+  });
 }
 
 /**
@@ -290,7 +319,7 @@ GUARANTEES
 ${GUARANTEES.map((g) => `- ${g}`).join('\n')}
 
 PRICING RULES
-- We do not do discounts. Not for anyone, not for long term clients. There is a Fast Movers window that raises the price rather than lowering it, and when it has passed it has passed.
+- We do not do discounts. Not for anyone, not for long term clients. Both tiers are one flat price, and the old entry tier is retired.
 - The only prices you may ever say are: ${KNOWN_PRICES.join(', ')}. Scalewright is a revenue share and is never priced over text.
 
 WHAT WE HAVE SOLD BEFORE
