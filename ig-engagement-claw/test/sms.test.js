@@ -177,8 +177,8 @@ describe('draftReply — the model writes it, the guards decide if it ships', ()
     expect(await draftReply({ thread, lead: lead(), llm })).toBe('');
   });
 
-  it('drops a draft that attaches the add-on price to the vault', async () => {
-    const llm = async () => 'The full library is $299 one time.';
+  it('drops a draft that attaches the Premium price to the plain vault', async () => {
+    const llm = async () => 'The full library is $999 one time.';
     expect(await draftReply({ thread, lead: lead(), llm })).toBe('');
   });
 
@@ -219,8 +219,8 @@ describe('buildReplyPrompt — the model can only see what we know', () => {
 
   it('carries the live catalogue and prices', () => {
     expect(prompt).toMatch(/268/);
-    expect(prompt).toContain('$47');
-    expect(prompt).toContain('$197');
+    expect(prompt).toContain('$299');
+    expect(prompt).toContain('$999');
   });
 
   it('carries what we have sold before, so the answers come from real deals', () => {

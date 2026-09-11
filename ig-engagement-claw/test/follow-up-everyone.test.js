@@ -108,7 +108,7 @@ describe('reopening an old thread reads like a person, not a pitch', () => {
       target: { handle: 'olddm', followUpNumber: 1, reopen: true, silentDays: 200 },
       llm: async () => 'Hey, been a while. What are you building these days?',
     });
-    expect(out).not.toMatch(/\$149\.99|268|\$47|\$197/);
+    expect(out).not.toMatch(/\$149\.99|268|\$299|\$999/);
     expect(out).toBeTruthy();
   });
 

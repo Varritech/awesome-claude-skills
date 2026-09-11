@@ -147,8 +147,9 @@ export const FOLLOW_UP_GUIDE_TEXT = `${GUIDE_PREAMBLE} Here it is: ${GUIDE_URL}`
  * The commenter branch of knock one: the Skills Library, not the guide.
  *
  * FIXED COPY for the same reason the guide text is — the vault size, both
- * prices and the URL have to survive verbatim. Numbers re-curled from the live
- * LP 2026-09-09: 268 skills, $47 Essential / $197 Premium, both one time.
+ * prices and the URL have to survive verbatim. Numbers from the 2026-09-11
+ * reprice (vds-marketing-core PR #494): 268 skills, Essential $299 for the
+ * whole vault / Premium $999 with five custom skills, both one time.
  * ⛔ If the LP changes, change it here too; a claw quoting a retired price is
  * exactly the defect that had the sales claw arguing "the 268 isn't a number we
  * quote" at a prospect who had just read the page.
@@ -159,8 +160,8 @@ export const SKILLS_LP_URL =
 const SKILLSMITH_PREAMBLE =
   'Since you commented, this is the thing behind that post. The Claude Skills Library is the ' +
   'skill set that automated my seven-figure agency, 268 of them, and it lets you replace whole ' +
-  'departments through prompting instead of hiring them. $47 to start or $197 for the entire ' +
-  'vault, one time either way.';
+  'departments through prompting instead of hiring them. $299 for the entire vault, or $999 ' +
+  'with five custom skills our team builds for you, one time either way.';
 
 /**
  * Knock one, with the link swapped for a reply-ask when Instagram has taken

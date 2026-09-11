@@ -101,26 +101,26 @@ prints the whole thing. Never quote a number from this file, from a screenshot, 
 memory — read it from there. It carries a re-verify instruction against the live landing
 page, because this page has repriced three times in six weeks.
 
-The short version, read off the live LP **2026-09-09**:
+The short version, after the **2026-09-11** reprice (vds-marketing-core PR #494):
 
 | | |
 |---|---|
 | Free 5-skill starter pack | `grand-slam-offer`, `static-ads-creator`, `meta-ads-account-architecture`, `inert-funnel-audit`, `email-deliverability-audit` |
-| Essential | **$47** one time, curated set, no course, no onboarding |
-| Premium | **$197** one time, the ENTIRE vault, **268 skills**, six departments, plus the Ship-With-Claude course, onboarding with the team, weekly office hours |
-| AI Employee Pack | **$299**, a SEPARATE add-on. ⛔ Autonomous agents are NOT in the $47 or the $197 |
+| Essential | **$299** one time, the ENTIRE vault, **268 skills**, six departments. No course, no onboarding, no custom skills |
+| Premium | **$999** one time, everything in Essential plus **five custom skills our team builds for their stack**, the Ship-With-Claude course, onboarding with the team, weekly calls |
+| AI Employee Pack | **$299**, a SEPARATE add-on. ⛔ Autonomous agents are NOT in Essential or Premium |
 | Scalewright | Revenue share, nothing upfront, "free until you are". Never priced over text, always a call |
 
 Three guarantees, and they are the close: **72-Hour Takeover**, **First-Hire** (ten hours off
 your plate in 30 days), and a **48-hour fix-or-refund**. Plus pay-once and a 30-second
 self-serve refund.
 
-⛔ **No discounts. For anyone, including long term clients.** The Fast Movers window moves the
-price UP when it lapses; it is not a coupon. A prospect asking for the price they saw earlier
-gets "that is the fast movers pricing" and an honest no.
+⛔ **No discounts. For anyone, including long term clients.** Both tiers are one flat price
+since 2026-09-11 and the old $47 entry tier is retired. A prospect asking for the price they saw
+earlier gets "that tier is retired, Essential is $299 for the whole vault" and an honest no.
 
 ⛔ **Retired numbers that are still all over older assets and WILL be wrong:** 170 / 213 / 191
-skills, $97, $299-as-the-library, $999, $149.99, $15k. If a draft contains one, it is stale.
+skills, $47, $97, $197, $297, $149.99, $15k. If a draft contains one, it is stale.
 
 ### What we have actually sold
 

@@ -19,8 +19,10 @@ describe('knock one, for a commenter, sells the Skills Library', () => {
   it('carries the live Skillsmith offer, not the $149.99 guide', () => {
     const t = followUpGuideText({ source: 'commenter' });
     expect(t).toMatch(/268/);
-    expect(t).toMatch(/\$47/);
-    expect(t).toMatch(/\$197/);
+    expect(t).toMatch(/\$299/);
+    expect(t).toMatch(/\$999/);
+    expect(t).toMatch(/five custom skills/i);
+    expect(t).not.toMatch(/\$47|\$197/);
     expect(t).toMatch(/one time|one-time/i);
     expect(t).not.toMatch(/\$149\.99/);
   });

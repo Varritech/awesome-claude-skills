@@ -30,7 +30,7 @@ describe('runner-prompt.md offer memory', () => {
     // Retired figures are named in the section on purpose, as a do-not-use
     // list. They are the only ones allowed besides the live prices.
     // '15' is what the regex sees in "$15k".
-    const retired = new Set(['97', '299', '999', '149.99', '15']);
+    const retired = new Set(['47', '97', '197', '297', '149.99', '15']);
     const live = new Set(KNOWN_PRICES.map((p) => p.replace(/[$,]/g, '')));
 
     for (const price of live) expect(section).toContain(`$${price}`);
@@ -56,7 +56,7 @@ describe('runner-prompt.md offer memory', () => {
   });
 
   it('names the retired numbers so a stale draft is recognisable', () => {
-    for (const dead of ['170', '$97', '$999']) {
+    for (const dead of ['170', '$47', '$97', '$197']) {
       expect(prompt).toContain(dead);
     }
   });
