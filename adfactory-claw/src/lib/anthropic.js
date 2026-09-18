@@ -2,7 +2,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
 
-const client = new Anthropic({ apiKey: config.anthropic.apiKey });
+// Identity-linked keys 400 on every call unless the workspace header rides along;
+// workspace-scoped keys must NOT send it, hence the conditional spread.
+const WS = process.env.ANTHROPIC_WORKSPACE_ID;
+const client = new Anthropic({
+  apiKey: config.anthropic.apiKey,
+  ...(WS ? { defaultHeaders: { "anthropic-workspace-id": WS } } : {}),
+});
 
 export async function ask(prompt, { system, maxTokens = 2000 } = {}) {
   const r = await client.messages.create({
