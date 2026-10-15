@@ -12,7 +12,7 @@
   <key>EnvironmentVariables</key>
   <dict>
     <!-- 1 = every run is inert. Ships ON (inert) until Cristiano says go. -->
-    <key>KILL_SWITCH</key><string>1</string>
+    <key>KILL_SWITCH</key><string>0</string>
     <key>MAX_MESSAGES_PER_HOUR</key><string>6</string>
     <key>LI_MCP_URL</key><string>http://127.0.0.1:3005/mcp</string>
     <key>LI_CDP_PORT</key><string>9335</string>
