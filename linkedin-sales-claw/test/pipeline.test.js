@@ -51,6 +51,30 @@ describe('inviteRound', () => {
     expect(ledger.has('flaky')).toBe(false);
   });
 
+  it('sends each invite with the personal note and records whether the note made it', async () => {
+    const ledger = ledgerAt();
+    const browser = fakeBrowser({
+      searchPage: vi.fn(async () => [
+        { slug: 'dana', name: 'Dana Whitfield', headline: 'Owner, Whitfield HVAC', canConnect: true },
+        { slug: 'raj', name: 'Raj Shah', headline: 'Founder, Shah Logistics', canConnect: true },
+      ]),
+      sendInvite: vi.fn(async (slug) => ({ ok: true, noted: slug === 'dana' })),
+    });
+    await inviteRound({ ledger, browser, now, searches: ['u'] });
+    expect(browser.sendInvite.mock.calls[0][1].note).toMatch(/^Hi Dana, I run Varritech/);
+    expect(browser.sendInvite.mock.calls[1][1].note).toMatch(/^Hi Raj,/);
+    expect(ledger.get('dana').inviteNote).toMatch(/^Hi Dana/);
+    expect(ledger.get('raj').inviteNote).toBe(null);
+  });
+
+  it('honours a daily cap override', async () => {
+    const ledger = ledgerAt();
+    const rows = Array.from({ length: 30 }, (_, i) => ({ slug: `p${i}`, name: `P ${i}`, headline: 'Owner, P Co', canConnect: true }));
+    const browser = fakeBrowser({ searchPage: vi.fn(async (_s, page) => (page === 1 ? rows : [])) });
+    const r = await inviteRound({ ledger, browser, now, searches: ['u'], dailyCap: 20 });
+    expect(r.invited).toHaveLength(20);
+  });
+
   it('stops at the first browser error instead of hammering LinkedIn', async () => {
     const ledger = ledgerAt();
     const browser = fakeBrowser({

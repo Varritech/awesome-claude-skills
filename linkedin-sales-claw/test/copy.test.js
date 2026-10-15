@@ -35,3 +35,19 @@ describe('followUpFor', () => {
     expect(followUpFor({ name: 'Dana', number: 3 })).toBe(null);
   });
 });
+
+import { inviteNoteFor, INVITE_NOTE_MAX } from '../src/copy.js';
+
+describe('inviteNoteFor', () => {
+  it('fits LinkedIn\'s 200-char free note limit even for a long first name, and carries the offer', () => {
+    const long = inviteNoteFor({ name: 'Maximiliana-Josephine Whitfield-Brown' });
+    expect(INVITE_NOTE_MAX).toBe(200);
+    expect(long.length).toBeLessThanOrEqual(200);
+    const note = inviteNoteFor({ name: 'Dana Whitfield' });
+    expect(note.startsWith('Hi Dana,')).toBe(true);
+    expect(note).toMatch(/done-for-you AI agents/);
+    expect(note).toMatch(/80%/);
+    expect(note).toMatch(/free/);
+    expect(note).not.toMatch(/https?:\/\/|[—–]/);
+  });
+});

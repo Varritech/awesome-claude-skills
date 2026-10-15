@@ -13,6 +13,9 @@
   <dict>
     <!-- 1 = every run is inert. Ships ON (inert) until Cristiano says go. -->
     <key>KILL_SWITCH</key><string>0</string>
+    <!-- Flat 20/day (Cristiano 2026-10-15 "keep going"). LinkedIn's weekly
+         invite limit stops the round cleanly if hit. -->
+    <key>LI_DAILY_INVITES</key><string>20</string>
     <key>MAX_MESSAGES_PER_HOUR</key><string>6</string>
     <key>LI_MCP_URL</key><string>http://127.0.0.1:3005/mcp</string>
     <key>LI_CDP_PORT</key><string>9335</string>

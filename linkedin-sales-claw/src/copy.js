@@ -49,3 +49,13 @@ export function followUpFor({ name, number }) {
   }
   return null;
 }
+
+// LinkedIn caps a connection note at 200 characters on a free account (300 on
+// Premium). Written to fit 200 so it never gets cut off mid-sentence.
+export const INVITE_NOTE_MAX = 200;
+
+export function inviteNoteFor({ name }) {
+  const body = 'I run Varritech. We build done-for-you AI agents that take over up to 80% of a company\'s operations. First build is free for qualified owners, you only pay if it works. Open to connect?';
+  const full = `${hi(name)} ${body}`;
+  return full.length <= INVITE_NOTE_MAX ? full : `Hi there, ${body}`;
+}

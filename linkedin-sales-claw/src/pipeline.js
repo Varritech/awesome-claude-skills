@@ -10,7 +10,7 @@
 
 import { matchesIcp } from './prospects.js';
 import { connectBudget } from './budget.js';
-import { openerFor, followUpFor } from './copy.js';
+import { openerFor, followUpFor, inviteNoteFor } from './copy.js';
 import { draftReply } from './sales.js';
 
 const HOUR = 3600_000;
@@ -24,8 +24,8 @@ function messageBudget(ledger, rate, now) {
 
 const isoNow = (now) => new Date(now).toISOString();
 
-export async function inviteRound({ ledger, browser, now = new Date(), searches, exclude = [], maxPages = 3 }) {
-  const budget = connectBudget({ ledger, now });
+export async function inviteRound({ ledger, browser, now = new Date(), searches, exclude = [], maxPages = 3, dailyCap = null }) {
+  const budget = connectBudget({ ledger, now, dailyCap });
   const out = { budget, invited: [], error: null };
   if (budget <= 0 || !searches?.length) return out;
   const skip = new Set(exclude.map((s) => s.toLowerCase()));
@@ -39,13 +39,22 @@ export async function inviteRound({ ledger, browser, now = new Date(), searches,
       for (const r of fresh) {
         if (out.invited.length >= budget) break;
         tried.add(r.slug);
+        // The note rides with the request while LinkedIn's monthly note
+        // allowance lasts; past it the request goes plain and the opener on
+        // accept carries the message instead.
+        const note = inviteNoteFor({ name: r.name });
+        let res;
         try {
-          if (!(await browser.sendInvite(r.slug))) continue;
+          res = await browser.sendInvite(r.slug, { note });
         } catch (err) {
           out.error = String(err?.message ?? err);
           return out; // a limit/checkpoint: stop the round, never retry in a loop
         }
+        const ok = res === true || res?.ok === true;
+        if (!ok) continue;
+        const noted = res === true ? false : !!res.noted;
         ledger.recordInvite(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, search });
+        ledger.setStage(r.slug, { inviteNote: noted ? note : null });
         out.invited.push(r.slug);
       }
     }

@@ -26,6 +26,8 @@ export const config = () => ({
   killSwitch: process.env.KILL_SWITCH === '1',
   searches: list(process.env.LI_SEARCHES, DEFAULT_SEARCHES),
   exclude: list(process.env.LI_EXCLUDE, ''),
+  // Flat daily invite cap; unset = the 5/10/18/20 weekly ramp in budget.js.
+  dailyInvites: process.env.LI_DAILY_INVITES ? Number(process.env.LI_DAILY_INVITES) : null,
   // Messages WE send per rolling hour (openers + follow-ups + replies together).
   rate: { perHour: Number(process.env.MAX_MESSAGES_PER_HOUR ?? 6) },
   mcpUrl: process.env.LI_MCP_URL || 'http://127.0.0.1:3005/mcp',

@@ -15,7 +15,9 @@ export function dailyConnectCap({ ledger, now = new Date(), ramp = DEFAULT_RAMP 
   return ramp[Math.min(week, ramp.length - 1)];
 }
 
-export function connectBudget({ ledger, now = new Date(), ramp = DEFAULT_RAMP }) {
-  const cap = dailyConnectCap({ ledger, now, ramp });
+// `dailyCap` overrides the ramp (LI_DAILY_INVITES). Cristiano, 2026-10-15:
+// "you got to keep going" after the claw stopped at 5.
+export function connectBudget({ ledger, now = new Date(), ramp = DEFAULT_RAMP, dailyCap = null }) {
+  const cap = dailyCap ?? dailyConnectCap({ ledger, now, ramp });
   return Math.max(0, cap - ledger.invitesSince(DAY, now));
 }

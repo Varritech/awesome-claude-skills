@@ -38,7 +38,7 @@ function dryWrap(browser) {
   return {
     ...browser,
     would,
-    sendInvite: async (slug) => { would.push({ invite: slug }); return true; },
+    sendInvite: async (slug, { note } = {}) => { would.push({ invite: slug, note }); return { ok: true, noted: true }; },
     sendMessage: async ({ slug, text }) => { would.push({ message: slug, text }); return true; },
   };
 }
@@ -48,13 +48,13 @@ async function run() {
   const now = new Date();
   let browser = createLinkedInBrowser({ mcpUrl: cfg.mcpUrl, cdpPort: cfg.cdpPort, me: cfg.me });
   if (dry) browser = dryWrap(browser);
-  const report = { at: now.toISOString(), dry, connectBudget: connectBudget({ ledger, now }), dailyCap: dailyConnectCap({ ledger, now }) };
+  const report = { at: now.toISOString(), dry, connectBudget: connectBudget({ ledger, now, dailyCap: cfg.dailyInvites }), dailyCap: cfg.dailyInvites ?? dailyConnectCap({ ledger, now }) };
   report.preflight = await browser.preflight();
   // Replies first: a person mid-conversation outranks everything else.
   report.replies = await replyRound({ ledger, browser, llm: makeLlm(), now, rate: cfg.rate });
   report.followUps = await followUpRound({ ledger, browser, now, rate: cfg.rate });
   report.openers = await acceptRound({ ledger, browser, now, rate: cfg.rate });
-  report.invites = await inviteRound({ ledger, browser, now, searches: cfg.searches, exclude: cfg.exclude });
+  report.invites = await inviteRound({ ledger, browser, now, searches: cfg.searches, exclude: cfg.exclude, dailyCap: cfg.dailyInvites });
   if (dry) report.wouldSend = browser.would;
   mkdirSync(dirname(cfg.reportPath), { recursive: true });
   writeFileSync(cfg.reportPath, JSON.stringify(report, null, 2));

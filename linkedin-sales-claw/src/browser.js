@@ -57,19 +57,62 @@ export function createLinkedInBrowser({ mcpUrl = 'http://127.0.0.1:3005/mcp', cd
     return parseSearchResults(await html('main'));
   }
 
-  async function sendInvite(slug) {
+  // Once LinkedIn says the month's personal notes are used up, stop asking.
+  let notesLeft = null;
+  const NOTES_RE = /(\d+) personalized invitations? remaining/i;
+
+  /** Focus a field through DevTools, type like a user, read the value back. */
+  async function typeInto(selector, text, read = 'value') {
+    return withCdp(async (c) => {
+      const ok = await c.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; el.focus(); if ('value' in el && el.tagName !== 'DIV') { el.select(); } else { document.execCommand('selectAll'); } document.execCommand('delete'); return document.activeElement === el; })()`);
+      if (!ok) return false;
+      await c.send('Input.insertText', { text });
+      const got = await c.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); return el ? (${JSON.stringify(read)} === 'value' ? el.value : el.innerText) : null; })()`);
+      return norm(got) === norm(text);
+    }, { port: cdpPort });
+  }
+
+  async function openInvite(slug) {
     await go(`https://www.linkedin.com/preload/search-custom-invite/?vanityName=${encodeURIComponent(slug)}`, 3500);
     const snap = await snapshotText();
     if (LIMIT_RE.test(snap)) throw new Error(`invite limit hit: ${slug}`);
-    const ref = refFor(snap, 'Send without a note');
-    if (!ref) return false; // no dialog: already pending/connected, or the button moved
-    await mcp.call('browser_click', { ref, element: 'Send without a note' });
+    return snap;
+  }
+
+  /** -> { ok, noted }. ok only once the profile reads back Pending. */
+  async function sendInvite(slug, { note = null } = {}) {
+    let snap = await openInvite(slug);
+    let noted = false;
+    const addRef = note && notesLeft !== 0 ? refFor(snap, 'Add a note') : null;
+    if (addRef) {
+      await mcp.call('browser_click', { ref: addRef, element: 'Add a note' });
+      await sleep(1500);
+      snap = await snapshotText();
+      const left = NOTES_RE.exec(snap);
+      if (left) notesLeft = Number(left[1]);
+      const sendRef = refFor(snap, 'Send invitation');
+      if (notesLeft !== 0 && sendRef && (await typeInto('#custom-message', note))) {
+        await sleep(500);
+        snap = await snapshotText();
+        await mcp.call('browser_click', { ref: refFor(snap, 'Send invitation') ?? sendRef, element: 'Send invitation' });
+        noted = true;
+        if (notesLeft != null) notesLeft -= 1;
+      } else {
+        notesLeft = 0;
+        snap = await openInvite(slug); // back to the plain dialog
+      }
+    }
+    if (!noted) {
+      const ref = refFor(snap, 'Send without a note');
+      if (!ref) return { ok: false, noted: false }; // already pending/connected, or the button moved
+      await mcp.call('browser_click', { ref, element: 'Send without a note' });
+    }
     await sleep(2500);
-    const after = await snapshotText();
-    if (LIMIT_RE.test(after)) throw new Error(`invite limit hit: ${slug}`);
+    if (LIMIT_RE.test(await snapshotText())) throw new Error(`invite limit hit: ${slug}`);
     // Read back from the profile: the button must now say Pending.
     await go(`https://www.linkedin.com/in/${encodeURIComponent(slug)}/`, 3500);
-    return /"Pending"|Pending, click to withdraw/i.test(await snapshotText());
+    const ok = /"Pending"|Pending, click to withdraw/i.test(await snapshotText());
+    return { ok, noted: ok && noted };
   }
 
   async function connections() {
