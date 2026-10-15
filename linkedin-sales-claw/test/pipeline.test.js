@@ -200,3 +200,103 @@ describe('replyRound', () => {
     expect(llm).toHaveBeenCalledTimes(1);
   });
 });
+
+import { existingRound } from '../src/pipeline.js';
+
+describe('existingRound (people already connected)', () => {
+  const cursorMem = () => { let c = { search: 0, page: 1 }; return { get: () => c, set: (n) => { c = n; } }; };
+  const row = (slug, headline, recipient = `R-${slug}`) => ({ slug, name: `${slug[0].toUpperCase()}${slug.slice(1)} Smith`, headline, degree: '1st', recipient });
+
+  it('messages owner connections we have never spoken to, skips any existing thread for good', async () => {
+    const ledger = ledgerAt();
+    const browser = fakeBrowser({
+      searchPage: vi.fn(async (_s, page) => (page === 1 ? [
+        row('jim', 'Owner, Bilbo Law Office'),
+        row('tyron', 'CEO at Sand Castle Floats'),
+        row('emp', 'Account Executive at Salesforce'),
+        row('ben', 'Founder at Primis'),
+      ] : [])),
+      readThread: vi.fn(async ({ recipient }) => (recipient === 'R-tyron' ? [{ from: 'them', text: 'about those fees...' }] : [])),
+    });
+    const r = await existingRound({ ledger, browser, now, rate: { perHour: 10 }, searches: ['u'], cursor: cursorMem(), dailyCap: 20 });
+    expect(r.messaged).toEqual(['jim', 'ben']);
+    expect(browser.sendMessage.mock.calls.map((c) => c[0].recipient)).toEqual(['R-jim', 'R-ben']);
+    const text = browser.sendMessage.mock.calls[0][0].text;
+    expect(text).toMatch(/^Hi Jim, I run Varritech/);
+    expect(text).not.toMatch(/thanks for connecting/i);
+    expect(ledger.get('tyron')).toMatchObject({ status: 'skipped', reason: 'existing-thread' });
+    expect(ledger.has('emp')).toBe(false);
+    expect(ledger.get('jim')).toMatchObject({ recipient: 'R-jim', existing: true });
+    expect(ledger.get('jim').messages[0].kind).toBe('opener-existing');
+  });
+
+  it('respects its own daily cap and the shared hourly message rate', async () => {
+    const ledger = ledgerAt();
+    const rows = ['a', 'b', 'c', 'd'].map((s) => row(s, 'Owner, Co'));
+    const mk = () => fakeBrowser({ searchPage: vi.fn(async (_s, p) => (p === 1 ? rows : [])) });
+    const r1 = await existingRound({ ledger: ledgerAt(), browser: mk(), now, rate: { perHour: 10 }, searches: ['u'], cursor: cursorMem(), dailyCap: 2 });
+    expect(r1.messaged).toHaveLength(2);
+    const r2 = await existingRound({ ledger, browser: mk(), now, rate: { perHour: 3 }, searches: ['u'], cursor: cursorMem(), dailyCap: 20 });
+    expect(r2.messaged).toHaveLength(3);
+  });
+
+  it('moves its cursor past pages with nobody new, so it works through the whole list', async () => {
+    const ledger = ledgerAt();
+    ledger.recordSkip('old', { at: now.toISOString(), reason: 'existing-thread' });
+    const cursor = cursorMem();
+    const browser = fakeBrowser({ searchPage: vi.fn(async (_s, page) => (page === 1 ? [row('old', 'Owner, X')] : page === 2 ? [row('new', 'Founder, Y')] : [])) });
+    const r = await existingRound({ ledger, browser, now, rate: { perHour: 10 }, searches: ['u'], cursor, dailyCap: 20 });
+    expect(r.messaged).toEqual(['new']);
+    expect(cursor.get().page).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('a thread that cannot be read is never treated as empty', () => {
+  it('existingRound skips (and does not record) anyone whose thread failed to load', async () => {
+    const ledger = ledgerAt();
+    const browser = fakeBrowser({
+      searchPage: vi.fn(async (_s, p) => (p === 1 ? [
+        { slug: 'anshul', name: 'Anshul C', headline: 'Founder & CEO at KAYGEN', degree: '1st', recipient: 'R-a' },
+        { slug: 'marc', name: 'Marc Koehl', headline: 'Founder of The Soap Farm', degree: '1st', recipient: 'R-m' },
+      ] : [])),
+      readThread: vi.fn(async ({ recipient }) => { if (recipient === 'R-a') throw new Error('thread did not load for Anshul C'); return []; }),
+    });
+    const r = await existingRound({ ledger, browser, now, rate: { perHour: 10 }, searches: ['u'], cursor: { get: () => ({ search: 0, page: 1 }), set: () => {} }, dailyCap: 20 });
+    expect(browser.sendMessage.mock.calls.map((c) => c[0].recipient)).toEqual(['R-m']);
+    expect(browser.sendMessage.mock.calls[0][0].name).toBe('Marc Koehl');
+    expect(ledger.has('anshul')).toBe(false);
+    expect(r.messaged).toEqual(['marc']);
+  });
+
+  it('followUpRound and replyRound pass the name through and stop cleanly on a read failure', async () => {
+    const ledger = ledgerAt();
+    ledger.recordInvite('dana', { at: iso(9 * DAY), name: 'Dana Whitfield' });
+    ledger.setStage('dana', { recipient: 'R1' });
+    ledger.recordMessage('dana', { at: iso(4 * DAY), from: 'us', text: 'opener', kind: 'opener' });
+    const browser = fakeBrowser({ readThread: vi.fn(async () => { throw new Error('thread did not load'); }) });
+    const f = await followUpRound({ ledger, browser, now, rate: { perHour: 10 } });
+    expect(f.error).toMatch(/did not load/);
+    expect(browser.readThread.mock.calls[0][0].name).toBe('Dana Whitfield');
+    const r = await replyRound({ ledger, browser, llm: vi.fn(), now, rate: { perHour: 10 } });
+    expect(r.error).toMatch(/did not load/);
+    expect(browser.sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe('one unreadable thread does not stop the round', () => {
+  it('replyRound skips the person it cannot open and still answers the next one', async () => {
+    const ledger = ledgerAt();
+    for (const [slug, name] of [['ghost', 'Ghost Person'], ['dana', 'Dana Whitfield']]) {
+      ledger.recordInvite(slug, { at: iso(5 * DAY), name });
+      ledger.setStage(slug, { recipient: `R-${slug}` });
+      ledger.recordMessage(slug, { at: iso(4 * DAY), from: 'us', text: 'opener', kind: 'opener' });
+    }
+    const browser = fakeBrowser({
+      readThread: vi.fn(async ({ name }) => { if (name === 'Ghost Person') throw new Error('could not find Ghost Person\'s card'); return [{ from: 'us', text: 'opener' }, { from: 'them', text: 'tell me more' }]; }),
+    });
+    const llm = vi.fn(async () => JSON.stringify({ reply: 'Happy to. What eats most of your week?', qualified: null }));
+    const r = await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 } });
+    expect(r.replied).toEqual(['dana']);
+    expect(r.error).toMatch(/Ghost Person/);
+  });
+});

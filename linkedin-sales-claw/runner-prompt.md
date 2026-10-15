@@ -12,10 +12,13 @@ report, which is correct.
 
 ## Browser
 
-The claw owns browser MCP **lane e** (`mcp__browsermcp-e__*`), a separate Dia
-window signed in to Cristiano's LinkedIn and reserved for this claw
-(`~/.browsermcp-lanes/reserved/e`). Never use bare `mcp__browsermcp__*` (that is
-Cristiano's own browser and the Instagram claw) or any other lane.
+The claw owns browser MCP **lane e**, a separate Dia window signed in to
+Cristiano's LinkedIn and reserved for this claw (`~/.browsermcp-lanes/reserved/e`).
+Node drives it through that window's DevTools port (9335) **by clicking only**:
+search box, filter pills, Next, Message, Connect, Send. It never loads or refreshes
+a URL (Cristiano 2026-10-15: "You shouldn't be leaving the site. You have to be
+clicking."). Never use bare `mcp__browsermcp__*` (Cristiano's own browser and the
+Instagram claw) or any other lane. Never call `browser_navigate`.
 
 ⛔ **Never relaunch, quit or restart the lane browser** (Cristiano, 2026-10-15:
 "stop relaunching"). Never type a password, never click "Sign in". If the lane is
@@ -44,6 +47,8 @@ Then `mcp__browsermcp-e__browser_snapshot {"level":"scaffold"}` once and classif
 |---|---|
 | `No extension connected` | `lane e browser is not running/connected, needs Cristiano` |
 | `DevTools port :9335 is closed` | `lane e was started without BROWSERMCP_LANE_CDP=1, needs a CDP launch by Cristiano` |
+| `expected exactly one LinkedIn tab` | `lane e has more than one LinkedIn tab open; Cristiano needs to close the extras` |
+| `timed out (page frozen? an open dialog?)` | `lane e tab is frozen, probably a browser dialog; needs Cristiano to close it` |
 | login / authwall / checkpoint URL | `LinkedIn signed out or checkpoint in lane e, needs Cristiano` |
 | invite limit / unusual activity | `LinkedIn limit hit, claw paused itself for today` |
 | anything else | the error line verbatim |
@@ -53,5 +58,5 @@ Do not retry the run, do not click anything, do not navigate. One look, one repo
 ## 3. Report
 
 One line:
-`linkedin-sales-claw: invites N, openers N, follow-ups N, replies N, handoffs N[: slug reason; ...]`
+`linkedin-sales-claw: invites N, openers N, existing-connections N (skipped M with past threads), follow-ups N, replies N, handoffs N[: slug reason; ...]`
 Add `HANDOFF` names first if there are any: those are people waiting on Cristiano.

@@ -59,3 +59,17 @@ export function inviteNoteFor({ name }) {
   const full = `${hi(name)} ${body}`;
   return full.length <= INVITE_NOTE_MAX ? full : `Hi there, ${body}`;
 }
+
+/**
+ * The approved opener for someone ALREADY connected (Cristiano 2026-10-15:
+ * "go through my current list and send messages as well"). Same words minus
+ * "thanks for connecting", which would be false for a connection from years ago.
+ */
+export function openerExistingFor({ name }) {
+  return [
+    hi(name),
+    'I run Varritech, we build done-for-you AI agents that take over up to 80% of a company\'s day-to-day operations.',
+    'Right now we build the first one free for qualified businesses, and you only pay us if it actually automated work or added revenue.',
+    'Curious, what eats most of your team\'s time right now?',
+  ].join(' ');
+}

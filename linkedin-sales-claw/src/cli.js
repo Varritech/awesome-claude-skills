@@ -8,12 +8,12 @@
 //
 // --dry reads LinkedIn for real but replaces every send with a log line.
 
-import { writeFileSync, mkdirSync, copyFileSync, existsSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, copyFileSync, existsSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { config } from './config.js';
 import { createLedger } from './ledger.js';
 import { createLinkedInBrowser } from './browser.js';
-import { inviteRound, acceptRound, followUpRound, replyRound } from './pipeline.js';
+import { inviteRound, acceptRound, followUpRound, replyRound, existingRound } from './pipeline.js';
 import { claudeCliLlm, anthropicLlm } from './llm.js';
 import { connectBudget, dailyConnectCap } from './budget.js';
 
@@ -28,6 +28,13 @@ if (dry) {
   if (existsSync(cfg.statePath)) copyFileSync(cfg.statePath, dryPath);
 }
 const ledger = createLedger({ path: dry ? dryPath : cfg.statePath });
+
+function fileCursor(path) {
+  return {
+    get: () => { try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return { search: 0, page: 1 }; } },
+    set: (c) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, JSON.stringify(c)); },
+  };
+}
 
 const makeLlm = () => (cfg.llmBackend === 'anthropic-api'
   ? anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model })
@@ -46,7 +53,7 @@ function dryWrap(browser) {
 async function run() {
   if (cfg.killSwitch && !dry) { console.log(JSON.stringify({ killed: true })); return; }
   const now = new Date();
-  let browser = createLinkedInBrowser({ mcpUrl: cfg.mcpUrl, cdpPort: cfg.cdpPort, me: cfg.me });
+  let browser = createLinkedInBrowser({ cdpPort: cfg.cdpPort, me: cfg.me });
   if (dry) browser = dryWrap(browser);
   const report = { at: now.toISOString(), dry, connectBudget: connectBudget({ ledger, now, dailyCap: cfg.dailyInvites }), dailyCap: cfg.dailyInvites ?? dailyConnectCap({ ledger, now }) };
   report.preflight = await browser.preflight();
@@ -54,12 +61,13 @@ async function run() {
   report.replies = await replyRound({ ledger, browser, llm: makeLlm(), now, rate: cfg.rate });
   report.followUps = await followUpRound({ ledger, browser, now, rate: cfg.rate });
   report.openers = await acceptRound({ ledger, browser, now, rate: cfg.rate });
+  report.existing = await existingRound({ ledger, browser, now, rate: cfg.rate, searches: cfg.existingSearches, cursor: fileCursor(dry ? `${cfg.existingCursorPath}.dry` : cfg.existingCursorPath), dailyCap: cfg.dailyExisting });
   report.invites = await inviteRound({ ledger, browser, now, searches: cfg.searches, exclude: cfg.exclude, dailyCap: cfg.dailyInvites });
   if (dry) report.wouldSend = browser.would;
   mkdirSync(dirname(cfg.reportPath), { recursive: true });
   writeFileSync(cfg.reportPath, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
-  const errors = ['replies', 'followUps', 'openers', 'invites'].map((k) => report[k]?.error).filter(Boolean);
+  const errors = ['replies', 'followUps', 'openers', 'existing', 'invites'].map((k) => report[k]?.error).filter(Boolean);
   if (errors.length) { console.error(`ERRORS: ${errors.join(' | ')}`); process.exitCode = 1; }
 }
 

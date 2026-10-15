@@ -5,15 +5,23 @@
 // browsermcp-enhanced-setup skill, Fault #7). Lane e exposes CDP on 9335 when
 // launched with BROWSERMCP_LANE_CDP=1.
 
-export async function cdpSession({ port = 9335, urlMatch = 'linkedin.com', fetchImpl = fetch } = {}) {
+export async function cdpSession({ port = 9335, urlMatch = 'linkedin.com', exactUrl = null, fetchImpl = fetch } = {}) {
   let targets;
   try {
     targets = await (await fetchImpl(`http://127.0.0.1:${port}/json`)).json();
   } catch {
     throw new Error(`lane DevTools port :${port} is closed. Lane e must be launched with BROWSERMCP_LANE_CDP=1`);
   }
-  const page = targets.find((t) => t.type === 'page' && String(t.url).includes(urlMatch));
-  if (!page) throw new Error(`no ${urlMatch} tab on DevTools :${port}`);
+  // ⛔ With more than one LinkedIn tab open, "first linkedin tab" typed into a
+  // DIFFERENT conversation than the one the MCP had just opened (2026-10-15:
+  // Marc Koehl got a message addressed to Anshul). Callers that type must pass
+  // the exact URL of the tab the MCP is driving.
+  const pages = targets.filter((t) => t.type === 'page');
+  const page = exactUrl
+    ? pages.find((t) => t.url === exactUrl)
+    : pages.find((t) => String(t.url).includes(urlMatch));
+  if (!page) throw new Error(`no ${exactUrl ? `tab at ${exactUrl}` : `${urlMatch} tab`} on DevTools :${port}`);
+  if (exactUrl && pages.filter((t) => t.url === exactUrl).length > 1) throw new Error(`two tabs at ${exactUrl}; refusing to guess`);
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error('DevTools socket failed')); });
   let id = 0;

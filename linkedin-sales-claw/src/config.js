@@ -4,19 +4,21 @@ import { readFileSync } from 'node:fs';
 const root = new URL('..', import.meta.url).pathname;
 const list = (v, d) => (v ?? d).split(/\s*\|\s*/).map((s) => s.trim()).filter(Boolean);
 
-// US (geoUrn 103644278), 2nd + 3rd+ degree, people search. Owner/founder
-// keywords per vertical; matchesIcp() still filters every headline.
-const people = (kw) => `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(kw)}&geoUrn=%5B%22103644278%22%5D&network=%5B%22S%22%2C%22O%22%5D`;
+// Search recipes, run by CLICKING (search box -> People -> degree pills ->
+// Locations). No URLs: the claw never loads a page (Cristiano 2026-10-15).
+// Cold invites: 2nd + 3rd+ degree owners/founders in the US, by vertical.
+const cold = (keywords) => ({ keywords, network: ['2nd', '3rd+'], location: 'United States' });
 const DEFAULT_SEARCHES = [
-  people('owner marketing agency'),
-  people('founder agency'),
-  people('owner home services'),
-  people('owner construction company'),
-  people('founder ecommerce brand'),
-  people('owner accounting firm'),
-  people('owner real estate brokerage'),
-  people('owner logistics company'),
-].join(' | ');
+  'owner marketing agency', 'founder agency', 'owner home services', 'owner construction company',
+  'founder ecommerce brand', 'owner accounting firm', 'owner real estate brokerage', 'owner logistics company',
+].map(cold);
+// Cristiano's own 1st-degree connections, any location ("business owners in general").
+const DEFAULT_EXISTING_SEARCHES = ['owner', 'founder', 'ceo', 'president', 'managing director', 'principal']
+  .map((keywords) => ({ keywords, network: ['1st'] }));
+const specs = (raw, fallback) => {
+  if (!raw) return fallback;
+  try { return JSON.parse(raw); } catch { return fallback; }
+};
 
 export const config = () => ({
   root,
@@ -24,13 +26,16 @@ export const config = () => ({
   cursorPath: `${root}state/search-cursor.json`,
   reportPath: `${root}state/last-report.json`,
   killSwitch: process.env.KILL_SWITCH === '1',
-  searches: list(process.env.LI_SEARCHES, DEFAULT_SEARCHES),
+  searches: specs(process.env.LI_SEARCHES, DEFAULT_SEARCHES),
   exclude: list(process.env.LI_EXCLUDE, ''),
+  existingSearches: specs(process.env.LI_EXISTING_SEARCHES, DEFAULT_EXISTING_SEARCHES),
+  existingCursorPath: `${root}state/existing-cursor.json`,
+  // Openers to people already connected, per rolling 24h. 0 turns it off.
+  dailyExisting: Number(process.env.LI_DAILY_EXISTING ?? 20),
   // Flat daily invite cap; unset = the 5/10/18/20 weekly ramp in budget.js.
   dailyInvites: process.env.LI_DAILY_INVITES ? Number(process.env.LI_DAILY_INVITES) : null,
   // Messages WE send per rolling hour (openers + follow-ups + replies together).
   rate: { perHour: Number(process.env.MAX_MESSAGES_PER_HOUR ?? 6) },
-  mcpUrl: process.env.LI_MCP_URL || 'http://127.0.0.1:3005/mcp',
   cdpPort: Number(process.env.LI_CDP_PORT ?? 9335),
   me: process.env.LI_ME || 'Cristiano Varriale',
   llmBackend: process.env.LLM_BACKEND || 'claude-cli',

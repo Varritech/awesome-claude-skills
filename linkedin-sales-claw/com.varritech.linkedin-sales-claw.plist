@@ -17,7 +17,6 @@
          invite limit stops the round cleanly if hit. -->
     <key>LI_DAILY_INVITES</key><string>20</string>
     <key>MAX_MESSAGES_PER_HOUR</key><string>6</string>
-    <key>LI_MCP_URL</key><string>http://127.0.0.1:3005/mcp</string>
     <key>LI_CDP_PORT</key><string>9335</string>
   </dict>
 

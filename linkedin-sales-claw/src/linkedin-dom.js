@@ -43,6 +43,11 @@ const inviteSlug = (href) => {
   return m ? slugOf(decodeURIComponent(m[1])) : null;
 };
 
+const recipientOf = (href) => {
+  const m = /[?&]recipient=([^&]+)/.exec(href ?? '');
+  return m ? decodeURIComponent(m[1]) : null;
+};
+
 export function parseSearchResults(html) {
   const seq = flatten(html);
   const cards = [];
@@ -72,16 +77,16 @@ export function parseSearchResults(html) {
     if (inv) {
       const card = cards.find((c) => c.slug === inv);
       if (card) card.canConnect = true;
+      continue;
     }
+    // 1st-degree cards carry a Message link instead of Connect.
+    const rec = recipientOf(s.href);
+    if (rec && cards.length && !cards.at(-1).recipient) cards.at(-1).recipient = rec;
   }
   return cards;
 }
 
 const CONNECTED_RE = /^Connected on (.+)$/;
-const recipientOf = (href) => {
-  const m = /[?&]recipient=([^&]+)/.exec(href ?? '');
-  return m ? decodeURIComponent(m[1]) : null;
-};
 
 /** My Network > Connections, sorted "Recently added". */
 export function parseConnections(html) {

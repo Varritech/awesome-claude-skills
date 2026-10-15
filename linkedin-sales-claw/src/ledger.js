@@ -39,6 +39,14 @@ export function createLedger({ path }) {
       persist();
     },
 
+    /** An existing connection we are about to open (no invite from us). */
+    recordExisting(who, { at, name = null, headline = null, recipient }) {
+      const slug = slugOf(who);
+      if (entries[slug]) throw new Error(`${slug}: already in the ledger`);
+      entries[slug] = { slug, name, headline, recipient, existing: true, foundAt: at, messages: [] };
+      persist();
+    },
+
     /** Someone we looked at and will never contact (already connected, ICP miss on the profile...). */
     recordSkip(who, { at, reason, name = null }) {
       const slug = slugOf(who);

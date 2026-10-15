@@ -10,7 +10,7 @@
 
 import { matchesIcp } from './prospects.js';
 import { connectBudget } from './budget.js';
-import { openerFor, followUpFor, inviteNoteFor } from './copy.js';
+import { openerFor, followUpFor, inviteNoteFor, openerExistingFor } from './copy.js';
 import { draftReply } from './sales.js';
 
 const HOUR = 3600_000;
@@ -86,7 +86,7 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate }) {
     if (left <= 0) break;
     const text = openerFor({ name: e.name });
     try {
-      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, text }))) continue;
+      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
     } catch (err) {
       out.error = String(err?.message ?? err);
       break;
@@ -127,11 +127,21 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate })
   for (const { e, number } of due) {
     if (left <= 0) break;
     // Look before knocking: a reply LinkedIn shows us beats our ledger.
-    const fresh = syncThread(ledger, e.slug, await browser.readThread({ slug: e.slug, recipient: e.recipient }), now);
+    let thread;
+    try {
+      thread = await browser.readThread({ slug: e.slug, recipient: e.recipient, name: e.name });
+    } catch (err) {
+      // A thread that will not open is not a quiet thread: never knock blind.
+      // Skip this person; a signed-out/frozen session still fails every one.
+      out.error = String(err?.message ?? err);
+      if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
+      continue;
+    }
+    const fresh = syncThread(ledger, e.slug, thread, now);
     if (fresh.length) continue;
     const text = followUpFor({ name: e.name, number });
     try {
-      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, text }))) continue;
+      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
     } catch (err) {
       out.error = String(err?.message ?? err);
       break;
@@ -154,7 +164,14 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
 
   for (const e of active) {
     if (left <= 0) break;
-    const thread = await browser.readThread({ slug: e.slug, recipient: e.recipient });
+    let thread;
+    try {
+      thread = await browser.readThread({ slug: e.slug, recipient: e.recipient, name: e.name });
+    } catch (err) {
+      out.error = String(err?.message ?? err);
+      if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
+      continue;
+    }
     ledger.setStage(e.slug, { lastCheckedAt: isoNow(now) });
     syncThread(ledger, e.slug, thread, now);
     if (thread.at(-1)?.from !== 'them') continue;
@@ -167,7 +184,7 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
     }
     if (draft.action !== 'send') { out.held.push({ slug: e.slug, reason: draft.reason }); continue; }
     try {
-      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, text: draft.text }))) continue;
+      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text: draft.text }))) continue;
     } catch (err) {
       out.error = String(err?.message ?? err);
       break;
@@ -176,6 +193,63 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
     if (draft.qualified !== null) ledger.setStage(e.slug, { qualified: draft.qualified });
     out.replied.push(e.slug);
     left -= 1;
+  }
+  return out;
+}
+
+/**
+ * People ALREADY connected with Cristiano who look like owners. Opened only if
+ * there has never been a message between them: an existing thread means a
+ * client, partner or friend (his inbox holds client disputes), so it is
+ * recorded as skipped and never touched again.
+ */
+export async function existingRound({ ledger, browser, now = new Date(), rate, searches, cursor, dailyCap = 20, maxPages = 5 }) {
+  const out = { messaged: [], skipped: [], error: null };
+  if (!searches?.length || !dailyCap) return out;
+  const sentToday = ledger.all().reduce((n, e) => n + (e.messages ?? [])
+    .filter((m) => m.kind === 'opener-existing' && +now - Date.parse(m.at) < DAY).length, 0);
+  let left = Math.min(dailyCap - sentToday, messageBudget(ledger, rate, now));
+  if (left <= 0) return out;
+
+  let { search = 0, page = 1 } = cursor.get() ?? {};
+  for (let loaded = 0; loaded < maxPages && left > 0; loaded++) {
+    if (search >= searches.length) { search = 0; page = 1; }
+    const rows = await browser.searchPage(searches[search], page);
+    if (!rows.length) { search += 1; page = 1; cursor.set({ search, page }); continue; }
+    const fresh = rows.filter((r) => r.degree === '1st' && r.recipient && matchesIcp(r) && !ledger.has(r.slug));
+    for (const r of fresh) {
+      if (left <= 0) break;
+      // ⛔ 2026-10-15: an unloaded pane read as "no history" and Anshul, an
+      // existing contact, was queued for a cold pitch. Only a thread that
+      // visibly loaded for THIS person counts as empty; anything else = skip
+      // this run, record nothing, try again next run.
+      let thread;
+      try {
+        thread = await browser.readThread({ slug: r.slug, recipient: r.recipient, name: r.name });
+      } catch {
+        continue;
+      }
+      if (thread.length) {
+        ledger.recordSkip(r.slug, { at: isoNow(now), reason: 'existing-thread', name: r.name });
+        out.skipped.push(r.slug);
+        continue;
+      }
+      const text = openerExistingFor({ name: r.name });
+      try {
+        if (!(await browser.sendMessage({ slug: r.slug, recipient: r.recipient, name: r.name, text }))) continue;
+      } catch (err) {
+        out.error = String(err?.message ?? err);
+        cursor.set({ search, page });
+        return out;
+      }
+      ledger.recordExisting(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, recipient: r.recipient });
+      ledger.recordMessage(r.slug, { at: isoNow(now), from: 'us', text, kind: 'opener-existing' });
+      out.messaged.push(r.slug);
+      left -= 1;
+    }
+    // Page fully handled (nobody new left on it) -> move on next time.
+    if (left > 0) page += 1;
+    cursor.set({ search, page });
   }
   return out;
 }

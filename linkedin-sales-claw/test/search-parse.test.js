@@ -15,8 +15,10 @@ describe('parseSearchResults', () => {
     expect(rows[1]).toMatchObject({ degree: '3rd+', canConnect: true });
   });
 
-  it('a card with no Connect link (Message/Follow only) is not connectable', () => {
+  it('a card with no Connect link (Message/Follow only) is not connectable, and keeps its message recipient', () => {
     expect(parseSearchResults(html)[2].canConnect).toBe(false);
+    expect(parseSearchResults(html)[2].recipient).toBe('lee');
+    expect(parseSearchResults(html)[0].recipient).toBeUndefined();
   });
 
   it('accepts the JSON-string form the MCP extract tool returns', () => {
