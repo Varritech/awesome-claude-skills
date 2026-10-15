@@ -119,5 +119,41 @@ export async function connectUi({ port = 9335, urlMatch = 'linkedin.com', fetchI
     return evaluate('innerWidth');
   }
 
-  return { send, evaluate, find, on, click, clickNode, type, key, selectAll, waitFor, windowWidth, sleep, close: () => ws.close() };
+  /**
+   * Is LinkedIn's app actually drawn? (Blank main + no nav = crashed SPA.)
+   */
+  async function healthy() {
+    try {
+      return await evaluate(`(() => {
+        const main = (document.querySelector('main')?.innerText || '').trim().length;
+        const nav = [...document.querySelectorAll('a, button')].some((e) => (e.innerText || '').trim() === 'My Network' && e.getBoundingClientRect().top < 60);
+        return main > 20 && nav;
+      })()`);
+    } catch { return false; }
+  }
+
+  /**
+   * ⛔ The ONE place a reload is allowed (Cristiano 2026-10-15: reload "only to
+   * recover"): the page has crashed AND no message box holds text, so Chrome
+   * cannot raise "Leave site?". Everything else stays click-only.
+   */
+  async function recoverIfCrashed() {
+    if (await healthy()) return false;
+    await sleep(4000);
+    if (await healthy()) return false; // was just mid-render
+    for (const ed of await find('.msg-form__contenteditable, [role=dialog] textarea')) {
+      const text = await on(ed.nodeId, 'function(){ return (this.value ?? this.innerText ?? "").trim(); }').catch(() => '');
+      if (text) throw new Error('page crashed with unsent text in a message box; not reloading. Needs Cristiano.');
+    }
+    await send('Page.enable');
+    await send('Page.reload', { ignoreCache: false });
+    const until = Date.now() + 30000;
+    while (Date.now() < until) {
+      await sleep(1500);
+      if (await healthy()) return true;
+    }
+    throw new Error('LinkedIn did not recover after a reload');
+  }
+
+  return { healthy, recoverIfCrashed, send, evaluate, find, on, click, clickNode, type, key, selectAll, waitFor, windowWidth, sleep, close: () => ws.close() };
 }

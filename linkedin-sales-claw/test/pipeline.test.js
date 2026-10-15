@@ -300,3 +300,24 @@ describe('one unreadable thread does not stop the round', () => {
     expect(r.error).toMatch(/Ghost Person/);
   });
 });
+
+describe('replyRound with the inbox list', () => {
+  it('opens only leads whose latest inbox line is from them; never touches non-leads', async () => {
+    const ledger = ledgerAt();
+    for (const [slug, name] of [['dana', 'Dana Whitfield'], ['quiet', 'Quiet Person']]) {
+      ledger.recordInvite(slug, { at: iso(5 * DAY), name });
+      ledger.setStage(slug, { recipient: `R-${slug}` });
+      ledger.recordMessage(slug, { at: iso(1 * DAY), from: 'us', text: 'opener', kind: 'opener' });
+    }
+    const inbox = [
+      { name: 'Dana Whitfield', snippet: 'Dana: what does it involve?', fromUs: false },
+      { name: 'Quiet Person', snippet: 'You: Hi Quiet...', fromUs: true },
+      { name: 'Nilesh Divekar', snippet: 'Nilesh: one more thought', fromUs: false },
+    ];
+    const browser = fakeBrowser({ readThread: vi.fn(async () => [{ from: 'us', text: 'opener' }, { from: 'them', text: 'what does it involve?' }]) });
+    const llm = vi.fn(async () => JSON.stringify({ reply: 'Short version: we map your hours, build one agent free. Do you own the business?', qualified: null }));
+    const r = await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 }, inbox });
+    expect(browser.readThread.mock.calls.map((c) => c[0].name)).toEqual(['Dana Whitfield']);
+    expect(r.replied).toEqual(['dana']);
+  });
+});

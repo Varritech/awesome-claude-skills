@@ -40,6 +40,34 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
     return true;
   }
 
+  /** Click the Home nav button and wait for the feed (search box visible). Resets LinkedIn's app state after Messaging. */
+  async function goHome() {
+    const u = await hands();
+    const home = '[...document.querySelectorAll("button, a")].find((b) => (b.innerText || "").trim() === "Home" && b.getBoundingClientRect().top < 60)';
+    if (!(await clickTop(home))) {
+      // On some pages the nav is drawn in LinkedIn's iframe: find Home there.
+      let clicked = false;
+      for (const n of await u.find('button, a')) {
+        if (!n.centre || !n.centre.w || n.centre.y > 60) continue;
+        if ((await u.on(n.nodeId, 'function(){ return (this.innerText || "").trim(); }')) === 'Home') { await u.click(n.centre.x, n.centre.y); clicked = true; break; }
+      }
+      if (!clicked) await clickNav('/feed');
+    }
+    await waitTop('location.pathname.startsWith("/feed")', 10000);
+    return waitTop('document.querySelector(\'input[placeholder*="looking for"]\') && (document.querySelector("main")?.innerText || "").length > 50', 10000);
+  }
+
+  /** Click a top-nav link (Home/My Network/Messaging) wherever LinkedIn drew it, iframe included. */
+  async function clickNav(pathPart) {
+    const u = await hands();
+    for (const n of await u.find(`a[href*="${pathPart}"]`)) {
+      if (!n.centre || !n.centre.w || n.centre.y > 80) continue; // the nav bar is at the top
+      await u.click(n.centre.x, n.centre.y);
+      return true;
+    }
+    return false;
+  }
+
   async function waitTop(expr, timeoutMs = 10000) {
     const u = await hands();
     const until = Date.now() + timeoutMs;
@@ -52,6 +80,7 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
 
   async function checkSession() {
     const u = await hands();
+    if (await u.recoverIfCrashed()) { currentSearch = null; }
     const href = await u.evaluate('location.href');
     if (BLOCKED_RE.test(href)) throw new Error(`LinkedIn signed out or checkpoint (${href}). Needs Cristiano in lane e.`);
     return href;
@@ -138,9 +167,14 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
 
   async function runSearch(spec) {
     const u = await hands();
+    if (await u.recoverIfCrashed()) currentSearch = null;
     await closeAllBubbles();
     const box = 'document.querySelector(\'input[placeholder*="looking for"], input.search-global-typeahead__input\')';
-    if (!(await clickTop(box))) throw new Error('LinkedIn search box not found');
+    if ((await u.evaluate('location.pathname')).startsWith('/messaging') || !(await clickTop(box))) {
+      // Messaging hides the search box and leaves the app half-switched: go Home first.
+      await goHome();
+      if (!(await clickTop(box))) throw new Error('LinkedIn search box not found');
+    }
     await u.sleep(400);
     await u.selectAll();
     await u.type(spec.keywords);
@@ -225,6 +259,7 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
     const u = await hands();
     await checkSession();
     const width = await u.windowWidth();
+    if ((await u.evaluate('location.pathname')).startsWith('/messaging')) await goHome();
     await closeAllBubbles();
     return { width };
   }
@@ -294,6 +329,41 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
       await clearComposer(name).catch(() => {});
       await closeBubble(name).catch(() => {});
     }
+  }
+
+  /**
+   * The Messaging inbox, reached by clicking the nav: [{ name, snippet, fromUs, unread }].
+   * Scrolls the list so ~40 recent conversations load (the first render holds ~10).
+   */
+  async function inbox({ rows = 40 } = {}) {
+    const u = await hands();
+    await closeAllBubbles();
+    await clickTop('[...document.querySelectorAll("a[href]")].find((a) => /linkedin\\.com\\/messaging\\/?(\\?|$)/.test(a.href))');
+    if (!(await waitTop('location.pathname.startsWith("/messaging")', 8000))) throw new Error('Messaging did not open');
+    const read = async () => {
+      const out = [];
+      for (const n of await u.find('li.msg-conversation-listitem')) {
+        const v = await u.on(n.nodeId, `function(){
+          const name = (this.querySelector('h3, [class*=participant-names]')?.innerText || '').trim();
+          const snippet = (this.querySelector('[class*=message-snippet], p')?.innerText || '').trim();
+          const unread = /new notification/.test(this.innerText) || !!this.querySelector('[class*=unread]');
+          return name ? { name, snippet, unread } : null;
+        }`);
+        if (v) out.push({ ...v, fromUs: /^You:/.test(v.snippet) });
+      }
+      return out;
+    };
+    let list = [];
+    for (let i = 0; i < 16; i++) {
+      await u.sleep(i ? 900 : 2500);
+      list = await read();
+      if (list.length >= rows) break;
+      const last = (await u.find('li.msg-conversation-listitem')).filter((n) => n.centre).pop();
+      if (last) await u.on(last.nodeId, 'function(){ this.scrollIntoView({ block: "end" }); }');
+    }
+    await goHome(); // never stay in Messaging: searches and chat windows misbehave there
+    currentSearch = null;
+    return list;
   }
 
   /** Buttons of the open dialog (it lives in LinkedIn's iframe): [{ nodeId, centre, label }]. */
@@ -390,5 +460,5 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
     return parseConnections(await u.evaluate('document.querySelector("main")?.outerHTML || ""'));
   }
 
-  return { preflight, searchPage, openChat, readThread, sendMessage, sendInvite, connections, closeAllBubbles, cardsOnPage, clickTop, waitTop, hands };
+  return { preflight, goHome, inbox, searchPage, openChat, readThread, sendMessage, sendInvite, connections, closeAllBubbles, cardsOnPage, clickTop, waitTop, hands };
 }

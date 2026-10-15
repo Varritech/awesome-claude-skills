@@ -23,6 +23,7 @@ function messageBudget(ledger, rate, now) {
 }
 
 const isoNow = (now) => new Date(now).toISOString();
+const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 export async function inviteRound({ ledger, browser, now = new Date(), searches, exclude = [], maxPages = 3, dailyCap = null }) {
   const budget = connectBudget({ ledger, now, dailyCap });
@@ -153,11 +154,15 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate })
   return out;
 }
 
-export async function replyRound({ ledger, browser, llm, now = new Date(), rate, maxThreads = 15, activeDays = 45 }) {
+export async function replyRound({ ledger, browser, llm, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null }) {
   const out = { replied: [], handoffs: [], held: [], error: null };
   let left = messageBudget(ledger, rate, now);
+  // With the inbox list (one click per run), only leads whose newest line is
+  // from THEM are opened. Without it, fall back to checking threads in rotation.
+  const theyWroteLast = inbox ? new Set(inbox.filter((r) => !r.fromUs).map((r) => norm(r.name))) : null;
   const active = ledger.all()
     .filter((e) => e.recipient && !e.handoff && !e.closed && (e.messages ?? []).some((m) => m.from === 'us'))
+    .filter((e) => !theyWroteLast || theyWroteLast.has(norm(e.name)))
     .filter((e) => +now - Date.parse(e.messages.at(-1).at) < activeDays * DAY)
     .sort((a, b) => Date.parse(a.lastCheckedAt ?? 0) - Date.parse(b.lastCheckedAt ?? 0))
     .slice(0, maxThreads);
