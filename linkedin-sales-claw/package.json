@@ -1,0 +1,13 @@
+{
+  "name": "linkedin-sales-claw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser-driven LinkedIn sales claw on its own browsermcp lane: cold connects to an ICP, opener on accept, follow-ups, and the sales conversation for done-for-you AI agents.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}

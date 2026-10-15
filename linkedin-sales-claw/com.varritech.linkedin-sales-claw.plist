@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.varritech.linkedin-sales-claw</string>
+
+  <!-- Every 30 minutes. Volume is capped in code, not by this interval:
+       invites ramp 5/10/18/20 per day by week (src/budget.js), messages
+       MAX_MESSAGES_PER_HOUR per rolling hour. Most runs only check replies. -->
+  <key>StartInterval</key><integer>1800</integer>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 1 = every run is inert. Ships ON (inert) until Cristiano says go. -->
+    <key>KILL_SWITCH</key><string>1</string>
+    <key>MAX_MESSAGES_PER_HOUR</key><string>6</string>
+    <key>LI_MCP_URL</key><string>http://127.0.0.1:3005/mcp</string>
+    <key>LI_CDP_PORT</key><string>9335</string>
+  </dict>
+
+  <!-- Same shape as the IG claw: headless claude -p runs the runbook on the
+       shared claws subscription token, model pinned (the global settings model
+       is the router's Ollama lane, which Claude Code rejects). -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd "$HOME/awesome-claude-skills/linkedin-sales-claw" &amp;&amp; unset ANTHROPIC_API_KEY &amp;&amp; export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.varritech/claude-oauth-token")" &amp;&amp; "$HOME/.local/bin/claude" -p "Execute a linkedin-sales-claw run NOW, following the runbook below as instructions, not a document to summarise. Finish with the one-line report.
+
+=== RUNBOOK ===
+
+$(cat runner-prompt.md)" --model claude-sonnet-5-5 --allowedTools "mcp__browsermcp-e__browser_tab,mcp__browsermcp-e__browser_snapshot,mcp__browsermcp-e__browser_screenshot,Bash(node src/cli.js:*)" &lt; /dev/null &gt;&gt; state/run.log 2&gt;&amp;1</string>
+  </array>
+
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/tmp/linkedin-sales-claw.err</string>
+</dict>
+</plist>
