@@ -20,6 +20,11 @@ const specs = (raw, fallback) => {
   try { return JSON.parse(raw); } catch { return fallback; }
 };
 
+// ⛔ Never message these, in any round (clients, partners, people Cristiano
+// handles himself). Name match, case-insensitive, a listed name anywhere in
+// theirs. Cristiano 2026-10-15: "don't message Jitka. Message other founders."
+const DEFAULT_DO_NOT_MESSAGE = ['Jitka', 'Tyron Fandal', 'Ashley Coleman', 'Guy Riches', 'Mark Knesl', 'Denzel', 'Kareem', 'Chiamaka', 'Angus', 'Pavel', 'Rodney'];
+
 export const config = () => ({
   root,
   statePath: process.env.CLAW_STATE || `${root}state/ledger.json`,
@@ -28,6 +33,10 @@ export const config = () => ({
   killSwitch: process.env.KILL_SWITCH === '1',
   searches: specs(process.env.LI_SEARCHES, DEFAULT_SEARCHES),
   exclude: list(process.env.LI_EXCLUDE, ''),
+  // Cristiano 2026-10-15: "Don't remessage anybody." Follow-up knocks are OFF;
+  // a person only hears from the claw again if they reply.
+  followUps: process.env.LI_FOLLOWUPS === '1',
+  doNotMessage: [...DEFAULT_DO_NOT_MESSAGE, ...list(process.env.LI_DO_NOT_MESSAGE, '')],
   existingSearches: specs(process.env.LI_EXISTING_SEARCHES, DEFAULT_EXISTING_SEARCHES),
   existingCursorPath: `${root}state/existing-cursor.json`,
   // Openers to people already connected, per rolling 24h. 0 turns it off.

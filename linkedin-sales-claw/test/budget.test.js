@@ -33,3 +33,13 @@ describe('connectBudget', () => {
     expect(() => ledger.recordInvite('ana-smith', { at: new Date().toISOString() })).toThrow();
   });
 });
+
+describe('sentSince', () => {
+  it('does not count copied thread history as messages we sent', () => {
+    const ledger = freshLedger();
+    ledger.recordExisting('x', { at: new Date().toISOString(), name: 'X', recipient: 'R' });
+    ledger.recordMessage('x', { at: new Date().toISOString(), from: 'us', text: 'old', kind: 'history' });
+    ledger.recordMessage('x', { at: new Date().toISOString(), from: 'us', text: 'new', kind: 'reply' });
+    expect(ledger.sentSince(3600_000)).toBe(1);
+  });
+});

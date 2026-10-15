@@ -18,6 +18,8 @@
     <key>LI_DAILY_INVITES</key><string>20</string>
     <!-- Openers to existing owner connections per rolling 24h (Cristiano 2026-10-15: "50 per day"). -->
     <key>LI_DAILY_EXISTING</key><string>50</string>
+    <!-- "Don't remessage anybody" (2026-10-15): no follow-up knocks. -->
+    <key>LI_FOLLOWUPS</key><string>0</string>
     <key>MAX_MESSAGES_PER_HOUR</key><string>6</string>
     <key>LI_CDP_PORT</key><string>9335</string>
   </dict>

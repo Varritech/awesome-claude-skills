@@ -61,11 +61,11 @@ async function run() {
   // One click into Messaging tells us who wrote back; only those threads get opened.
   let inbox = null;
   try { inbox = await browser.inbox(); report.inbox = { rows: inbox.length, fromThem: inbox.filter((r) => !r.fromUs).length }; } catch (err) { report.inbox = { error: String(err?.message ?? err) }; }
-  report.replies = await replyRound({ ledger, browser, llm: makeLlm(), now, rate: cfg.rate, inbox });
-  report.followUps = await followUpRound({ ledger, browser, now, rate: cfg.rate });
-  report.openers = await acceptRound({ ledger, browser, now, rate: cfg.rate });
-  report.existing = await existingRound({ ledger, browser, now, rate: cfg.rate, searches: cfg.existingSearches, cursor: fileCursor(dry ? `${cfg.existingCursorPath}.dry` : cfg.existingCursorPath), dailyCap: cfg.dailyExisting });
-  report.invites = await inviteRound({ ledger, browser, now, searches: cfg.searches, exclude: cfg.exclude, dailyCap: cfg.dailyInvites });
+  report.replies = await replyRound({ ledger, browser, llm: makeLlm(), now, rate: cfg.rate, inbox, doNotMessage: cfg.doNotMessage });
+  report.followUps = cfg.followUps ? await followUpRound({ ledger, browser, now, rate: cfg.rate, doNotMessage: cfg.doNotMessage }) : { off: true };
+  report.openers = await acceptRound({ ledger, browser, now, rate: cfg.rate, doNotMessage: cfg.doNotMessage });
+  report.existing = await existingRound({ ledger, browser, now, rate: cfg.rate, searches: cfg.existingSearches, cursor: fileCursor(dry ? `${cfg.existingCursorPath}.dry` : cfg.existingCursorPath), dailyCap: cfg.dailyExisting, doNotMessage: cfg.doNotMessage });
+  report.invites = await inviteRound({ ledger, browser, now, searches: cfg.searches, exclude: cfg.exclude, dailyCap: cfg.dailyInvites, doNotMessage: cfg.doNotMessage });
   if (dry) report.wouldSend = browser.would;
   mkdirSync(dirname(cfg.reportPath), { recursive: true });
   writeFileSync(cfg.reportPath, JSON.stringify(report, null, 2));

@@ -96,7 +96,7 @@ export function createLedger({ path }) {
       const cutoff = +now - windowMs;
       let n = 0;
       for (const e of Object.values(entries)) {
-        for (const m of e.messages ?? []) if (m.from === 'us' && Date.parse(m.at) >= cutoff) n += 1;
+        for (const m of e.messages ?? []) if (m.from === 'us' && m.kind !== 'history' && Date.parse(m.at) >= cutoff) n += 1;
       }
       return n;
     },

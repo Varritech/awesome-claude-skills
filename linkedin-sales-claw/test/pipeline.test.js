@@ -321,3 +321,25 @@ describe('replyRound with the inbox list', () => {
     expect(r.replied).toEqual(['dana']);
   });
 });
+
+describe('do-not-message list', () => {
+  it('existingRound never messages anyone on it, matched by name', async () => {
+    const ledger = ledgerAt();
+    const browser = fakeBrowser({
+      searchPage: vi.fn(async (_s, p) => (p === 1 ? [
+        { slug: 'jitka-v', name: 'Jitka Valova', headline: 'Founder & CEO at Portable Tenant', degree: '1st', recipient: 'R-j' },
+        { slug: 'ok', name: 'Okay Founder', headline: 'Founder at OK Co', degree: '1st', recipient: 'R-ok' },
+      ] : [])),
+    });
+    const r = await existingRound({ ledger, browser, now, rate: { perHour: 10 }, searches: ['u'], cursor: { get: () => ({ search: 0, page: 1 }), set: () => {} }, dailyCap: 20, doNotMessage: ['Jitka'] });
+    expect(browser.readThread.mock.calls.map((c) => c[0].name)).toEqual(['Okay Founder']);
+    expect(r.messaged).toEqual(['ok']);
+  });
+
+  it('inviteRound never invites anyone on it', async () => {
+    const ledger = ledgerAt();
+    const browser = fakeBrowser({ searchPage: vi.fn(async () => [{ slug: 'g', name: 'Guy Riches', headline: 'Founder, 22BookFriends', canConnect: true }]) });
+    const r = await inviteRound({ ledger, browser, now, searches: ['u'], doNotMessage: ['Guy Riches'] });
+    expect(r.invited).toEqual([]);
+  });
+});

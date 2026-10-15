@@ -23,9 +23,11 @@ function messageBudget(ledger, rate, now) {
 }
 
 const isoNow = (now) => new Date(now).toISOString();
+/** Name is on the do-not-message list (case-insensitive, matches a listed name anywhere in theirs: "Jitka" blocks "Jitka Valova"). */
+export const blocked = (name, list = []) => { const n = norm(name); return list.some((x) => x && n.includes(norm(x))); };
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-export async function inviteRound({ ledger, browser, now = new Date(), searches, exclude = [], maxPages = 3, dailyCap = null }) {
+export async function inviteRound({ ledger, browser, now = new Date(), searches, exclude = [], maxPages = 3, dailyCap = null, doNotMessage = [] }) {
   const budget = connectBudget({ ledger, now, dailyCap });
   const out = { budget, invited: [], error: null };
   if (budget <= 0 || !searches?.length) return out;
@@ -36,7 +38,7 @@ export async function inviteRound({ ledger, browser, now = new Date(), searches,
     for (let page = 1; page <= maxPages && out.invited.length < budget; page++) {
       const rows = await browser.searchPage(search, page);
       if (!rows.length) break;
-      const fresh = rows.filter((r) => r.canConnect && matchesIcp(r) && !ledger.has(r.slug) && !skip.has(r.slug) && !tried.has(r.slug));
+      const fresh = rows.filter((r) => r.canConnect && matchesIcp(r) && !ledger.has(r.slug) && !skip.has(r.slug) && !tried.has(r.slug) && !blocked(r.name, doNotMessage));
       for (const r of fresh) {
         if (out.invited.length >= budget) break;
         tried.add(r.slug);
@@ -64,7 +66,7 @@ export async function inviteRound({ ledger, browser, now = new Date(), searches,
   return out;
 }
 
-export async function acceptRound({ ledger, browser, now = new Date(), rate }) {
+export async function acceptRound({ ledger, browser, now = new Date(), rate, doNotMessage = [] }) {
   const out = { accepted: [], opened: [], error: null };
   const pending = ledger.all().filter((e) => e.invitedAt && !e.acceptedAt);
   const unopened = () => ledger.all().filter((e) => e.acceptedAt && e.recipient && !(e.messages ?? []).length && !e.handoff);
@@ -85,6 +87,7 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate }) {
   let left = messageBudget(ledger, rate, now);
   for (const e of unopened()) {
     if (left <= 0) break;
+    if (blocked(e.name, doNotMessage)) continue;
     const text = openerFor({ name: e.name });
     try {
       if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
@@ -109,12 +112,12 @@ function syncThread(ledger, slug, thread, now) {
   return fresh;
 }
 
-export async function followUpRound({ ledger, browser, now = new Date(), rate }) {
+export async function followUpRound({ ledger, browser, now = new Date(), rate, doNotMessage = [] }) {
   const out = { sent: [], error: null };
   let left = messageBudget(ledger, rate, now);
   const due = [];
   for (const e of ledger.all()) {
-    if (!e.recipient || e.replied || e.handoff || e.closed) continue;
+    if (!e.recipient || e.replied || e.handoff || e.closed || blocked(e.name, doNotMessage)) continue;
     const ours = (e.messages ?? []).filter((m) => m.from === 'us');
     if (!ours.length) continue;
     const knocks = ours.filter((m) => /^followup-/.test(m.kind ?? '')).length;
@@ -154,7 +157,7 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate })
   return out;
 }
 
-export async function replyRound({ ledger, browser, llm, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null }) {
+export async function replyRound({ ledger, browser, llm, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null, doNotMessage = [] }) {
   const out = { replied: [], handoffs: [], held: [], error: null };
   let left = messageBudget(ledger, rate, now);
   // With the inbox list (one click per run), only leads whose newest line is
@@ -163,6 +166,7 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
   const active = ledger.all()
     .filter((e) => e.recipient && !e.handoff && !e.closed && (e.messages ?? []).some((m) => m.from === 'us'))
     .filter((e) => !theyWroteLast || theyWroteLast.has(norm(e.name)))
+    .filter((e) => !blocked(e.name, doNotMessage))
     .filter((e) => +now - Date.parse(e.messages.at(-1).at) < activeDays * DAY)
     .sort((a, b) => Date.parse(a.lastCheckedAt ?? 0) - Date.parse(b.lastCheckedAt ?? 0))
     .slice(0, maxThreads);
@@ -208,7 +212,7 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
  * client, partner or friend (his inbox holds client disputes), so it is
  * recorded as skipped and never touched again.
  */
-export async function existingRound({ ledger, browser, now = new Date(), rate, searches, cursor, dailyCap = 20, maxPages = 5 }) {
+export async function existingRound({ ledger, browser, now = new Date(), rate, searches, cursor, dailyCap = 20, maxPages = 5, doNotMessage = [] }) {
   const out = { messaged: [], skipped: [], error: null };
   if (!searches?.length || !dailyCap) return out;
   const sentToday = ledger.all().reduce((n, e) => n + (e.messages ?? [])
@@ -221,7 +225,7 @@ export async function existingRound({ ledger, browser, now = new Date(), rate, s
     if (search >= searches.length) { search = 0; page = 1; }
     const rows = await browser.searchPage(searches[search], page);
     if (!rows.length) { search += 1; page = 1; cursor.set({ search, page }); continue; }
-    const fresh = rows.filter((r) => r.degree === '1st' && r.recipient && matchesIcp(r) && !ledger.has(r.slug));
+    const fresh = rows.filter((r) => r.degree === '1st' && r.recipient && matchesIcp(r) && !ledger.has(r.slug) && !blocked(r.name, doNotMessage));
     for (const r of fresh) {
       if (left <= 0) break;
       // ⛔ 2026-10-15: an unloaded pane read as "no history" and Anshul, an
@@ -255,6 +259,69 @@ export async function existingRound({ ledger, browser, now = new Date(), rate, s
     // Page fully handled (nobody new left on it) -> move on next time.
     if (left > 0) page += 1;
     cursor.set({ search, page });
+  }
+  return out;
+}
+
+/**
+ * People who messaged Cristiano FIRST and are not claw leads (Cristiano
+ * 2026-10-15: "you can send them if they're not your leads, but you have to
+ * check to see if they're qualified founders before you send").
+ *
+ * Each is profiled once (title, company, company details from their profile),
+ * screened by `qualify`, and the decision is recorded so nobody is profiled or
+ * judged twice. Qualified people become leads and get the sales reply; from
+ * then on replyRound carries the conversation.
+ */
+export async function inboundRound({ ledger, browser, llm, qualify, now = new Date(), rate, inbox, exclude = [], maxPerRun = 4, doNotMessage = [] }) {
+  const out = { replied: [], skipped: [], handoffs: [], held: [], error: null };
+  if (!inbox?.length) return out;
+  const excluded = new Set(exclude.map((n) => norm(n)));
+  const known = new Set(ledger.all().map((e) => norm(e.name)).filter(Boolean));
+  let left = messageBudget(ledger, rate, now);
+  let looked = 0;
+  for (const row of inbox) {
+    if (left <= 0 || looked >= maxPerRun) break;
+    if (row.fromUs || /^Sponsored\b/i.test(row.snippet ?? '')) continue;
+    if (excluded.has(norm(row.name)) || known.has(norm(row.name)) || blocked(row.name, doNotMessage)) continue;
+    looked += 1;
+    let profile;
+    let thread;
+    try {
+      profile = await browser.profileOf({ name: row.name });
+      if (!profile?.slug) continue; // could not find them: try again another run
+      if (ledger.has(profile.slug)) continue;
+      thread = await browser.readThread({ slug: profile.slug, name: profile.name ?? row.name });
+    } catch (err) {
+      out.error = String(err?.message ?? err);
+      if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
+      continue;
+    }
+    const verdict = await qualify({ profile, thread, llm });
+    if (!verdict.qualified) {
+      ledger.recordSkip(profile.slug, { at: isoNow(now), reason: `inbound-unqualified: ${verdict.reason}`, name: profile.name ?? row.name });
+      out.skipped.push(profile.slug);
+      continue;
+    }
+    ledger.recordExisting(profile.slug, { at: isoNow(now), name: profile.name ?? row.name, headline: profile.headline, recipient: profile.recipient ?? null });
+    ledger.setStage(profile.slug, { inbound: true, qualifiedBy: verdict.reason, title: profile.title, company: profile.company, companyInfo: profile.companyInfo, qualified: true });
+    for (const m of thread) ledger.recordMessage(profile.slug, { at: isoNow(now), from: m.from, text: m.text, kind: 'history' });
+    const draft = await draftReply({ lead: ledger.get(profile.slug), llm });
+    if (draft.action === 'handoff') {
+      ledger.setStage(profile.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
+      out.handoffs.push({ slug: profile.slug, reason: draft.reason });
+      continue;
+    }
+    if (draft.action !== 'send') { out.held.push({ slug: profile.slug, reason: draft.reason }); continue; }
+    try {
+      if (!(await browser.sendMessage({ slug: profile.slug, name: profile.name ?? row.name, text: draft.text }))) continue;
+    } catch (err) {
+      out.error = String(err?.message ?? err);
+      break;
+    }
+    ledger.recordMessage(profile.slug, { at: isoNow(now), from: 'us', text: draft.text, kind: 'reply' });
+    out.replied.push(profile.slug);
+    left -= 1;
   }
   return out;
 }
