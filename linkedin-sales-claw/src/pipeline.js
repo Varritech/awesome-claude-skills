@@ -11,7 +11,8 @@
 import { matchesIcp } from './prospects.js';
 import { connectBudget } from './budget.js';
 import { openerFor, followUpFor, inviteNoteFor, openerExistingFor } from './copy.js';
-import { draftReply } from './sales.js';
+import { draftReply, bookedText } from './sales.js';
+import { spreadSlots } from './calendar.js';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -157,8 +158,15 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate, d
   return out;
 }
 
-export async function replyRound({ ledger, browser, llm, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null, doNotMessage = [] }) {
-  const out = { replied: [], handoffs: [], held: [], error: null };
+export async function replyRound({ ledger, browser, llm, calendar = null, dryBook = false, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null, doNotMessage = [] }) {
+  const out = { replied: [], handoffs: [], held: [], booked: [], error: null };
+  // Free slots are read once per run, only when someone actually wrote back.
+  let slots = null;
+  const openSlots = async () => {
+    if (slots) return slots;
+    try { slots = calendar ? spreadSlots(await calendar.freeSlots({ now })) : []; } catch (err) { slots = []; out.calendarError = String(err?.message ?? err); }
+    return slots;
+  };
   let left = messageBudget(ledger, rate, now);
   // With the inbox list (one click per run), only leads whose newest line is
   // from THEM are opened. Without it, fall back to checking threads in rotation.
@@ -185,20 +193,38 @@ export async function replyRound({ ledger, browser, llm, now = new Date(), rate,
     syncThread(ledger, e.slug, thread, now);
     if (thread.at(-1)?.from !== 'them') continue;
 
-    const draft = await draftReply({ lead: ledger.get(e.slug), llm });
+    const draft = await draftReply({ lead: ledger.get(e.slug), llm, slots: await openSlots() });
     if (draft.action === 'handoff') {
       ledger.setStage(e.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
       out.handoffs.push({ slug: e.slug, reason: draft.reason });
       continue;
     }
-    if (draft.action !== 'send') { out.held.push({ slug: e.slug, reason: draft.reason }); continue; }
+    let text = draft.text;
+    if (draft.action === 'book') {
+      if (dryBook) { out.held.push({ slug: e.slug, reason: `dry: would book ${draft.label} for ${draft.email}` }); continue; }
+      let res;
+      try {
+        res = await calendar.book({ start: draft.start, email: draft.email, name: e.name, company: e.headline ?? null, now });
+      } catch (err) {
+        res = { ok: false, reason: `calendar: ${String(err?.message ?? err)}` };
+      }
+      if (!res.ok) { out.held.push({ slug: e.slug, reason: res.reason }); slots = null; continue; }
+      // The event exists now: record it BEFORE the DM, so a failed send can never double-book.
+      ledger.setStage(e.slug, {
+        qualified: true, booked: { eventId: res.eventId, start: draft.start, label: draft.label, email: draft.email, at: isoNow(now) },
+        handoff: true, handoffReason: `booked call ${draft.label} (${draft.email})`, handoffAt: isoNow(now),
+      });
+      out.booked.push({ slug: e.slug, at: draft.label, email: draft.email });
+      slots = (slots ?? []).filter((x) => x.start !== draft.start);
+      text = bookedText({ label: draft.label, email: draft.email });
+    } else if (draft.action !== 'send') { out.held.push({ slug: e.slug, reason: draft.reason }); continue; }
     try {
-      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text: draft.text }))) continue;
+      if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
     } catch (err) {
       out.error = String(err?.message ?? err);
       break;
     }
-    ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text: draft.text, kind: 'reply' });
+    ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: draft.action === 'book' ? 'booked' : 'reply' });
     if (draft.qualified !== null) ledger.setStage(e.slug, { qualified: draft.qualified });
     out.replied.push(e.slug);
     left -= 1;

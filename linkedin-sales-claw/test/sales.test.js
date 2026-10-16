@@ -14,7 +14,8 @@ const llmSaying = (obj) => async () => (typeof obj === 'string' ? obj : JSON.str
 describe('buildSalesPrompt', () => {
   it('carries the offer, the qualifier, the whole thread and who they are', () => {
     const p = buildSalesPrompt(lead);
-    expect(p).toMatch(/up to 80%/);
+    expect(p).toMatch(/full business bundle.*80%/i);
+    expect(p).toMatch(/each claw.*replace an agency/i);
     expect(p).toMatch(/free/i);
     expect(p).toMatch(/only pay/i);
     expect(p).toMatch(/owner|decision/i);
@@ -29,14 +30,9 @@ describe('draftReply', () => {
     expect(r).toMatchObject({ action: 'send', text: 'Got it, scheduling is a perfect fit. How many quotes a week?' });
   });
 
-  it('strips the calendar link until the lead is qualified', async () => {
-    const r = await draftReply({ lead, llm: llmSaying({ reply: `Happy to show you. Grab a time: ${CALENDLY_URL}`, qualified: false }) });
+  it('strips calendar links: booking happens on his calendar, not a link', async () => {
+    const r = await draftReply({ lead, llm: llmSaying({ reply: `Sounds like a fit. Grab a time: ${CALENDLY_URL}`, qualified: true }) });
     expect(r.text).not.toContain('calendly');
-  });
-
-  it('keeps the calendar link once qualified, and marks the lead qualified', async () => {
-    const r = await draftReply({ lead, llm: llmSaying({ reply: `Sounds like a fit. Grab a time here: ${CALENDLY_URL}`, qualified: true }) });
-    expect(r.text).toContain(CALENDLY_URL);
     expect(r.qualified).toBe(true);
   });
 
@@ -60,5 +56,53 @@ describe('draftReply', () => {
   it('accepts a JSON object wrapped in prose or a code fence', async () => {
     const r = await draftReply({ lead, llm: llmSaying('```json\n{"reply":"How many quotes a week?","qualified":null}\n```') });
     expect(r).toMatchObject({ action: 'send', text: 'How many quotes a week?' });
+  });
+});
+
+const slots = [
+  { start: '2026-10-19T14:00:00.000Z', label: 'Mon Oct 19, 10:00 AM ET' },
+  { start: '2026-10-20T18:30:00.000Z', label: 'Tue Oct 20, 2:30 PM ET' },
+];
+const agreed = {
+  ...lead,
+  messages: [
+    ...lead.messages,
+    { from: 'us', text: 'Want to map it on a quick call? I have Mon Oct 19, 10:00 AM ET or Tue Oct 20, 2:30 PM ET.' },
+    { from: 'them', text: 'Tuesday works. dana@whitfieldhvac.com' },
+  ],
+};
+
+describe('the sales brain', () => {
+  it('sells like the closer rubric and carries real proof, never a client name', () => {
+    const p = buildSalesPrompt(lead, { slots });
+    expect(p).toMatch(/one question/i);
+    expect(p).toMatch(/objection/i);
+    expect(p).toMatch(/label/i);
+    expect(p).toMatch(/case stud/i);
+    expect(p).toMatch(/25-year marketing agency/);
+    expect(p).not.toMatch(/IMP|Clearwater|VtMarkets|Social Growth Engine|Alix|KLT/);
+  });
+
+  it('offers only the real open slots, by label', () => {
+    const p = buildSalesPrompt(lead, { slots });
+    expect(p).toContain('S1 = Mon Oct 19, 10:00 AM ET');
+    expect(p).toContain('S2 = Tue Oct 20, 2:30 PM ET');
+    expect(p).toMatch(/email/i);
+  });
+});
+
+describe('booking', () => {
+  it('books the slot they picked with the email they typed', async () => {
+    const r = await draftReply({ lead: agreed, slots, llm: llmSaying({ reply: 'Done.', qualified: true, book: { slot: 'S2', email: 'dana@whitfieldhvac.com' } }) });
+    expect(r).toMatchObject({ action: 'book', start: '2026-10-20T18:30:00.000Z', email: 'dana@whitfieldhvac.com', qualified: true });
+  });
+
+  it('never books an email they did not write, a slot that is not open, or an unqualified lead', async () => {
+    const invented = await draftReply({ lead: agreed, slots, llm: llmSaying({ reply: 'What is the best email for the invite?', qualified: true, book: { slot: 'S2', email: 'dana@whitfield.com' } }) });
+    expect(invented).toMatchObject({ action: 'send', text: 'What is the best email for the invite?' });
+    const noSlot = await draftReply({ lead: agreed, slots, llm: llmSaying({ reply: 'Which works?', qualified: true, book: { slot: 'S9', email: 'dana@whitfieldhvac.com' } }) });
+    expect(noSlot.action).toBe('send');
+    const unq = await draftReply({ lead: agreed, slots, llm: llmSaying({ reply: 'Which works?', qualified: false, book: { slot: 'S2', email: 'dana@whitfieldhvac.com' } }) });
+    expect(unq.action).toBe('send');
   });
 });

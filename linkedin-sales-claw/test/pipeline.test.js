@@ -179,6 +179,35 @@ describe('replyRound', () => {
     expect(ledger.get('dana').messages.map((m) => m.from)).toEqual(['us', 'them', 'us']);
   });
 
+  it('books the call on the calendar, sends the confirmation, and parks the lead for Cristiano', async () => {
+    const ledger = ledgerAt();
+    lead(ledger);
+    const thread = [{ from: 'us', text: 'opener' }, { from: 'us', text: 'Mon 10 AM or Tue 2:30 PM ET?' }, { from: 'them', text: 'Tue works, dana@whitfieldhvac.com' }];
+    const browser = fakeBrowser({ readThread: vi.fn(async () => thread) });
+    const slots = [{ start: '2026-10-19T14:00:00.000Z', label: 'Mon Oct 19, 10:00 AM ET' }, { start: '2026-10-20T18:30:00.000Z', label: 'Tue Oct 20, 2:30 PM ET' }];
+    const calendar = { freeSlots: vi.fn(async () => slots), book: vi.fn(async () => ({ ok: true, eventId: 'evt1', label: 'Tue Oct 20, 2:30 PM ET' })) };
+    const llm = vi.fn(async () => JSON.stringify({ reply: '', qualified: true, book: { slot: 'S2', email: 'dana@whitfieldhvac.com' } }));
+    const r = await replyRound({ ledger, browser, llm, calendar, now, rate: { perHour: 10 } });
+    expect(llm.mock.calls[0][0].prompt).toContain('S2 = Tue Oct 20, 2:30 PM ET');
+    expect(calendar.book).toHaveBeenCalledWith(expect.objectContaining({ start: '2026-10-20T18:30:00.000Z', email: 'dana@whitfieldhvac.com', name: 'Dana Whitfield' }));
+    expect(browser.sendMessage.mock.calls[0][0].text).toMatch(/Tue Oct 20, 2:30 PM ET.*dana@whitfieldhvac\.com/);
+    expect(r.booked).toEqual([{ slug: 'dana', at: 'Tue Oct 20, 2:30 PM ET', email: 'dana@whitfieldhvac.com' }]);
+    expect(ledger.get('dana')).toMatchObject({ booked: { eventId: 'evt1', start: '2026-10-20T18:30:00.000Z' }, handoff: true });
+  });
+
+  it('a slot taken since it was offered books nothing and sends nothing', async () => {
+    const ledger = ledgerAt();
+    lead(ledger);
+    const browser = fakeBrowser({ readThread: vi.fn(async () => [{ from: 'us', text: 'opener' }, { from: 'them', text: 'Tue, dana@whitfieldhvac.com' }]) });
+    const slots = [{ start: '2026-10-20T18:30:00.000Z', label: 'Tue Oct 20, 2:30 PM ET' }];
+    const calendar = { freeSlots: vi.fn(async () => slots), book: vi.fn(async () => ({ ok: false, reason: 'slot-not-free' })) };
+    const llm = vi.fn(async () => JSON.stringify({ reply: '', qualified: true, book: { slot: 'S1', email: 'dana@whitfieldhvac.com' } }));
+    const r = await replyRound({ ledger, browser, llm, calendar, now, rate: { perHour: 10 } });
+    expect(browser.sendMessage).not.toHaveBeenCalled();
+    expect(r.held).toEqual([{ slug: 'dana', reason: 'slot-not-free' }]);
+    expect(ledger.get('dana').booked).toBeUndefined();
+  });
+
   it('does nothing when the last word is ours', async () => {
     const ledger = ledgerAt();
     lead(ledger);

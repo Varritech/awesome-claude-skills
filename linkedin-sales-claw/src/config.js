@@ -45,6 +45,13 @@ export const config = () => ({
   dailyInvites: process.env.LI_DAILY_INVITES ? Number(process.env.LI_DAILY_INVITES) : null,
   // Messages WE send per rolling hour (openers + follow-ups + replies together).
   rate: { perHour: Number(process.env.MAX_MESSAGES_PER_HOUR ?? 6) },
+  // Calls are booked straight onto christian@varritech.com's Google Calendar
+  // (Composio, entity claude_user); Cristiano's alias is invited as a guest.
+  composioKey: process.env.COMPOSIO_API_KEY || (() => {
+    try { return JSON.parse(readFileSync(`${process.env.HOME}/.composio/user_data.json`, 'utf8')).api_key; } catch { return undefined; }
+  })(),
+  calendarAccount: process.env.LI_CALENDAR_ACCOUNT || 'ca_dBoe-p_sR0fx',
+  bookNotify: process.env.LI_BOOK_NOTIFY || 'cristiano@varritech.com',
   cdpPort: Number(process.env.LI_CDP_PORT ?? 9335),
   me: process.env.LI_ME || 'Cristiano Varriale',
   llmBackend: process.env.LLM_BACKEND || 'claude-cli',

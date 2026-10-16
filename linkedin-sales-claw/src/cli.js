@@ -16,6 +16,7 @@ import { createLinkedInBrowser } from './browser.js';
 import { inviteRound, acceptRound, followUpRound, replyRound, existingRound } from './pipeline.js';
 import { claudeCliLlm, anthropicLlm } from './llm.js';
 import { connectBudget, dailyConnectCap } from './budget.js';
+import { calendarClient, composioExec } from './calendar.js';
 
 const cfg = config();
 const [cmd, ...args] = process.argv.slice(2);
@@ -40,6 +41,10 @@ const makeLlm = () => (cfg.llmBackend === 'anthropic-api'
   ? anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model })
   : claudeCliLlm({ model: cfg.model, oauthToken: cfg.claudeOauthToken }));
 
+const makeCalendar = () => (cfg.composioKey
+  ? calendarClient({ exec: composioExec({ apiKey: cfg.composioKey, connectedAccountId: cfg.calendarAccount }), notify: cfg.bookNotify })
+  : null);
+
 function dryWrap(browser) {
   const would = [];
   return {
@@ -61,7 +66,7 @@ async function run() {
   // One click into Messaging tells us who wrote back; only those threads get opened.
   let inbox = null;
   try { inbox = await browser.inbox(); report.inbox = { rows: inbox.length, fromThem: inbox.filter((r) => !r.fromUs).length }; } catch (err) { report.inbox = { error: String(err?.message ?? err) }; }
-  report.replies = await replyRound({ ledger, browser, llm: makeLlm(), now, rate: cfg.rate, inbox, doNotMessage: cfg.doNotMessage });
+  report.replies = await replyRound({ ledger, browser, llm: makeLlm(), calendar: makeCalendar(), dryBook: dry, now, rate: cfg.rate, inbox, doNotMessage: cfg.doNotMessage });
   report.followUps = cfg.followUps ? await followUpRound({ ledger, browser, now, rate: cfg.rate, doNotMessage: cfg.doNotMessage }) : { off: true };
   report.openers = await acceptRound({ ledger, browser, now, rate: cfg.rate, doNotMessage: cfg.doNotMessage });
   report.existing = await existingRound({ ledger, browser, now, rate: cfg.rate, searches: cfg.existingSearches, cursor: fileCursor(dry ? `${cfg.existingCursorPath}.dry` : cfg.existingCursorPath), dailyCap: cfg.dailyExisting, doNotMessage: cfg.doNotMessage });
@@ -83,6 +88,7 @@ if (cmd === 'run') {
     const n = (e.messages ?? []).length;
     const state = e.status === 'skipped' ? `skipped:${e.reason}`
       : e.closed ? 'CLOSED (Cristiano)' : e.handoff ? `HANDOFF: ${e.handoffReason}`
+      : e.booked ? `BOOKED ${e.booked.label}`
       : e.qualified ? 'QUALIFIED' : e.replied ? 'REPLIED' : n ? `${n} msg` : e.acceptedAt ? 'accepted' : 'invited';
     console.log(`  ${String(e.slug).padEnd(32)} ${String(e.name ?? '').padEnd(24)} ${state}`);
   }

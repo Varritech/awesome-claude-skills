@@ -366,6 +366,44 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
     return list;
   }
 
+  /**
+   * Visit someone's profile like a person: search their name, click their name,
+   * read the current role from Experience, click the company and read its card.
+   * -> { slug, name, headline, title, company, companyInfo, recipient } or null.
+   */
+  async function profileOf({ name }) {
+    const u = await hands();
+    const rows = await searchPage({ keywords: name.split(',')[0], network: ['1st'] }, 1);
+    const card = rows.find((r) => norm(r.name).toLowerCase() === norm(name).toLowerCase());
+    if (!card) return null;
+    const nameLink = `[...document.querySelectorAll('main a[href*="/in/${card.slug}"]')].find((a) => (a.innerText || '').trim().length > 1)`;
+    if (!(await clickTop(nameLink))) return null;
+    if (!(await waitTop(`location.pathname.startsWith("/in/${card.slug}")`, 10000))) return null;
+    await waitTop('[...document.querySelectorAll("section")].some((s) => /^\\s*Experience/.test(s.innerText || ""))', 10000);
+    await u.sleep(1200);
+    const exp = await u.evaluate(`(() => {
+      const sec = [...document.querySelectorAll('section')].find((s) => /^\\s*Experience/.test(s.innerText || ''));
+      if (!sec) return null;
+      const lines = sec.innerText.split('\\n').map((l) => l.trim()).filter(Boolean).slice(1, 8);
+      const co = sec.querySelector('a[href*="/company/"]');
+      return { lines, companyHref: co ? co.getAttribute('href') : null };
+    })()`);
+    const title = exp?.lines?.[0] ?? null;
+    const company = (exp?.lines?.[1] ?? '').split('·')[0].trim() || null;
+    let companyInfo = null;
+    if (exp?.companyHref) {
+      const coLink = `document.querySelector('section a[href="${exp.companyHref}"]')`;
+      if (await clickTop(coLink)) {
+        if (await waitTop('location.pathname.startsWith("/company/")', 10000)) {
+          await u.sleep(2500);
+          companyInfo = norm(await u.evaluate('(document.querySelector("main")?.innerText || "").slice(0, 500)')).slice(0, 400);
+        }
+      }
+    }
+    currentSearch = null;
+    return { slug: card.slug, name: card.name, headline: card.headline, title, company, companyInfo, recipient: card.recipient ?? null };
+  }
+
   /** Buttons of the open dialog (it lives in LinkedIn's iframe): [{ nodeId, centre, label }]. */
   async function dialogButtons() {
     const u = await hands();
@@ -460,5 +498,5 @@ export function createLinkedInBrowser({ cdpPort = 9335, me = 'Cristiano Varriale
     return parseConnections(await u.evaluate('document.querySelector("main")?.outerHTML || ""'));
   }
 
-  return { preflight, goHome, inbox, searchPage, openChat, readThread, sendMessage, sendInvite, connections, closeAllBubbles, cardsOnPage, clickTop, waitTop, hands };
+  return { preflight, goHome, inbox, profileOf, searchPage, openChat, readThread, sendMessage, sendInvite, connections, closeAllBubbles, cardsOnPage, clickTop, waitTop, hands };
 }
