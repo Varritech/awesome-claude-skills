@@ -121,14 +121,18 @@ export async function connectUi({ port = 9335, urlMatch = 'linkedin.com', fetchI
 
   /**
    * Is LinkedIn's app actually drawn? (Blank main + no nav = crashed SPA.)
+   * On /messaging pages LinkedIn draws the nav bar inside its /preload/ iframe,
+   * so a top-document check alone called every Messaging page "crashed" and
+   * reload-looped it (2026-10-16): fall back to a pierced search for the
+   * My Network link at the top of the window.
    */
   async function healthy() {
     try {
-      return await evaluate(`(() => {
-        const main = (document.querySelector('main')?.innerText || '').trim().length;
-        const nav = [...document.querySelectorAll('a, button')].some((e) => (e.innerText || '').trim() === 'My Network' && e.getBoundingClientRect().top < 60);
-        return main > 20 && nav;
-      })()`);
+      const main = await evaluate(`(document.querySelector('main')?.innerText || '').trim().length > 20`);
+      if (!main) return false;
+      const topNav = await evaluate(`[...document.querySelectorAll('a, button')].some((e) => (e.innerText || '').trim() === 'My Network' && e.getBoundingClientRect().top < 60)`);
+      if (topNav) return true;
+      return (await find('a[href*="/mynetwork/"]')).some((n) => n.centre && n.centre.w > 0 && n.centre.y < 80);
     } catch { return false; }
   }
 
