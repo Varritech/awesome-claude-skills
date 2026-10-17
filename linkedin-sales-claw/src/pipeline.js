@@ -68,7 +68,7 @@ export async function inviteRound({ ledger, browser, now = new Date(), searches,
 }
 
 export async function acceptRound({ ledger, browser, now = new Date(), rate, doNotMessage = [] }) {
-  const out = { accepted: [], opened: [], error: null };
+  const out = { accepted: [], opened: [], takenOver: [], error: null };
   const pending = ledger.all().filter((e) => e.invitedAt && !e.acceptedAt);
   const unopened = () => ledger.all().filter((e) => e.acceptedAt && e.recipient && !(e.messages ?? []).length && !e.handoff);
   if (!pending.length && !unopened().length) return out;
@@ -89,6 +89,17 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate, doN
   for (const e of unopened()) {
     if (left <= 0) break;
     if (blocked(e.name, doNotMessage)) continue;
+    // Look first: he may have written to them himself since they accepted.
+    let thread;
+    try {
+      thread = await browser.readThread({ slug: e.slug, recipient: e.recipient, name: e.name });
+    } catch (err) {
+      out.error = String(err?.message ?? err);
+      if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
+      continue;
+    }
+    const his = cristianoLine(e, thread);
+    if (his) { takeOver(ledger, e.slug, his, now, out); continue; }
     const text = openerFor({ name: e.name });
     try {
       if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
@@ -101,6 +112,27 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate, doN
     left -= 1;
   }
   return out;
+}
+
+/**
+ * Cristiano 2026-10-16: "As soon as I've touched a conversation, it's now
+ * mine." His messages and the claw's come from the same account, so the only
+ * tell is the text: a line from our side that the claw never sent (nor the
+ * invite note) means he wrote it. Returns that line, or null.
+ */
+export function cristianoLine(entry, thread) {
+  const sent = [entry.inviteNote, ...(entry.messages ?? []).filter((m) => m.from === 'us' && m.kind !== 'history').map((m) => m.text)]
+    .filter(Boolean).map(norm);
+  const ours = (t) => {
+    const n = norm(t);
+    return sent.some((s) => s === n || (n.length >= 40 && s.startsWith(n.slice(0, 40))) || (s.length >= 40 && n.startsWith(s.slice(0, 40))));
+  };
+  return thread.find((m) => m.from === 'us' && !ours(m.text))?.text ?? null;
+}
+
+function takeOver(ledger, slug, text, now, out) {
+  ledger.setStage(slug, { owner: 'cristiano', takenOverAt: isoNow(now), handoff: true, handoffReason: 'Cristiano wrote in the thread', handoffAt: isoNow(now) });
+  out.takenOver.push({ slug, text });
 }
 
 /** Folds the live thread into the ledger. Returns the messages from them we had not seen. */
@@ -159,7 +191,7 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate, d
 }
 
 export async function replyRound({ ledger, browser, llm, calendar = null, dryBook = false, now = new Date(), rate, maxThreads = 15, activeDays = 45, inbox = null, doNotMessage = [] }) {
-  const out = { replied: [], handoffs: [], held: [], booked: [], error: null };
+  const out = { replied: [], handoffs: [], held: [], booked: [], takenOver: [], error: null };
   // Free slots are read once per run, only when someone actually wrote back.
   let slots = null;
   const openSlots = async () => {
@@ -190,6 +222,8 @@ export async function replyRound({ ledger, browser, llm, calendar = null, dryBoo
       continue;
     }
     ledger.setStage(e.slug, { lastCheckedAt: isoNow(now) });
+    const his = cristianoLine(e, thread);
+    if (his) { syncThread(ledger, e.slug, thread, now); takeOver(ledger, e.slug, his, now, out); continue; }
     syncThread(ledger, e.slug, thread, now);
     if (thread.at(-1)?.from !== 'them') continue;
 

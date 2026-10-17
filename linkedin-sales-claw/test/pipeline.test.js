@@ -182,6 +182,7 @@ describe('replyRound', () => {
   it('books the call on the calendar, sends the confirmation, and parks the lead for Cristiano', async () => {
     const ledger = ledgerAt();
     lead(ledger);
+    ledger.recordMessage('dana', { at: iso(3 * DAY), from: 'us', text: 'Mon 10 AM or Tue 2:30 PM ET?', kind: 'reply' });
     const thread = [{ from: 'us', text: 'opener' }, { from: 'us', text: 'Mon 10 AM or Tue 2:30 PM ET?' }, { from: 'them', text: 'Tue works, dana@whitfieldhvac.com' }];
     const browser = fakeBrowser({ readThread: vi.fn(async () => thread) });
     const slots = [{ start: '2026-10-19T14:00:00.000Z', label: 'Mon Oct 19, 10:00 AM ET' }, { start: '2026-10-20T18:30:00.000Z', label: 'Tue Oct 20, 2:30 PM ET' }];
@@ -370,5 +371,78 @@ describe('do-not-message list', () => {
     const browser = fakeBrowser({ searchPage: vi.fn(async () => [{ slug: 'g', name: 'Guy Riches', headline: 'Founder, 22BookFriends', canConnect: true }]) });
     const r = await inviteRound({ ledger, browser, now, searches: ['u'], doNotMessage: ['Guy Riches'] });
     expect(r.invited).toEqual([]);
+  });
+});
+
+describe('Cristiano takes over a thread the moment he writes in it', () => {
+  const lead = (ledger, extra = {}) => {
+    ledger.recordInvite('dana', { at: iso(5 * DAY), name: 'Dana Whitfield' });
+    ledger.setStage('dana', { recipient: 'R1', ...extra });
+    ledger.recordMessage('dana', { at: iso(4 * DAY), from: 'us', text: 'Hi Dana, opener line\nsecond line', kind: 'opener' });
+  };
+
+  it('replyRound: a message from his account the claw never sent = his thread; no draft, no send, never again', async () => {
+    const ledger = ledgerAt();
+    lead(ledger);
+    const thread = [
+      { from: 'us', text: 'Hi Dana,  opener line second line' },
+      { from: 'them', text: 'interesting' },
+      { from: 'us', text: 'Dana, Cristiano here, call me tomorrow' },
+      { from: 'them', text: 'sure, what time?' },
+    ];
+    const browser = fakeBrowser({ readThread: vi.fn(async () => thread) });
+    const llm = vi.fn(async () => JSON.stringify({ reply: 'x', qualified: null }));
+    const r = await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 } });
+    expect(llm).not.toHaveBeenCalled();
+    expect(browser.sendMessage).not.toHaveBeenCalled();
+    expect(r.takenOver).toEqual([{ slug: 'dana', text: 'Dana, Cristiano here, call me tomorrow' }]);
+    expect(ledger.get('dana')).toMatchObject({ owner: 'cristiano', handoff: true });
+    await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 } });
+    expect(browser.readThread).toHaveBeenCalledTimes(1);
+  });
+
+  it('replyRound: the claw\'s own messages and the invite note are not a takeover', async () => {
+    const ledger = ledgerAt();
+    lead(ledger, { inviteNote: 'Hi Dana, I run Varritech. note' });
+    const thread = [{ from: 'us', text: 'Hi Dana, I run Varritech. note' }, { from: 'us', text: 'Hi Dana, opener line second line' }, { from: 'them', text: 'tell me more' }];
+    const browser = fakeBrowser({ readThread: vi.fn(async () => thread) });
+    const llm = vi.fn(async () => JSON.stringify({ reply: 'Sure. What eats the most hours?', qualified: null }));
+    const r = await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 } });
+    expect(r.takenOver).toEqual([]);
+    expect(r.replied).toEqual(['dana']);
+    expect(ledger.get('dana').owner).toBe('claw');
+  });
+
+  it('acceptRound: no opener if he already wrote to them after they accepted', async () => {
+    const ledger = ledgerAt();
+    ledger.recordInvite('dana', { at: iso(2 * DAY), name: 'Dana Whitfield' });
+    const browser = fakeBrowser({
+      connections: vi.fn(async () => [{ slug: 'dana', name: 'Dana Whitfield', recipient: 'R1' }]),
+      readThread: vi.fn(async () => [{ from: 'us', text: 'Hey Dana, great to connect, quick call?' }]),
+    });
+    const r = await acceptRound({ ledger, browser, now, rate: { perHour: 10 } });
+    expect(browser.sendMessage).not.toHaveBeenCalled();
+    expect(r.takenOver).toEqual([{ slug: 'dana', text: 'Hey Dana, great to connect, quick call?' }]);
+    expect(ledger.get('dana').owner).toBe('cristiano');
+  });
+
+  it('acceptRound: an unreadable thread sends no opener this run', async () => {
+    const ledger = ledgerAt();
+    ledger.recordInvite('dana', { at: iso(2 * DAY), name: 'Dana Whitfield' });
+    const browser = fakeBrowser({
+      connections: vi.fn(async () => [{ slug: 'dana', name: 'Dana Whitfield', recipient: 'R1' }]),
+      readThread: vi.fn(async () => { throw new Error('chat did not open'); }),
+    });
+    const r = await acceptRound({ ledger, browser, now, rate: { perHour: 10 } });
+    expect(browser.sendMessage).not.toHaveBeenCalled();
+    expect(r.opened).toEqual([]);
+  });
+
+  it('every claw send marks the lead as claw-owned with the time of its last message', async () => {
+    const ledger = ledgerAt();
+    ledger.recordInvite('dana', { at: iso(2 * DAY), name: 'Dana Whitfield' });
+    const browser = fakeBrowser({ connections: vi.fn(async () => [{ slug: 'dana', name: 'Dana Whitfield', recipient: 'R1' }]) });
+    await acceptRound({ ledger, browser, now, rate: { perHour: 10 } });
+    expect(ledger.get('dana')).toMatchObject({ owner: 'claw', clawMessagedAt: now.toISOString() });
   });
 });

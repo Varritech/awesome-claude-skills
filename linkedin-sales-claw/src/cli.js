@@ -3,6 +3,7 @@
 //
 //   node src/cli.js run [--dry]   one full run: preflight, replies, follow-ups, openers, invites
 //   node src/cli.js ledger        who is where in the funnel
+//   node src/cli.js messaged      everyone the claw messaged, and who owns the thread now
 //   node src/cli.js handoffs      leads parked for Cristiano
 //   node src/cli.js close <slug>  stop all automation for one lead (Cristiano took it over)
 //
@@ -87,10 +88,18 @@ if (cmd === 'run') {
   for (const e of rows) {
     const n = (e.messages ?? []).length;
     const state = e.status === 'skipped' ? `skipped:${e.reason}`
-      : e.closed ? 'CLOSED (Cristiano)' : e.handoff ? `HANDOFF: ${e.handoffReason}`
+      : e.owner === 'cristiano' ? 'CRISTIANO took over' : e.closed ? 'CLOSED (Cristiano)' : e.handoff ? `HANDOFF: ${e.handoffReason}`
       : e.booked ? `BOOKED ${e.booked.label}`
       : e.qualified ? 'QUALIFIED' : e.replied ? 'REPLIED' : n ? `${n} msg` : e.acceptedAt ? 'accepted' : 'invited';
     console.log(`  ${String(e.slug).padEnd(32)} ${String(e.name ?? '').padEnd(24)} ${state}`);
+  }
+} else if (cmd === 'messaged') {
+  // Everyone this claw has messaged, and whose thread it is now.
+  const rows = ledger.all().filter((e) => e.owner).sort((a, b) => Date.parse(b.clawMessagedAt ?? 0) - Date.parse(a.clawMessagedAt ?? 0));
+  console.log(`${rows.length} messaged by the claw, ${rows.filter((e) => e.owner === 'cristiano').length} now Cristiano's`);
+  for (const e of rows) {
+    const sent = (e.messages ?? []).filter((m) => m.from === 'us' && m.kind !== 'history').length;
+    console.log(`  ${String(e.slug).padEnd(32)} ${String(e.name ?? '').padEnd(24)} ${e.owner.padEnd(9)} ${sent} sent, last ${e.clawMessagedAt}${e.takenOverAt ? `, his since ${e.takenOverAt}` : ''}`);
   }
 } else if (cmd === 'handoffs') {
   for (const e of ledger.all().filter((x) => x.handoff && !x.closed)) {
@@ -100,6 +109,6 @@ if (cmd === 'run') {
   ledger.setStage(args[0], { closed: true });
   console.log(`closed: ${args[0]}`);
 } else {
-  console.error('usage: cli.js run [--dry] | ledger | handoffs | close <slug>');
+  console.error('usage: cli.js run [--dry] | ledger | messaged | handoffs | close <slug>');
   process.exit(1);
 }

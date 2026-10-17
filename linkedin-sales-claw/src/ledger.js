@@ -77,6 +77,9 @@ export function createLedger({ path }) {
       const e = must(who);
       e.messages = [...(e.messages ?? []), { at, from, text, ...(kind ? { kind } : {}) }];
       if (from === 'them') e.replied = true;
+      // The record of who THIS claw messaged. Cristiano's own messages are
+      // never recorded as ours, so once he owns a thread it stays his.
+      if (from === 'us' && kind !== 'history' && e.owner !== 'cristiano') { e.owner = 'claw'; e.clawMessagedAt = at; }
       persist();
     },
 
