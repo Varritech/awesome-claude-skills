@@ -396,7 +396,7 @@ describe('Cristiano takes over a thread the moment he writes in it', () => {
     expect(llm).not.toHaveBeenCalled();
     expect(browser.sendMessage).not.toHaveBeenCalled();
     expect(r.takenOver).toEqual([{ slug: 'dana', text: 'Dana, Cristiano here, call me tomorrow' }]);
-    expect(ledger.get('dana')).toMatchObject({ owner: 'cristiano', handoff: true });
+    expect(ledger.get('dana')).toMatchObject({ owner: 'cristiano', handoff: true, takenOverLine: 'Dana, Cristiano here, call me tomorrow' });
     await replyRound({ ledger, browser, llm, now, rate: { perHour: 10 } });
     expect(browser.readThread).toHaveBeenCalledTimes(1);
   });

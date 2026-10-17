@@ -9,10 +9,10 @@
 //
 // --dry reads LinkedIn for real but replaces every send with a log line.
 
-import { writeFileSync, readFileSync, mkdirSync, copyFileSync, existsSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { config } from './config.js';
-import { createLedger } from './ledger.js';
+import { createLedger, openDbLedger, supabaseStore } from './ledger.js';
 import { createLinkedInBrowser } from './browser.js';
 import { inviteRound, acceptRound, followUpRound, replyRound, existingRound } from './pipeline.js';
 import { claudeCliLlm, anthropicLlm } from './llm.js';
@@ -22,14 +22,22 @@ import { calendarClient, composioExec } from './calendar.js';
 const cfg = config();
 const [cmd, ...args] = process.argv.slice(2);
 const dry = args.includes('--dry');
-// A dry run works on a throwaway copy, so it can "succeed" at every send and
-// walk the exact path a live run would, without the real ledger ever moving.
+// The ledger is the Supabase database. A dry run works on a throwaway copy
+// of it, so it can "succeed" at every send and walk the exact path a live run
+// would, without the real ledger ever moving.
+if (!cfg.supabaseUrl || !cfg.supabaseKey) throw new Error('no Supabase URL/key: the ledger lives in the database, refusing to run');
+const store = supabaseStore({ url: cfg.supabaseUrl, key: cfg.supabaseKey });
 const dryPath = `${cfg.statePath}.dry.json`;
+let ledger;
 if (dry) {
   rmSync(dryPath, { force: true });
-  if (existsSync(cfg.statePath)) copyFileSync(cfg.statePath, dryPath);
+  const rows = Object.fromEntries((await store.load()).map((e) => [e.slug, e]));
+  mkdirSync(dirname(dryPath), { recursive: true });
+  writeFileSync(dryPath, JSON.stringify(rows));
+  ledger = createLedger({ path: dryPath });
+} else {
+  ledger = await openDbLedger({ store });
 }
-const ledger = createLedger({ path: dry ? dryPath : cfg.statePath });
 
 function fileCursor(path) {
   return {
@@ -81,7 +89,16 @@ async function run() {
 }
 
 if (cmd === 'run') {
-  await run();
+  try {
+    await run();
+  } catch (err) {
+    // A database write that failed stops the run on the spot: say so loudly.
+    const fatal = String(err?.stack ?? err);
+    mkdirSync(dirname(cfg.reportPath), { recursive: true });
+    writeFileSync(cfg.reportPath, JSON.stringify({ at: new Date().toISOString(), dry, fatal }, null, 2));
+    console.error(`FATAL: ${fatal}`);
+    process.exitCode = 1;
+  }
 } else if (cmd === 'ledger') {
   const rows = ledger.all();
   console.log(`${rows.length} in ledger, connect budget left today: ${connectBudget({ ledger })}/${dailyConnectCap({ ledger })}`);
@@ -106,7 +123,7 @@ if (cmd === 'run') {
     console.log(`${e.slug}  ${e.name}  ${e.handoffAt}  ${e.handoffReason}\n  last: ${e.messages?.at(-1)?.text ?? ''}`);
   }
 } else if (cmd === 'close') {
-  ledger.setStage(args[0], { closed: true });
+  await ledger.setStage(args[0], { closed: true });
   console.log(`closed: ${args[0]}`);
 } else {
   console.error('usage: cli.js run [--dry] | ledger | messaged | handoffs | close <slug>');

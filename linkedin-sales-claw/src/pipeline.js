@@ -57,8 +57,8 @@ export async function inviteRound({ ledger, browser, now = new Date(), searches,
         const ok = res === true || res?.ok === true;
         if (!ok) continue;
         const noted = res === true ? false : !!res.noted;
-        ledger.recordInvite(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, search });
-        ledger.setStage(r.slug, { inviteNote: noted ? note : null });
+        await ledger.recordInvite(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, search });
+        await ledger.setStage(r.slug, { inviteNote: noted ? note : null });
         out.invited.push(r.slug);
       }
     }
@@ -79,8 +79,8 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate, doN
       // Only rows we invited. A connection that is not in the ledger as an
       // invite is someone Cristiano already knows: never touched.
       if (!e || !e.invitedAt || e.acceptedAt) continue;
-      ledger.markAccepted(c.slug, { at: isoNow(now) });
-      ledger.setStage(c.slug, { recipient: c.recipient ?? null, ...(e.name ? {} : { name: c.name }) });
+      await ledger.markAccepted(c.slug, { at: isoNow(now) });
+      await ledger.setStage(c.slug, { recipient: c.recipient ?? null, ...(e.name ? {} : { name: c.name }) });
       out.accepted.push(c.slug);
     }
   }
@@ -99,7 +99,7 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate, doN
       continue;
     }
     const his = cristianoLine(e, thread);
-    if (his) { takeOver(ledger, e.slug, his, now, out); continue; }
+    if (his) { await takeOver(ledger, e.slug, his, now, out); continue; }
     const text = openerFor({ name: e.name });
     try {
       if (!(await browser.sendMessage({ slug: e.slug, recipient: e.recipient, name: e.name, text }))) continue;
@@ -107,7 +107,7 @@ export async function acceptRound({ ledger, browser, now = new Date(), rate, doN
       out.error = String(err?.message ?? err);
       break;
     }
-    ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: 'opener' });
+    await ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: 'opener' });
     out.opened.push(e.slug);
     left -= 1;
   }
@@ -130,18 +130,18 @@ export function cristianoLine(entry, thread) {
   return thread.find((m) => m.from === 'us' && !ours(m.text))?.text ?? null;
 }
 
-function takeOver(ledger, slug, text, now, out) {
-  ledger.setStage(slug, { owner: 'cristiano', takenOverAt: isoNow(now), handoff: true, handoffReason: 'Cristiano wrote in the thread', handoffAt: isoNow(now) });
+async function takeOver(ledger, slug, text, now, out) {
+  await ledger.setStage(slug, { owner: 'cristiano', takenOverAt: isoNow(now), takenOverLine: text, handoff: true, handoffReason: 'Cristiano wrote in the thread', handoffAt: isoNow(now) });
   out.takenOver.push({ slug, text });
 }
 
 /** Folds the live thread into the ledger. Returns the messages from them we had not seen. */
-function syncThread(ledger, slug, thread, now) {
+async function syncThread(ledger, slug, thread, now) {
   const e = ledger.get(slug);
   const knownTheirs = (e.messages ?? []).filter((m) => m.from === 'them').length;
   const theirs = thread.filter((m) => m.from === 'them');
   const fresh = theirs.slice(knownTheirs);
-  for (const m of fresh) ledger.recordMessage(slug, { at: isoNow(now), from: 'them', text: m.text });
+  for (const m of fresh) await ledger.recordMessage(slug, { at: isoNow(now), from: 'them', text: m.text });
   return fresh;
 }
 
@@ -174,7 +174,7 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate, d
       if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
       continue;
     }
-    const fresh = syncThread(ledger, e.slug, thread, now);
+    const fresh = await syncThread(ledger, e.slug, thread, now);
     if (fresh.length) continue;
     const text = followUpFor({ name: e.name, number });
     try {
@@ -183,7 +183,7 @@ export async function followUpRound({ ledger, browser, now = new Date(), rate, d
       out.error = String(err?.message ?? err);
       break;
     }
-    ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: `followup-${number}` });
+    await ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: `followup-${number}` });
     out.sent.push(e.slug);
     left -= 1;
   }
@@ -221,15 +221,15 @@ export async function replyRound({ ledger, browser, llm, calendar = null, dryBoo
       if (/signed out|checkpoint|DevTools|frozen/i.test(out.error)) break;
       continue;
     }
-    ledger.setStage(e.slug, { lastCheckedAt: isoNow(now) });
+    await ledger.setStage(e.slug, { lastCheckedAt: isoNow(now) });
     const his = cristianoLine(e, thread);
-    if (his) { syncThread(ledger, e.slug, thread, now); takeOver(ledger, e.slug, his, now, out); continue; }
-    syncThread(ledger, e.slug, thread, now);
+    if (his) { await syncThread(ledger, e.slug, thread, now); await takeOver(ledger, e.slug, his, now, out); continue; }
+    await syncThread(ledger, e.slug, thread, now);
     if (thread.at(-1)?.from !== 'them') continue;
 
     const draft = await draftReply({ lead: ledger.get(e.slug), llm, slots: await openSlots() });
     if (draft.action === 'handoff') {
-      ledger.setStage(e.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
+      await ledger.setStage(e.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
       out.handoffs.push({ slug: e.slug, reason: draft.reason });
       continue;
     }
@@ -244,7 +244,7 @@ export async function replyRound({ ledger, browser, llm, calendar = null, dryBoo
       }
       if (!res.ok) { out.held.push({ slug: e.slug, reason: res.reason }); slots = null; continue; }
       // The event exists now: record it BEFORE the DM, so a failed send can never double-book.
-      ledger.setStage(e.slug, {
+      await ledger.setStage(e.slug, {
         qualified: true, booked: { eventId: res.eventId, start: draft.start, label: draft.label, email: draft.email, at: isoNow(now) },
         handoff: true, handoffReason: `booked call ${draft.label} (${draft.email})`, handoffAt: isoNow(now),
       });
@@ -258,8 +258,8 @@ export async function replyRound({ ledger, browser, llm, calendar = null, dryBoo
       out.error = String(err?.message ?? err);
       break;
     }
-    ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: draft.action === 'book' ? 'booked' : 'reply' });
-    if (draft.qualified !== null) ledger.setStage(e.slug, { qualified: draft.qualified });
+    await ledger.recordMessage(e.slug, { at: isoNow(now), from: 'us', text, kind: draft.action === 'book' ? 'booked' : 'reply' });
+    if (draft.qualified !== null) await ledger.setStage(e.slug, { qualified: draft.qualified });
     out.replied.push(e.slug);
     left -= 1;
   }
@@ -299,7 +299,7 @@ export async function existingRound({ ledger, browser, now = new Date(), rate, s
         continue;
       }
       if (thread.length) {
-        ledger.recordSkip(r.slug, { at: isoNow(now), reason: 'existing-thread', name: r.name });
+        await ledger.recordSkip(r.slug, { at: isoNow(now), reason: 'existing-thread', name: r.name });
         out.skipped.push(r.slug);
         continue;
       }
@@ -311,8 +311,8 @@ export async function existingRound({ ledger, browser, now = new Date(), rate, s
         cursor.set({ search, page });
         return out;
       }
-      ledger.recordExisting(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, recipient: r.recipient });
-      ledger.recordMessage(r.slug, { at: isoNow(now), from: 'us', text, kind: 'opener-existing' });
+      await ledger.recordExisting(r.slug, { at: isoNow(now), name: r.name, headline: r.headline, recipient: r.recipient });
+      await ledger.recordMessage(r.slug, { at: isoNow(now), from: 'us', text, kind: 'opener-existing' });
       out.messaged.push(r.slug);
       left -= 1;
     }
@@ -359,16 +359,16 @@ export async function inboundRound({ ledger, browser, llm, qualify, now = new Da
     }
     const verdict = await qualify({ profile, thread, llm });
     if (!verdict.qualified) {
-      ledger.recordSkip(profile.slug, { at: isoNow(now), reason: `inbound-unqualified: ${verdict.reason}`, name: profile.name ?? row.name });
+      await ledger.recordSkip(profile.slug, { at: isoNow(now), reason: `inbound-unqualified: ${verdict.reason}`, name: profile.name ?? row.name });
       out.skipped.push(profile.slug);
       continue;
     }
-    ledger.recordExisting(profile.slug, { at: isoNow(now), name: profile.name ?? row.name, headline: profile.headline, recipient: profile.recipient ?? null });
-    ledger.setStage(profile.slug, { inbound: true, qualifiedBy: verdict.reason, title: profile.title, company: profile.company, companyInfo: profile.companyInfo, qualified: true });
-    for (const m of thread) ledger.recordMessage(profile.slug, { at: isoNow(now), from: m.from, text: m.text, kind: 'history' });
+    await ledger.recordExisting(profile.slug, { at: isoNow(now), name: profile.name ?? row.name, headline: profile.headline, recipient: profile.recipient ?? null });
+    await ledger.setStage(profile.slug, { inbound: true, qualifiedBy: verdict.reason, title: profile.title, company: profile.company, companyInfo: profile.companyInfo, qualified: true });
+    for (const m of thread) await ledger.recordMessage(profile.slug, { at: isoNow(now), from: m.from, text: m.text, kind: 'history' });
     const draft = await draftReply({ lead: ledger.get(profile.slug), llm });
     if (draft.action === 'handoff') {
-      ledger.setStage(profile.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
+      await ledger.setStage(profile.slug, { handoff: true, handoffReason: draft.reason, handoffAt: isoNow(now) });
       out.handoffs.push({ slug: profile.slug, reason: draft.reason });
       continue;
     }
@@ -379,7 +379,7 @@ export async function inboundRound({ ledger, browser, llm, qualify, now = new Da
       out.error = String(err?.message ?? err);
       break;
     }
-    ledger.recordMessage(profile.slug, { at: isoNow(now), from: 'us', text: draft.text, kind: 'reply' });
+    await ledger.recordMessage(profile.slug, { at: isoNow(now), from: 'us', text: draft.text, kind: 'reply' });
     out.replied.push(profile.slug);
     left -= 1;
   }

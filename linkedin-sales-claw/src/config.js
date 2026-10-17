@@ -52,6 +52,21 @@ export const config = () => ({
   })(),
   calendarAccount: process.env.LI_CALENDAR_ACCOUNT || 'ca_dBoe-p_sR0fx',
   bookNotify: process.env.LI_BOOK_NOTIFY || 'cristiano@varritech.com',
+  // ⛔ The ledger lives in Supabase (project ladk), never a local file
+  // (Cristiano 2026-10-16: "it must always be a real database").
+  ...(() => {
+    const env = {};
+    try {
+      for (const line of readFileSync(process.env.LI_SUPABASE_ENV || `${process.env.HOME}/openclaude-leads/.env`, 'utf8').split('\n')) {
+        const m = /^\s*([A-Z_]+)\s*=\s*"?([^"\n]*)"?\s*$/.exec(line);
+        if (m) env[m[1]] = m[2];
+      }
+    } catch { /* fall through to the process env */ }
+    return {
+      supabaseUrl: process.env.SUPABASE_URL || env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
+    };
+  })(),
   cdpPort: Number(process.env.LI_CDP_PORT ?? 9335),
   me: process.env.LI_ME || 'Cristiano Varriale',
   llmBackend: process.env.LLM_BACKEND || 'claude-cli',
