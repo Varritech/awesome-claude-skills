@@ -19,6 +19,7 @@ test('drops school domains but keeps real founders', () => {
 test('free vs company domain', () => {
   assert.equal(isFreeDomain('gmail.com'), true);
   assert.equal(isFreeDomain('buildfast.io'), false);
+  for (const d of ['mail.ru', 'yandex.ru', 'outlook.fr', 'hotmail.co.uk', 'yahoo.co.in', 'web.de', 'rediffmail.com', 'naver.com']) assert.equal(isFreeDomain(d), true, d);
   assert.equal(emailDomain('Sam@BuildFast.io'), 'buildfast.io');
 });
 
