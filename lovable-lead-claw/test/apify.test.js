@@ -73,7 +73,7 @@ test('keeps only profiles with a usable email, records actual spend, advances th
   assert.equal(ann.source, 'apify_linkedin'); assert.equal(ann.name, 'Ann Lee'); assert.equal(ann.domain, 'buildfast.io');
   assert.equal(ann.company, 'BuildFast'); assert.equal(ann.title, 'Founder'); assert.equal(ann.linkedin_url, 'https://linkedin.com/in/ann');
   const di = db.s.inserted.find((l) => l.email === 'di@gmail.com');
-  assert.equal(di.domain, 'gmail.com'); // no company website: email domain per spec
+  assert.equal(di.domain, null); // no company website + free mail: no app domain to scan
   assert.equal(r.spendUsd, 0.62); assert.equal(r.scanned, 4); assert.equal(r.kept, 2);
   assert.equal(db.s.cursor.startPage, 1 + Math.ceil(maxItemsFor(2) / 25));
 });

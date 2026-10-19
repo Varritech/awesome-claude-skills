@@ -1,6 +1,6 @@
 // Apify source: harvestapi/linkedin-profile-search, "Full + email search" mode.
 // Cost model (actor page): $0.10 per search page (25 profiles) + $0.01 per full profile with email search.
-import { emailDomain, isJunkEmail } from './filters.js';
+import { emailDomain, isFreeDomain, isJunkEmail } from './filters.js';
 
 const ACTOR = 'harvestapi~linkedin-profile-search';
 const API = 'https://api.apify.com/v2';
@@ -36,7 +36,7 @@ function toLead(p, today) {
   try { host = site ? new URL(/^https?:/.test(site) ? site : `https://${site}`).hostname.replace(/^www\./, '') : ''; } catch { host = ''; }
   const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || p.fullName || p.name || null;
   return {
-    email, source: 'apify_linkedin', name, domain: host || emailDomain(email),
+    email, source: 'apify_linkedin', name, domain: host || (isFreeDomain(emailDomain(email)) ? null : emailDomain(email)),
     url: site || p.linkedinUrl || null, linkedin_url: p.linkedinUrl || null,
     title: pos.position || p.position || p.headline || null, company: pos.companyName || p.companyName || null,
     first_seen: today, data: { headline: p.headline || null, location: p.location?.linkedinText ?? p.location ?? null },

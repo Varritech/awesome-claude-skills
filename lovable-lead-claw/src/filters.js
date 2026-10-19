@@ -12,8 +12,12 @@ export function emailDomain(email) {
   return String(email || '').split('@')[1]?.toLowerCase() || '';
 }
 
+// Country variants of the big webmail brands (outlook.fr, yahoo.co.in, hotmail.co.uk).
+const FREE_BRAND = /^(gmail|googlemail|yahoo|ymail|outlook|hotmail|live|msn|aol|gmx|yandex|mail|web|t-online|orange|libero|rediffmail|naver|daum|hanmail|seznam|wp|o2|rambler|bk|inbox|list|uol|bol|terra|zoho)\.[a-z]{2,3}(\.[a-z]{2})?$/;
+
 export function isFreeDomain(domain) {
-  return FREE.has(String(domain).toLowerCase());
+  const d = String(domain).toLowerCase();
+  return FREE.has(d) || FREE_BRAND.test(d);
 }
 
 export function isJunkEmail(email) {
