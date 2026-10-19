@@ -41,3 +41,21 @@ test('email on 3+ unrelated repos is dropped, 2 is kept', () => {
   const keep = dropRepeatEmails(seen);
   assert.deepEqual(keep.map((s) => s.email).sort(), ['b@y.com', 'b@y.com', 'c@z.com', 'c@z.com', 'c@z.com']);
 });
+
+test('school detection catches real schools without eating real companies', () => {
+  for (const e of ['a@ept.sn', 'a@uivo.net', 'a@utfpr.edu.br', 'a@univ-lyon1.fr', 'a@ecole-centrale.fr', 'a@polytech.fr', 'a@city-college.org']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['a@universalstudios.com', 'a@univerz.io', 'a@abbot.com']) assert.equal(isJunkEmail(e), false, e);
+});
+
+test('bot detection only matches bot accounts, not names ending in bot', () => {
+  assert.equal(isJunkEmail('abbot@acme.com'), false);
+  assert.equal(isJunkEmail('ci-bot@acme.com'), true);
+  assert.equal(isJunkEmail('renovate[bot]@acme.com'), true);
+});
+
+test('junk repo catches portfolio typos and vendor/tool repos', () => {
+  for (const name of ['portfomio-brainx', 'my-porfolio', 'portafolio']) assert.equal(isJunkRepo({ name, description: '' }), true, name);
+  assert.equal(isJunkRepo({ name: 'component-lovable', description: 'Official Diploi component for Lovable apps' }), true);
+  assert.equal(isJunkRepo({ name: 'offramp', description: 'audit for apps built with Lovable' }), true);
+  assert.equal(isJunkRepo({ name: 'invoice-saas', description: 'Invoices for freelancers' }), false);
+});

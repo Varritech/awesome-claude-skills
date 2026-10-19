@@ -94,3 +94,19 @@ test('countsSince builds the report numbers', async () => {
   assert.equal(r.githubScanned, 40);
   assert.deepEqual(r.errors, ['github: boom']);
 });
+
+test('emailRepos merges the row repo with data.repos; addRepo appends without losing data; rejectEmail never touches enrolled rows', async () => {
+  const { db, fetch } = mk((c) => {
+    if (c.method === 'GET' && /select=email,repo,data/.test(c.url)) return { body: [{ email: 'A@x.io', repo: 'o/a', data: { repos: ['o/b'] } }] };
+    if (c.method === 'GET') return { body: [{ data: { homepage: 'h', repos: ['o/b'] } }] };
+    return { status: 204 };
+  });
+  const m = await db.emailRepos(['a@x.io']);
+  assert.deepEqual([...m.get('a@x.io')].sort(), ['o/a', 'o/b']);
+  await db.addRepo('a@x.io', 'o/c');
+  const patch = fetch.calls.find((c) => c.method === 'PATCH');
+  assert.deepEqual(patch.body.data, { homepage: 'h', repos: ['o/b', 'o/c'] });
+  await db.rejectEmail('a@x.io');
+  const rej = fetch.calls.filter((c) => c.method === 'PATCH').at(-1);
+  assert.match(rej.url, /enrolled_by=is\.null/); assert.equal(rej.body.status, 'rejected');
+});

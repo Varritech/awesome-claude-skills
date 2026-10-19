@@ -13,4 +13,4 @@ node src/run.js --source github --no-report
 npm test
 ```
 
-Needs node >= 22. State is only in Supabase; the run aborts if it is unreachable. No outreach is sent from here.
+Needs node >= 22 on PATH (launchd PATH: ~/.local/bin, /opt/homebrew/bin, /usr/local/bin; nvm/volta users add their bin dir to bin/run-daily.sh). APIFY_TOTAL_USD (default 2.00) caps Apify spend for the whole test, on top of the daily cap. State is only in Supabase; the run aborts (and emails an ABORTED notice) if it is unreachable. No outreach is sent from here.

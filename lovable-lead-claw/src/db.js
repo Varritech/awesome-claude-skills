@@ -37,6 +37,25 @@ export function createDb({ url, key, fetch: f = globalThis.fetch }) {
       const rows = await json(await call(`lovable_leads?select=repo&repo=in.(${encodeURIComponent(list)})`));
       return new Set(rows.map((r) => r.repo));
     },
+    // email -> Set of repos it has been seen on (unique email: its row repo + data.repos added by addRepo)
+    async emailRepos(emails) {
+      const out = new Map();
+      if (!emails.length) return out;
+      const list = emails.map((e) => `"${e}"`).join(',');
+      const rows = await json(await call(`lovable_leads?select=email,repo,data&email=in.(${encodeURIComponent(list)})`));
+      for (const r of rows) out.set(r.email.toLowerCase(), new Set([r.repo, ...(r.data?.repos || [])].filter(Boolean)));
+      return out;
+    },
+    async addRepo(email, repo) {
+      const q = `email=eq.${encodeURIComponent(email)}`;
+      const [row] = await json(await call(`lovable_leads?select=data&${q}`));
+      if (!row) return;
+      const repos = [...new Set([...(row.data?.repos || []), repo])];
+      await call(`lovable_leads?${q}`, { method: 'PATCH', body: { data: { ...(row.data || {}), repos } }, prefer: 'return=minimal' });
+    },
+    async rejectEmail(email) {
+      await call(`lovable_leads?email=eq.${encodeURIComponent(email)}&enrolled_by=is.null&status=eq.new`, { method: 'PATCH', body: { status: 'rejected' }, prefer: 'return=minimal' });
+    },
     async getCursor(source) {
       const rows = await json(await call(`lovable_lead_cursors?select=cursor&source=eq.${source}`));
       return rows[0]?.cursor ?? null;
@@ -55,11 +74,12 @@ export function createDb({ url, key, fetch: f = globalThis.fetch }) {
       const runs = await json(await call(`lovable_lead_runs?select=source,scanned,spend_usd,ok,notes,run_at&run_at=gte.${monthStartIso}&order=run_at.desc&limit=1000`));
       const today = runs.filter((r) => r.run_at >= dayIso);
       const sum = (rs) => Math.round(rs.reduce((a, r) => a + Number(r.spend_usd || 0), 0) * 1e4) / 1e4;
+      const allApify = await json(await call('lovable_lead_runs?select=spend_usd&source=eq.apify_linkedin&limit=100000'));
       const allGh = await json(await call('lovable_lead_runs?select=scanned&source=eq.github&limit=100000'));
       return {
         total, unsent, bySource: { github, apify_linkedin: apify },
         newToday: { github: newGithub, apify_linkedin: newApify },
-        spendToday: sum(today), spendMonth: sum(runs),
+        spendToday: sum(today), spendMonth: sum(runs), spendTotal: sum(allApify),
         githubScanned: today.filter((r) => r.source === 'github').reduce((a, r) => a + (r.scanned || 0), 0),
         githubScannedTotal: allGh.reduce((a, r) => a + (r.scanned || 0), 0),
         errors: today.filter((r) => r.ok === false).map((r) => `${r.source}: ${r.notes}`),

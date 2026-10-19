@@ -12,7 +12,7 @@ test('maxItemsFor never lets the worst-case cost exceed the budget', () => {
   assert.equal(maxItemsFor(0.05), 0);
 });
 
-function apify({ items, status = 'SUCCEEDED', usage = 0.62, polls = 2 }) {
+function apify({ items, status = 'SUCCEEDED', usage = 0.62, polls = 2, dsStatus = 200 }) {
   const calls = [];
   let polled = 0;
   const f = async (url, init = {}) => {
@@ -21,7 +21,7 @@ function apify({ items, status = 'SUCCEEDED', usage = 0.62, polls = 2 }) {
     const json = (b) => new Response(JSON.stringify(b), { status: 200 });
     if (init.method === 'POST' && u.pathname.endsWith('/runs')) return json({ data: { id: 'run1', status: 'RUNNING', defaultDatasetId: 'ds1' } });
     if (u.pathname === '/v2/actor-runs/run1') { polled++; return json({ data: { id: 'run1', status: polled >= polls ? status : 'RUNNING', usageTotalUsd: usage, defaultDatasetId: 'ds1' } }); }
-    if (u.pathname === '/v2/datasets/ds1/items') return json(items);
+    if (u.pathname === '/v2/datasets/ds1/items') return dsStatus === 200 ? json(items) : new Response('boom', { status: dsStatus });
     throw new Error('unexpected ' + url);
   };
   return { f, calls };
@@ -84,4 +84,25 @@ test('a failed run still reports its spend and does not advance the cursor', asy
   const r = await run(db, a);
   assert.equal(r.ok, false); assert.equal(r.spendUsd, 0.3);
   assert.equal(db.s.cursor.startPage, 4);
+});
+
+test('spend is not lost when the dataset fetch fails after the run was billed; the cursor still advances', async () => {
+  const a = apify({ items: [], usage: 1.9, dsStatus: 500 });
+  const db = mkdb({ startPage: 2 });
+  const r = await run(db, a);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 1.9);
+  assert.equal(db.s.cursor.startPage, 2 + Math.ceil(maxItemsFor(2) / 25));
+});
+
+test('spend is not lost when the DB insert throws after the run was billed', async () => {
+  const a = apify({ items: ITEMS, usage: 1.5 });
+  const db = mkdb(); db.insertLeads = async () => { throw new Error('supabase down'); };
+  const r = await run(db, a);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 1.5); assert.match(r.notes, /supabase down/);
+});
+
+test('spend is at least the price-list estimate of the items returned when usageTotalUsd under-reports', async () => {
+  const a = apify({ items: ITEMS, usage: 0.02 });
+  const r = await run(mkdb(), a);
+  assert.equal(r.spendUsd, estimateCost(ITEMS.length));
 });
