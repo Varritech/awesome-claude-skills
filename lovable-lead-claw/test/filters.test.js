@@ -59,3 +59,13 @@ test('junk repo catches portfolio typos and vendor/tool repos', () => {
   assert.equal(isJunkRepo({ name: 'offramp', description: 'audit for apps built with Lovable' }), true);
   assert.equal(isJunkRepo({ name: 'invoice-saas', description: 'Invoices for freelancers' }), false);
 });
+
+test('drops AI-agent commit addresses', () => {
+  for (const e of ['openhands@all-hands.dev', 'agent@arena.ai', 'devin@cognition.ai', 'copilot@acme.com', 'claude@acme.io', 'codex-agent@acme.io', 'aider@acme.io', 'assinesaude@app.com']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['agentsmith@acme.io', 'claudia@acme.io', 'devine@acme.io']) assert.equal(isJunkEmail(e), false, e);
+});
+
+test('college is a school only as the exact domain label, not inside a company name', () => {
+  for (const e of ['a@college-station.com', 'x@collegeboard.org', 'x@collegeapp.io']) assert.equal(isJunkEmail(e), false, e);
+  for (const e of ['a@college.edu', 'a@mycollege.edu', 'a@college.ca', 'a@city-college.org']) assert.equal(isJunkEmail(e), true, e);
+});

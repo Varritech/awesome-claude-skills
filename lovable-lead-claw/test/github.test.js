@@ -166,3 +166,13 @@ test('an email already stored on 2 other repos is dropped when it shows up on a 
   assert.deepEqual(w.log.inserts.map((l) => l.email), ['real@otherco.io']);
   assert.deepEqual(w.log.rejected, ['lib@buildfast.io']);
 });
+
+test('the second repo of a brand-new email seen in the same page is recorded on the stored row', async () => {
+  const w = world({ 'a/x': { commits: [E('dup@buildfast.io')] }, 'b/y': { commits: [E('dup@buildfast.io')] } });
+  w.db.insertLeads = async (rows) => { // real table: unique email, ignore-duplicates, returns only inserted rows
+    const first = new Map(); for (const r of rows) if (!first.has(r.email)) first.set(r.email, r);
+    return [...first.values()];
+  };
+  await runGithub(base(w));
+  assert.deepEqual(w.log.added, [['dup@buildfast.io', 'b/y']]);
+});
