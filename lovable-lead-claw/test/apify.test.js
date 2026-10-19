@@ -153,3 +153,37 @@ test('ABORTED/TIMED-OUT run with no usage figure is charged the full cap', async
   const r = await run(mkdb(), a);
   assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
 });
+
+test('start request sent but response lost (timeout/reset): the run may exist, so cap is assumed and cursor advances', async () => {
+  for (const err of [Object.assign(new Error('timed out'), { name: 'TimeoutError' }), Object.assign(new Error('terminated'), { cause: { code: 'UND_ERR_SOCKET' } }), new Error('socket hang up')]) {
+    const db = mkdb({ startPage: 2 });
+    const r = await run(db, { f: async () => { throw err; } });
+    assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+    assert.equal(db.s.cursor.startPage, 2 + Math.ceil(maxItemsFor(2) / 25));
+  }
+});
+
+test('clean connection failures (nothing sent) still throw without moving the cursor', async () => {
+  for (const err of [Object.assign(new Error('fetch failed'), { cause: { code: 'ECONNREFUSED' } }), Object.assign(new Error('fetch failed'), { cause: { code: 'ENOTFOUND' } })]) {
+    const db = mkdb({ startPage: 5 });
+    await assert.rejects(() => run(db, { f: async () => { throw err; } }), /fetch failed/);
+    assert.equal(db.s.cursor.startPage, 5);
+  }
+});
+
+test('every Apify call carries an abort signal so a hung connection cannot block the job', async () => {
+  const signals = [];
+  const base = apify({ items: ITEMS });
+  const f = async (u, init = {}) => { signals.push(init.signal); return base.f(u, init); };
+  await run(mkdb(), { f });
+  assert.ok(signals.length >= 3);
+  assert.ok(signals.every((s) => s instanceof AbortSignal));
+});
+
+test('run we timed out and aborted is charged the cap even if a small partial usage is reported', async () => {
+  const base = apify({ items: [], status: 'RUNNING', usage: 0.05, polls: 999 });
+  const f = async (u, init = {}) => (String(u).endsWith('/abort') ? new Response('{}', { status: 200 }) : base.f(u, init));
+  const r = await run(mkdb(), { f }, { maxWaitMs: -1 });
+  assert.match(r.notes, /TIMED-OUT/);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+});

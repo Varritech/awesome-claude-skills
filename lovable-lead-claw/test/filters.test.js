@@ -69,3 +69,8 @@ test('college is a school only as the exact domain label, not inside a company n
   for (const e of ['a@college-station.com', 'x@collegeboard.org', 'x@collegeapp.io']) assert.equal(isJunkEmail(e), false, e);
   for (const e of ['a@college.edu', 'a@mycollege.edu', 'a@college.ca', 'a@city-college.org']) assert.equal(isJunkEmail(e), true, e);
 });
+
+test('drops local-machine hostnames and coding-school addresses', () => {
+  for (const e of ['a@mac.mynet', 'a@x.fritz.box', 'a@finns-macbook-pro.fritz.box', 'a@host.home', 'a@pc.corp', 'a@router.lan', 'a@student.42.fr', 'a@x.student.somewhere.com', 'a@42.fr']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['sam@boxhq.io', 'sam@homebase.com', 'sam@studentloans.io', 'sam@fortytwo.fr']) assert.equal(isJunkEmail(e), false, e);
+});
