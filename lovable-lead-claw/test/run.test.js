@@ -1,0 +1,86 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { main, parseArgs } from '../src/run.js';
+
+const ENV = { SUPABASE_URL: 'u', SUPABASE_SERVICE_ROLE_KEY: 'k', GITHUB_TOKEN: 'g', APIFY_TOKEN: 'a', COMPOSIO_API_KEY: 'c', APIFY_DAILY_USD: '2.00', GITHUB_REPOS_PER_DAY: '50' };
+const COUNTS = { total: 1, unsent: 1, bySource: {}, newToday: { github: 1, apify_linkedin: 0 }, spendToday: 0.5, spendMonth: 0.5, githubScanned: 1, githubScannedTotal: 1, errors: [] };
+
+function deps(over = {}) {
+  const calls = { runs: [], mail: [], github: [], apify: [], pings: 0 };
+  const db = {
+    ping: async () => { calls.pings++; }, logRun: async (r) => { calls.runs.push(r); },
+    countsSince: async () => COUNTS,
+  };
+  return {
+    calls,
+    deps: {
+      createDb: () => db,
+      runGithub: async (o) => { calls.github.push(o); return { scanned: 3, found: 2, kept: 2, inserted: 2, notes: '' }; },
+      runApify: async (o) => { calls.apify.push(o); return { scanned: 4, found: 2, kept: 2, inserted: 2, spendUsd: 0.4, ok: true, notes: '' }; },
+      sendReport: async (c, m) => { calls.mail.push({ c, m }); },
+      ...over,
+    },
+  };
+}
+const go = (argv, env, d) => { const out = []; return main({ argv, env, deps: d.deps, out: (s) => out.push(s) }).then((code) => ({ code, out: out.join('\n') })); };
+
+test('parseArgs', () => {
+  assert.deepEqual(parseArgs(['--dry', '--source', 'github', '--no-report']), { dry: true, source: 'github', report: false });
+  assert.deepEqual(parseArgs([]), { dry: false, source: 'all', report: true });
+});
+
+test('aborts without running any source when the DB is unreachable', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => { throw new Error('Supabase unreachable'); } }) });
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 1);
+  assert.equal(d.calls.github.length + d.calls.apify.length, 0);
+});
+
+test('full run: both sources, runs logged, report emailed and printed, apify budget = daily minus spent today', async () => {
+  const d = deps();
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 0);
+  assert.equal(d.calls.github[0].budget, 50); assert.equal(d.calls.github[0].dry, false);
+  assert.equal(d.calls.apify[0].budgetUsd, 1.5);
+  assert.deepEqual(d.calls.runs.map((x) => x.source).sort(), ['apify_linkedin', 'github']);
+  assert.equal(d.calls.runs.find((x) => x.source === 'apify_linkedin').spend_usd, 0.4);
+  assert.equal(d.calls.mail.length, 1);
+  assert.match(r.out, /Lovable lead claw/);
+});
+
+test('dry run: no logRun, no email, apify skipped but github still scans', async () => {
+  const d = deps();
+  const r = await go(['--dry'], ENV, d);
+  assert.equal(r.code, 0);
+  assert.equal(d.calls.runs.length, 0); assert.equal(d.calls.mail.length, 0);
+  assert.equal(d.calls.github[0].dry, true);
+  assert.equal(d.calls.apify[0]?.dry ?? true, true);
+});
+
+test('--source github --no-report runs only github and sends nothing', async () => {
+  const d = deps();
+  await go(['--source', 'github', '--no-report'], ENV, d);
+  assert.equal(d.calls.github.length, 1); assert.equal(d.calls.apify.length, 0); assert.equal(d.calls.mail.length, 0);
+});
+
+test('a failing source is logged ok:false and does not stop the other one; exit code stays 0 with the error in the report', async () => {
+  const d = deps({ runGithub: async () => { throw new Error('search 422'); } });
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 0);
+  const gh = d.calls.runs.find((x) => x.source === 'github');
+  assert.equal(gh.ok, false); assert.match(gh.notes, /search 422/);
+  assert.equal(d.calls.apify.length, 1);
+});
+
+test('exhausted apify budget skips the source', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => {}, logRun: async () => {}, countsSince: async () => ({ ...COUNTS, spendToday: 2.0 }) }) });
+  await go(['--source', 'apify', '--no-report'], ENV, d);
+  assert.equal(d.calls.apify[0]?.budgetUsd ?? 0, 0);
+});
+
+test('report email failure is surfaced as exit 1 but runs were already logged', async () => {
+  const d = deps({ sendReport: async () => { throw new Error('report not sent: 200 no auth'); } });
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 1);
+  assert.equal(d.calls.runs.length, 2);
+});

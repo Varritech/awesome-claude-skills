@@ -1,0 +1,9 @@
+{
+  "name": "lovable-lead-claw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily Lovable-app lead sourcing: GitHub lovable-tagger repos + Apify LinkedIn founders -> Supabase, with a daily email report.",
+  "scripts": { "test": "node --test --test-concurrency=1 'test/*.test.js'" },
+  "engines": { "node": ">=22" }
+}
