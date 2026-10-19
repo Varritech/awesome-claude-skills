@@ -106,3 +106,50 @@ test('spend is at least the price-list estimate of the items returned when usage
   const r = await run(mkdb(), a);
   assert.equal(r.spendUsd, estimateCost(ITEMS.length));
 });
+
+// A run that was started may be billed even if we lose the network: assume the full cap was spent.
+function flaky({ failPolls = 99, failStartJson = false, usage }) {
+  const calls = [];
+  const f = async (url, init = {}) => {
+    url = String(url); const u = new URL(url);
+    calls.push({ url, method: init.method || 'GET' });
+    if (init.method === 'POST' && u.pathname.endsWith('/runs')) {
+      return failStartJson ? { ok: true, status: 201, json: async () => { throw new Error('socket hang up'); } }
+        : new Response(JSON.stringify({ data: { id: 'run1', status: 'RUNNING', defaultDatasetId: 'ds1' } }), { status: 200 });
+    }
+    if (u.pathname.endsWith('/abort')) return new Response('{}', { status: 200 });
+    if (u.pathname === '/v2/actor-runs/run1') throw new Error('network down');
+    throw new Error('unexpected ' + url);
+  };
+  return { f, calls };
+}
+
+test('network error while polling a started run: logs the full cap as spent and advances the cursor', async () => {
+  const a = flaky({});
+  const db = mkdb({ startPage: 2 });
+  const r = await run(db, a);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+  assert.equal(db.s.cursor.startPage, 2 + Math.ceil(maxItemsFor(2) / 25));
+  assert.match(r.notes, /network down/);
+});
+
+test('unreadable start response: the run exists, so the cap is assumed spent', async () => {
+  const a = flaky({ failStartJson: true });
+  const db = mkdb({ startPage: 1 });
+  const r = await run(db, a);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+  assert.equal(db.s.cursor.startPage, 1 + Math.ceil(maxItemsFor(2) / 25));
+});
+
+test('a start request that never got a response is not billed: it throws and the cursor stays', async () => {
+  const f = async () => { throw new Error('ECONNREFUSED'); };
+  const db = mkdb({ startPage: 5 });
+  await assert.rejects(() => run(db, { f }), /ECONNREFUSED/);
+  assert.equal(db.s.cursor.startPage, 5);
+});
+
+test('ABORTED/TIMED-OUT run with no usage figure is charged the full cap', async () => {
+  const a = apify({ items: [], status: 'ABORTED', usage: null });
+  const r = await run(mkdb(), a);
+  assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+});

@@ -147,9 +147,10 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
     if (!dry) {
       for (const e of tooMany) await db.rejectEmail(e);
       if (rows.length) {
-        const inserted = new Set((await db.insertLeads(rows)).map((r) => r.email));
-        stats.inserted += inserted.size;
-        for (const r of rows) if (!inserted.has(r.email) && emailKnown.has(r.email)) await db.addRepo(r.email, r.repo);
+        const stored = new Map((await db.insertLeads(rows)).map((r) => [r.email, r.repo]));
+        stats.inserted += stored.size;
+        // every other repo of a stored email goes into data.repos, so the 3+ rule counts it later
+        for (const r of rows) if (stored.has(r.email) ? stored.get(r.email) !== r.repo : emailKnown.has(r.email)) await db.addRepo(r.email, r.repo);
       }
     }
 

@@ -55,28 +55,47 @@ export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep =
     method: 'POST', headers, body: JSON.stringify({ ...INPUT, maxItems, takePages, startPage: cursor.startPage }),
   });
   if (!startRes.ok) throw new Error(`apify start failed: ${startRes.status}`);
-  const { data: started } = await startRes.json();
+  const nextCursor = { startPage: cursor.startPage + takePages, last_run: today };
 
-  let run = started; const t0 = Date.now();
-  while (!['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes(run.status)) {
-    if (Date.now() - t0 > maxWaitMs) {
-      await f(`${API}/actor-runs/${started.id}/abort`, { method: 'POST', headers });
-      run = { ...run, status: 'TIMED-OUT' };
-      break;
+  // From the moment the start request got a response the run exists and may bill up to the cap.
+  // Any failure after that point logs the full cap as spent and moves the cursor, so a retry cannot buy it twice.
+  const assumeCap = async (why) => {
+    await db.setCursor('apify', nextCursor);
+    return { ...out, ok: false, spendUsd: budgetUsd, notes: `apify run lost (${String(why).slice(0, 150)}); assumed $${budgetUsd} spent` };
+  };
+  let started;
+  try { started = (await startRes.json()).data; } catch (e) { return assumeCap(e.message); }
+
+  let run = started; const t0 = Date.now(); let bad = 0;
+  try {
+    while (!['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes(run.status)) {
+      if (Date.now() - t0 > maxWaitMs) {
+        await f(`${API}/actor-runs/${started.id}/abort`, { method: 'POST', headers });
+        run = { ...run, status: 'TIMED-OUT' };
+        break;
+      }
+      await sleep(pollMs);
+      try {
+        const r = await f(`${API}/actor-runs/${started.id}`, { headers });
+        if (r.ok) { run = (await r.json()).data; bad = 0; } else bad++;
+      } catch (e) { if (++bad >= 3) throw e; continue; }
+      if (bad >= 3) throw new Error('status poll failing');
     }
-    await sleep(pollMs);
-    const r = await f(`${API}/actor-runs/${started.id}`, { headers });
-    if (r.ok) run = (await r.json()).data;
-  }
-  if (run.usageTotalUsd === undefined) { // abort path: read the final usage
-    const r = await f(`${API}/actor-runs/${started.id}`, { headers });
-    if (r.ok) run = { ...run, ...(await r.json()).data };
+    if (run.usageTotalUsd == null) { // abort path: read the final usage
+      const r = await f(`${API}/actor-runs/${started.id}`, { headers });
+      if (r.ok) run = { ...run, ...(await r.json()).data };
+    }
+  } catch (e) {
+    return assumeCap(e.message);
   }
   out.spendUsd = Number(run.usageTotalUsd ?? 0);
-  if (run.status !== 'SUCCEEDED') return { ...out, ok: false, notes: `apify run ${run.status}` };
+  if (run.status !== 'SUCCEEDED') {
+    // aborted/timed-out runs report usage late: no figure means assume the worst case
+    if (run.status !== 'FAILED' && !out.spendUsd) out.spendUsd = budgetUsd;
+    return { ...out, ok: false, notes: `apify run ${run.status}` };
+  }
 
   // From here the run is billed: never throw, so the spend is still logged and the page is not bought twice.
-  const nextCursor = { startPage: cursor.startPage + takePages, last_run: today };
   try {
     const dsRes = await f(`${API}/datasets/${run.defaultDatasetId || started.defaultDatasetId}/items?clean=true&format=json`, { headers });
     if (!dsRes.ok) throw new Error(`apify dataset fetch failed: ${dsRes.status}`);
