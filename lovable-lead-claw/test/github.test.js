@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { runGithub, nextCursor } from '../src/github.js';
 
 // Fake GitHub + web. repos: { 'o/name': { homepage, description, fork, commits:[{email,name,login}], live: true|false } }
-function world(repos, { totals = {}, searchFail } = {}) {
+function world(repos, { totals = {}, searchFail, repoStatus = {} } = {}) {
   const log = { searches: [], repoCalls: [], inserts: [], cursors: [], fetchUrls: [] };
   const names = Object.keys(repos);
   const f = async (url, init = {}) => {
@@ -27,6 +27,7 @@ function world(repos, { totals = {}, searchFail } = {}) {
     m = u.pathname.match(/^\/repos\/([^/]+\/[^/]+)$/);
     if (u.hostname === 'api.github.com' && m) {
       log.repoCalls.push(`repo:${m[1]}`);
+      if (repoStatus[m[1]]) return json({ message: 'x' }, repoStatus[m[1]].status, repoStatus[m[1]].headers || {});
       const r = repos[m[1]];
       return json({ full_name: m[1], name: m[1].split('/')[1], description: r.description ?? '', homepage: r.homepage ?? '', fork: !!r.fork, archived: false, pushed_at: '2026-10-01T00:00:00Z', owner: { type: 'User', login: m[1].split('/')[0] } });
     }
@@ -40,6 +41,7 @@ function world(repos, { totals = {}, searchFail } = {}) {
     existingRepos: async (rs) => new Set(rs.filter((r) => db.stored.has(r))),
     getCursor: async () => db.cursor,
     setCursor: async (_s, c) => { db.cursor = c; log.cursors.push(c); },
+    emailRepos: async () => db.known || new Map(), addRepo: async (e, r) => { log.added = [...(log.added || []), [e, r]]; }, rejectEmail: async (e) => { log.rejected = [...(log.rejected || []), e]; },
     insertLeads: async (rows) => { log.inserts.push(...rows); return rows.map((r, i) => ({ id: i, ...r })); },
   };
   return { f, db, log };
@@ -132,4 +134,35 @@ test('dry run writes nothing to the DB', async () => {
 test('nextCursor widens the step when a shard was sparse', () => {
   const c = nextCursor({ lo: 0, hi: 199, step: 200 }, 100);
   assert.equal(c.lo, 200); assert.ok(c.hi >= 399); assert.equal(c.page, 1);
+});
+
+test('a non-rate-limit 403 (blocked repo) is skipped without sleeping', async () => {
+  const w = world({ 'a/blocked': { commits: [E('a@co.io')] }, 'b/ok': { commits: [E('b@co2.io')] } },
+    { repoStatus: { 'a/blocked': { status: 403, headers: { 'x-ratelimit-remaining': '4000', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3000) } } } });
+  const slept = [];
+  await runGithub(base(w, { sleep: async (ms) => { slept.push(ms); } }));
+  assert.equal(slept.filter((ms) => ms > 60000).length, 0);
+  assert.deepEqual(w.log.inserts.map((l) => l.repo), ['b/ok']);
+});
+
+test('a 403 with remaining=0 sleeps until the reset', async () => {
+  const w = world({ 'a/x': { commits: [E('a@co.io')] } },
+    { repoStatus: { 'a/x': { status: 403, headers: { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 30) } } } });
+  const slept = [];
+  await runGithub(base(w, { sleep: async (ms) => { slept.push(ms); } }));
+  assert.ok(slept.some((ms) => ms >= 20000));
+});
+
+test('repos whose fetch errors are counted as failed in the notes', async () => {
+  const w = world({ 'a/x': { commits: [E('a@co.io')] }, 'b/y': { commits: [E('b@co.io')] } }, { repoStatus: { 'a/x': { status: 502 } } });
+  const r = await runGithub(base(w));
+  assert.match(r.notes, /1 repos? failed/);
+});
+
+test('an email already stored on 2 other repos is dropped when it shows up on a third', async () => {
+  const w = world({ 'c/z': { commits: [E('lib@buildfast.io'), E('real@otherco.io')] } });
+  w.db.known = new Map([['lib@buildfast.io', new Set(['a/x', 'b/y'])]]);
+  await runGithub(base(w));
+  assert.deepEqual(w.log.inserts.map((l) => l.email), ['real@otherco.io']);
+  assert.deepEqual(w.log.rejected, ['lib@buildfast.io']);
 });

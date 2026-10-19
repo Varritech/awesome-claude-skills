@@ -39,7 +39,8 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
     for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
     for (let attempt = 0; attempt < 6; attempt++) {
       const res = await f(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'lovable-lead-claw' } });
-      if (res.status === 403 || res.status === 429) {
+      const rateLimited = res.status === 429 || (res.status === 403 && (res.headers.get('x-ratelimit-remaining') === '0' || res.headers.get('retry-after')));
+      if (rateLimited) {
         const ra = Number(res.headers.get('retry-after'));
         const reset = Number(res.headers.get('x-ratelimit-reset'));
         const wait = ra ? ra * 1000 : reset ? Math.max(1000, reset * 1000 - Date.now() + 1000) : 60000;
@@ -63,10 +64,12 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
 
   async function processRepo(full) {
     const res = await gh(`/repos/${full}`);
+    if (res.status >= 500) throw new Error(`repo ${res.status}`);
     if (!res.ok) return [];
     const meta = await res.json();
     if (meta.fork || meta.archived || isJunkRepo(meta)) return [];
     const cres = await gh(`/repos/${full}/commits`, { per_page: 30 });
+    if (cres.status >= 500) throw new Error(`commits ${cres.status}`);
     if (!cres.ok) return [];
     const commits = await cres.json();
     const byEmail = new Map();
@@ -98,14 +101,14 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
   async function pool(items, n, fn) {
     const out = new Array(items.length); let i = 0;
     await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
-      while (i < items.length) { const k = i++; out[k] = await fn(items[k]).catch((e) => { log(`repo ${items[k]}: ${e.message}`); return []; }); }
+      while (i < items.length) { const k = i++; out[k] = await fn(items[k]).catch((e) => { log(`repo ${items[k]}: ${e.message}`); stats.failed++; return []; }); }
     }));
     return out;
   }
 
   let cursor = (await db.getCursor('github')) || initialCursor();
   const save = async () => { if (!dry) await db.setCursor('github', cursor); };
-  const stats = { scanned: 0, found: 0, kept: 0, inserted: 0, notes: '' };
+  const stats = { scanned: 0, found: 0, kept: 0, inserted: 0, failed: 0, notes: '' };
   const seen = []; // {email, repo} across the run, for the 3+ repos rule
   let lastSearch = 0;
 
@@ -136,16 +139,28 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
     let rows = perRepo.flat();
     stats.found += rows.length;
     for (const r of rows) seen.push({ email: r.email, repo: r.repo });
-    const dropped = new Set(dropRepeatEmails(seen).map((s) => `${s.email}|${s.repo}`));
+    const emailKnown = rows.length ? await db.emailRepos([...new Set(rows.map((r) => r.email))]) : new Map();
+    const dropped = new Set(dropRepeatEmails(seen, 3, emailKnown).map((s) => `${s.email}|${s.repo}`));
+    const tooMany = new Set(rows.filter((r) => !dropped.has(`${r.email}|${r.repo}`) && emailKnown.has(r.email)).map((r) => r.email));
     rows = rows.filter((r) => dropped.has(`${r.email}|${r.repo}`));
     stats.kept += rows.length;
-    if (!dry && rows.length) stats.inserted += (await db.insertLeads(rows)).length;
+    if (!dry) {
+      for (const e of tooMany) await db.rejectEmail(e);
+      if (rows.length) {
+        const inserted = new Set((await db.insertLeads(rows)).map((r) => r.email));
+        stats.inserted += inserted.size;
+        for (const r of rows) if (!inserted.has(r.email) && emailKnown.has(r.email)) await db.addRepo(r.email, r.repo);
+      }
+    }
 
     if (consumed < list.length) cursor = { ...cursor, skip: cursor.skip + consumed };
     else cursor = cursor.page + 1 > maxPage ? nextCursor(cursor, total) : { ...cursor, page: cursor.page + 1, skip: 0 };
     await save();
   }
-  if (cursor.done) stats.notes = 'corpus complete';
+  const notes = [];
+  if (stats.failed) notes.push(`${stats.failed} repos failed (GitHub 5xx or error), skipped`);
+  if (cursor.done) notes.push('corpus complete');
+  stats.notes = notes.join('; ');
   stats.cursor = cursor;
   return stats;
 }

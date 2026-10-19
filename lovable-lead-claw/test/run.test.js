@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { main, parseArgs } from '../src/run.js';
 
 const ENV = { SUPABASE_URL: 'u', SUPABASE_SERVICE_ROLE_KEY: 'k', GITHUB_TOKEN: 'g', APIFY_TOKEN: 'a', COMPOSIO_API_KEY: 'c', APIFY_DAILY_USD: '2.00', GITHUB_REPOS_PER_DAY: '50' };
-const COUNTS = { total: 1, unsent: 1, bySource: {}, newToday: { github: 1, apify_linkedin: 0 }, spendToday: 0.5, spendMonth: 0.5, githubScanned: 1, githubScannedTotal: 1, errors: [] };
+const COUNTS = { spendTotal: 0.5, total: 1, unsent: 1, bySource: {}, newToday: { github: 1, apify_linkedin: 0 }, spendToday: 0.5, spendMonth: 0.5, githubScanned: 1, githubScannedTotal: 1, errors: [] };
 
 function deps(over = {}) {
   const calls = { runs: [], mail: [], github: [], apify: [], pings: 0 };
@@ -83,4 +83,28 @@ test('report email failure is surfaced as exit 1 but runs were already logged', 
   const r = await go([], ENV, d);
   assert.equal(r.code, 1);
   assert.equal(d.calls.runs.length, 2);
+});
+
+test('apify budget is also capped by the lifetime total (APIFY_TOTAL_USD, default 2.00)', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => {}, logRun: async () => {}, countsSince: async () => ({ ...COUNTS, spendToday: 0, spendTotal: 1.7 }) }) });
+  await go(['--source', 'apify', '--no-report'], ENV, d);
+  assert.equal(d.calls.apify[0].budgetUsd, 0.3);
+  const d2 = deps({ createDb: () => ({ ping: async () => {}, logRun: async () => {}, countsSince: async () => ({ ...COUNTS, spendToday: 0, spendTotal: 1.7 }) }) });
+  await go(['--source', 'apify', '--no-report'], { ...ENV, APIFY_TOTAL_USD: '10' }, d2);
+  assert.equal(d2.calls.apify[0].budgetUsd, 2);
+});
+
+test('when Supabase is down a short ABORTED report is still emailed', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => { throw new Error('Supabase unreachable'); } }) });
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 1);
+  assert.equal(d.calls.mail.length, 1);
+  assert.match(d.calls.mail[0].m.subject, /ABORTED/);
+  assert.match(d.calls.mail[0].m.text, /Supabase unreachable/);
+});
+
+test('dry run does not email the abort notice', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => { throw new Error('Supabase unreachable'); } }) });
+  await go(['--dry'], ENV, d);
+  assert.equal(d.calls.mail.length, 0);
 });

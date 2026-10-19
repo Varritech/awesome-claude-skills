@@ -28,7 +28,14 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
   const monthIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   const db = d.createDb({ url: env.SUPABASE_URL, key: env.SUPABASE_SERVICE_ROLE_KEY });
-  try { await db.ping(); } catch (e) { out(`ABORT: ${e.message}`); return 1; }
+  try { await db.ping(); } catch (e) {
+    out(`ABORT: ${e.message}`);
+    if (!args.dry && args.report && env.COMPOSIO_API_KEY) {
+      const msg = { subject: `Lovable lead claw ${today}: ABORTED`, text: `Lovable lead claw, ${today}.\nNothing ran: ${e.message}\nNo leads were added and nothing was spent.` };
+      try { await d.sendReport({ apiKey: env.COMPOSIO_API_KEY, userId: env.COMPOSIO_USER_ID || 'claude_user', to: env.REPORT_TO || 'christian@varritech.com' }, msg); } catch (re) { out(`REPORT FAILED: ${re.message}`); }
+    }
+    return 1;
+  }
 
   const before = await db.countsSince(dayIso, monthIso);
   const runs = [];
@@ -46,7 +53,9 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
     }
   }
   if (args.source !== 'github') {
-    const budgetUsd = Math.max(0, Math.round((Number(env.APIFY_DAILY_USD ?? 2) - before.spendToday) * 100) / 100);
+    const daily = Number(env.APIFY_DAILY_USD ?? 2) - before.spendToday;
+    const lifetime = Number(env.APIFY_TOTAL_USD ?? 2) - (before.spendTotal ?? before.spendMonth);
+    const budgetUsd = Math.max(0, Math.round(Math.min(daily, lifetime) * 100) / 100);
     try {
       const r = await d.runApify({ db, token: env.APIFY_TOKEN, budgetUsd, today, dry: args.dry });
       if (!/^skipped/.test(r.notes)) await record({ source: 'apify_linkedin', scanned: r.scanned, found: r.found, kept: r.kept, spend_usd: r.spendUsd, ok: r.ok, notes: r.notes || '', data: { inserted: r.inserted, budgetUsd } });

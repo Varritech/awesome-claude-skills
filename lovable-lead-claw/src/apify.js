@@ -75,13 +75,21 @@ export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep =
   out.spendUsd = Number(run.usageTotalUsd ?? 0);
   if (run.status !== 'SUCCEEDED') return { ...out, ok: false, notes: `apify run ${run.status}` };
 
-  const dsRes = await f(`${API}/datasets/${run.defaultDatasetId || started.defaultDatasetId}/items?clean=true&format=json`, { headers });
-  if (!dsRes.ok) throw new Error(`apify dataset fetch failed: ${dsRes.status}`);
-  const items = await dsRes.json();
-  out.scanned = items.length;
-  const leads = items.map((p) => toLead(p, today)).filter(Boolean);
-  out.found = out.kept = leads.length;
-  out.inserted = (await db.insertLeads(leads)).length;
-  await db.setCursor('apify', { startPage: cursor.startPage + takePages, last_run: today });
+  // From here the run is billed: never throw, so the spend is still logged and the page is not bought twice.
+  const nextCursor = { startPage: cursor.startPage + takePages, last_run: today };
+  try {
+    const dsRes = await f(`${API}/datasets/${run.defaultDatasetId || started.defaultDatasetId}/items?clean=true&format=json`, { headers });
+    if (!dsRes.ok) throw new Error(`apify dataset fetch failed: ${dsRes.status}`);
+    const items = await dsRes.json();
+    out.scanned = items.length;
+    // usageTotalUsd may omit pay-per-event charges: never report less than the price list for what came back
+    out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
+    const leads = items.map((p) => toLead(p, today)).filter(Boolean);
+    out.found = out.kept = leads.length;
+    out.inserted = (await db.insertLeads(leads)).length;
+  } catch (e) {
+    out.ok = false; out.notes = `after billing: ${String(e.message).slice(0, 200)}`;
+  }
+  await db.setCursor('apify', nextCursor);
   return out;
 }
