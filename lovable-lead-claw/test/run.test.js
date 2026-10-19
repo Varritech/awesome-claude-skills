@@ -108,3 +108,21 @@ test('dry run does not email the abort notice', async () => {
   await go(['--dry'], ENV, d);
   assert.equal(d.calls.mail.length, 0);
 });
+
+test('logRun failing after apify billed: retried, then the spend is printed and added to the report, run does not crash', async () => {
+  let tries = 0;
+  const d = deps({ createDb: () => ({ ping: async () => {}, countsSince: async () => COUNTS, logRun: async (r) => { if (r.source === 'apify_linkedin') { tries++; throw new Error('db blip'); } } }) });
+  const r = await go([], ENV, d);
+  assert.equal(tries, 3);
+  assert.match(r.out, /SPEND NOT RECORDED.*0\.4/);
+  assert.match(d.calls.mail[0].m.text, /\$0\.40 was not recorded/i);
+  assert.equal(r.code, 1);
+});
+
+test('logRun succeeding on the second try records normally', async () => {
+  let n = 0; const rows = [];
+  const d = deps({ createDb: () => ({ ping: async () => {}, countsSince: async () => COUNTS, logRun: async (x) => { if (x.source === 'apify_linkedin' && ++n === 1) throw new Error('blip'); rows.push(x); } }) });
+  const r = await go([], ENV, d);
+  assert.equal(r.code, 0);
+  assert.equal(rows.filter((x) => x.source === 'apify_linkedin').length, 1);
+});

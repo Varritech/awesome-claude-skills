@@ -39,7 +39,20 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
 
   const before = await db.countsSince(dayIso, monthIso);
   const runs = [];
-  const record = async (row) => { runs.push(row); if (!args.dry) await db.logRun(row); };
+  const lost = [];
+  const record = async (row) => {
+    runs.push(row);
+    if (args.dry) return;
+    for (let i = 1; ; i++) {
+      try { await db.logRun(row); return; } catch (e) {
+        if (i < 3) continue;
+        // never drop the spend silently: print it and put it in the report
+        if (row.spend_usd > 0) lost.push(row);
+        out(`SPEND NOT RECORDED: ${row.source} $${Number(row.spend_usd).toFixed(2)} (${String(e.message).slice(0, 100)})`);
+        return;
+      }
+    }
+  };
   const log = (m) => out(m);
 
   if (args.source !== 'apify') {
@@ -69,12 +82,13 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
   if (!args.report) return 0;
   const counts = await db.countsSince(dayIso, monthIso);
   const msg = buildReport(counts, { today });
+  for (const r of lost) msg.text += `\nWARNING: ${r.source} spend of $${Number(r.spend_usd).toFixed(2)} was not recorded in the database. Add it by hand before the next run.`;
   out(`\n${msg.subject}\n${msg.text}`);
   if (args.dry) return 0;
   try {
     await d.sendReport({ apiKey: env.COMPOSIO_API_KEY, userId: env.COMPOSIO_USER_ID || 'claude_user', to: env.REPORT_TO || 'christian@varritech.com' }, msg);
   } catch (e) { out(`REPORT FAILED: ${e.message}`); return 1; }
-  return 0;
+  return lost.length ? 1 : 0;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main().then((c) => process.exit(c), (e) => { console.error(e.message); process.exit(1); });
