@@ -6,13 +6,13 @@ test('drops noreply, bots, lovable and placeholder addresses', () => {
   for (const e of ['1234+bob@users.noreply.github.com', 'noreply@acme.com', 'no-reply@acme.com',
     'dependabot[bot]@users.noreply.github.com', 'bot@lovable.dev', 'x@gpt-engineer.com', 'gpt-engineer-app[bot]@users.noreply.github.com',
     'jane@example.com', 'test@acme.io', 'your@email.com', 'jan@voorbeeld.nl', 'eleve@exemple.fr', 'max@beispiel.de',
-    'onboarding@resend.dev', 'a@mailgun.org', 'not-an-email', '']) {
+    'onboarding@resend.dev', 'me@host.localdomain', 'me@box.local', 'me@nodot', 'cursoragent@cursor.com', 'noreply@anthropic.com', 'noreply@github.com', 'bot@vercel.com', 'v0[bot]@users.noreply.github.com', 'a@mailgun.org', 'not-an-email', '']) {
     assert.equal(isJunkEmail(e), true, e);
   }
 });
 
 test('drops school domains but keeps real founders', () => {
-  for (const e of ['a@mit.edu', 'a@ox.ac.uk', 'a@lycee.sch.uk', 'a@univ.edu.au', 'a@school.k12.ca.us']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['a@mit.edu', 'a@ox.ac.uk', 'a@lycee.sch.uk', 'a@univ.edu.au', 'a@school.k12.ca.us', 'a@univ-constantine2.dz', 'a@city-college.org', 'a@polytech.fr']) assert.equal(isJunkEmail(e), true, e);
   for (const e of ['sam@buildfast.io', 'sam@gmail.com']) assert.equal(isJunkEmail(e), false, e);
 });
 
@@ -26,6 +26,8 @@ test('junk repo by name or description', () => {
   assert.equal(isJunkRepo({ name: 'my-portfolio', description: '' }), true);
   assert.equal(isJunkRepo({ name: 'app', description: 'Homework assignment for CS101' }), true);
   assert.equal(isJunkRepo({ name: 'netflix-clone', description: '' }), true);
+  assert.equal(isJunkRepo({ name: 'biovatech-hackathon', description: '' }), true);
+  assert.equal(isJunkRepo({ name: 'x', description: 'Starter template for Lovable' }), true);
   assert.equal(isJunkRepo({ name: 'invoice-saas', description: 'Invoices for freelancers' }), false);
   assert.equal(isJunkRepo({ name: 'x', description: null }), false);
 });

@@ -8,7 +8,6 @@ const MAX_SIZE = 400000;
 const SEARCH_GAP_MS = 6500; // code search allows ~10 req/min
 const PER_PAGE = 100;
 const BAD_HOSTS = /(^|\.)(github\.io|github\.com|gitlab\.io|linkedin\.com|twitter\.com|x\.com|npmjs\.com|youtube\.com|lovable\.dev)$/i;
-const HOST_PORTFOLIO = /portfolio|resume|\bcv\b|homework|assignment|tutorial|clone|practice|course|test/i;
 
 export const initialCursor = () => ({ lo: 0, hi: 199, page: 1, skip: 0, step: 200 });
 
@@ -29,7 +28,7 @@ function normalizeHomepage(h) {
   try {
     const u = new URL(s);
     if (BAD_HOSTS.test(u.hostname)) return '';
-    if (/\.(vercel\.app|netlify\.app|pages\.dev|onrender\.com|web\.app)$/.test(u.hostname) && HOST_PORTFOLIO.test(u.hostname)) return '';
+    if (/\.(vercel\.app|netlify\.app|pages\.dev|onrender\.com|web\.app)$/.test(u.hostname) && isJunkRepo({ name: u.hostname })) return '';
     return s;
   } catch { return ''; }
 }
