@@ -63,13 +63,32 @@ export function createDb({ url, key, fetch: f = globalThis.fetch }) {
     async setCursor(source, cursor) {
       await call('lovable_lead_cursors?on_conflict=source', { method: 'POST', body: { source, cursor, updated_at: new Date().toISOString() }, prefer: 'resolution=merge-duplicates,return=minimal' });
     },
+    // Firecrawl: rows never scraped, oldest id first. firstSeen = only today's new rows; before = only older rows (backfill).
+    async leadsNeedingSite({ firstSeen, before, afterId = 0, limit = 200 }) {
+      const q = ['select=id,email,source,name,domain,url,repo,company,first_seen,data', 'status=neq.rejected', 'data->site=is.null', `id=gt.${afterId}`, 'order=id.asc', `limit=${limit}`];
+      if (firstSeen) q.push(`first_seen=eq.${firstSeen}`);
+      if (before) q.push(`first_seen=lt.${before}`);
+      return json(await call(`lovable_leads?${q.join('&')}`));
+    },
+    async setSite(row, site) {
+      await call(`lovable_leads?id=eq.${row.id}`, { method: 'PATCH', body: { data: { ...(row.data || {}), site } }, prefer: 'return=minimal' });
+    },
+    async siteForDomain(domain) {
+      const rows = await json(await call(`lovable_leads?select=data&domain=eq.${encodeURIComponent(domain)}&data->site->>status=eq.ok&limit=1`));
+      return rows[0]?.data?.site || null;
+    },
+    async firecrawlPagesSince(iso) {
+      const rows = await json(await call(`lovable_lead_runs?select=scanned&source=eq.firecrawl&run_at=gte.${encodeURIComponent(iso)}&limit=1000`));
+      return rows.reduce((a, r) => a + Number(r.scanned || 0), 0);
+    },
     async logRun(run) {
       await call('lovable_lead_runs', { method: 'POST', body: { run_at: new Date().toISOString(), ...run }, prefer: 'return=minimal' });
     },
     async countsSince(dayIso, monthStartIso) {
-      const [github, apify, total, unsent, newGithub, newApify] = await Promise.all([
+      const [github, apify, total, unsent, newGithub, newApify, scraped, unscraped, viaSiteToday] = await Promise.all([
         count('source=eq.github'), count('source=eq.apify_linkedin'), count('id=gt.0'), count('enrolled_by=is.null'),
         count(`source=eq.github&created_at=gte.${dayIso}`), count(`source=eq.apify_linkedin&created_at=gte.${dayIso}`),
+        count('data->site=not.is.null'), count('status=neq.rejected&data->site=is.null'), count(`data->>via=eq.site&created_at=gte.${dayIso}`),
       ]);
       const runs = await json(await call(`lovable_lead_runs?select=source,scanned,spend_usd,ok,notes,run_at&run_at=gte.${monthStartIso}&order=run_at.desc&limit=1000`));
       const today = runs.filter((r) => r.run_at >= dayIso);
@@ -77,7 +96,7 @@ export function createDb({ url, key, fetch: f = globalThis.fetch }) {
       const allApify = await json(await call('lovable_lead_runs?select=spend_usd&source=eq.apify_linkedin&limit=100000'));
       const allGh = await json(await call('lovable_lead_runs?select=scanned&source=eq.github&limit=100000'));
       return {
-        total, unsent, bySource: { github, apify_linkedin: apify },
+        total, unsent, scraped, unscraped, viaSiteToday, pagesToday: today.filter((r) => r.source === 'firecrawl').reduce((a, r) => a + (r.scanned || 0), 0), bySource: { github, apify_linkedin: apify },
         newToday: { github: newGithub, apify_linkedin: newApify },
         spendToday: sum(today), spendMonth: sum(runs), spendTotal: sum(allApify),
         githubScanned: today.filter((r) => r.source === 'github').reduce((a, r) => a + (r.scanned || 0), 0),

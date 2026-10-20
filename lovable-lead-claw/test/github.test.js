@@ -16,7 +16,7 @@ function world(repos, { totals = {}, searchFail, repoStatus = {} } = {}) {
       if (searchFail && searchFail.shift()) return json({ message: 'rate' }, 403, { 'retry-after': '1' });
       const inFirstShard = /size:0\.\./.test(q);   // all fake repos live in the first size shard
       const total = totals[q] ?? (inFirstShard ? names.length : 0);
-      const items = page === 1 && inFirstShard ? names.map((n) => ({ repository: { full_name: n } })) : [];
+      const items = page === 1 && inFirstShard ? names.map((n) => ({ repository: { full_name: n, name: n.split('/')[1], fork: !!repos[n].fork, description: repos[n].description ?? null } })) : [];
       return json({ total_count: total, items });
     }
     let m = u.pathname.match(/^\/repos\/([^/]+\/[^/]+)\/commits$/);
@@ -175,4 +175,103 @@ test('the second repo of a brand-new email seen in the same page is recorded on 
   };
   await runGithub(base(w));
   assert.deepEqual(w.log.added, [['dup@buildfast.io', 'b/y']]);
+});
+
+// ---- fewer API calls per repo (7000 repos/day at 5000 req/h) ----
+test('forks and junk repos named in the code-search item cost no API call at all', async () => {
+  const w = world({
+    'a/fork': { fork: true, commits: [E('a@co.io')] },
+    'b/my-portfolio': { commits: [E('b@co.io')] },
+    'c/ok': { commits: [E('c@co3.io')] },
+  });
+  const r = await runGithub(base(w));
+  assert.deepEqual(w.log.repoCalls.sort(), ['commits:c/ok', 'repo:c/ok']);
+  assert.equal(r.scanned, 3); assert.deepEqual(w.log.inserts.map((l) => l.repo), ['c/ok']);
+});
+
+test('a repo whose commits hold no usable email never costs the /repos call', async () => {
+  const w = world({ 'a/noreply': { homepage: 'https://a.io', live: true, commits: [E('1+a@users.noreply.github.com')] }, 'b/ok': { commits: [E('b@co.io')] } });
+  await runGithub(base(w));
+  assert.deepEqual(w.log.repoCalls.sort(), ['commits:a/noreply', 'commits:b/ok', 'repo:b/ok']);
+});
+
+test('archived repos are still dropped once the repo call is made', async () => {
+  const w = world({ 'a/old': { commits: [E('a@co.io')] } });
+  const f = w.f;
+  w.f = async (u, i) => { const res = await f(u, i); if (/\/repos\/a\/old$/.test(String(u))) return new Response(JSON.stringify({ ...(await res.json()), archived: true }), { status: 200 }); return res; };
+  await runGithub(base(w));
+  assert.equal(w.log.inserts.length, 0);
+});
+
+// ---- leads target (GITHUB_LEADS_PER_DAY): stop on inserted leads, whichever of leads / repos comes first ----
+test('stops once the leads target is inserted, resumes mid-page, and does not re-run the same code search', async () => {
+  const repos = {}; for (let i = 0; i < 6; i++) repos[`o/r${i}`] = { commits: [E(`u${i}@co${i}.io`)] };
+  const w = world(repos);
+  const r = await runGithub(base(w, { leadsTarget: 2, chunk: 1, budget: 100 }));
+  assert.equal(r.inserted, 2); assert.equal(r.scanned, 2);
+  assert.equal(w.db.cursor.page, 1); assert.equal(w.db.cursor.skip, 2);
+  assert.equal(w.log.searches.length, 1);
+});
+
+test('the repo budget still stops the run when yield is poor', async () => {
+  const repos = {}; for (let i = 0; i < 6; i++) repos[`o/r${i}`] = { commits: [E(`1+r${i}@users.noreply.github.com`)] };
+  const w = world(repos);
+  const r = await runGithub(base(w, { leadsTarget: 1000, chunk: 2, budget: 4 }));
+  assert.equal(r.scanned, 4); assert.equal(r.inserted, 0);
+});
+
+// ---- surviving hours of rate limit ----
+test('sleeps until the reset BEFORE the core quota hits zero, instead of eating a 403', async () => {
+  const w = world({ 'a/x': { commits: [E('a@co.io')] }, 'b/y': { commits: [E('b@co2.io')] } });
+  const f = w.f; let first = true;
+  w.f = async (u, i) => {
+    const res = await f(u, i);
+    if (first && /\/commits(\?|$)/.test(String(u))) { first = false; return new Response(await res.text(), { status: 200, headers: { 'x-ratelimit-remaining': '3', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 40) } }); }
+    return res;
+  };
+  const slept = [];
+  await runGithub(base(w, { sleep: async (ms) => { slept.push(ms); }, chunk: 1 }));
+  assert.ok(slept.some((ms) => ms >= 30000), `slept ${slept}`);
+  assert.equal(w.log.inserts.length, 2);
+});
+
+test('the run stops cleanly at its time limit: cursor saved, no throw, noted', async () => {
+  const repos = {}; for (let i = 0; i < 6; i++) repos[`o/r${i}`] = { commits: [E(`u${i}@co${i}.io`)] };
+  const w = world(repos);
+  let t = 0;
+  const r = await runGithub(base(w, { chunk: 2, maxRunMs: 1000, now: () => (t += 600) }));
+  assert.ok(r.scanned > 0 && r.scanned < 6, `scanned ${r.scanned}`);
+  assert.match(r.notes, /time limit/);
+  assert.equal(w.db.cursor.skip, r.scanned);
+});
+
+test('progress is logged once per chunk, not once per repo', async () => {
+  const repos = {}; for (let i = 0; i < 6; i++) repos[`o/r${i}`] = { commits: [E(`u${i}@co${i}.io`)] };
+  const w = world(repos); const lines = [];
+  await runGithub(base(w, { chunk: 3, log: (m) => lines.push(m) }));
+  assert.equal(lines.filter((l) => /^github: scanned/.test(l)).length, 2);
+});
+
+// ---- junk-email repos with a live homepage are handed to the Firecrawl step ----
+test('a repo whose commit emails are all junk but whose homepage is live is returned as a site candidate', async () => {
+  const w = world({
+    'a/live': { homepage: 'https://a.io', live: true, commits: [E('1+a@users.noreply.github.com')] },
+    'b/dead': { homepage: 'https://b.io', live: false, commits: [E('1+b@users.noreply.github.com')] },
+    'c/nohp': { commits: [E('1+c@users.noreply.github.com')] },
+  });
+  const r = await runGithub(base(w, { candidateLimit: 5 }));
+  assert.deepEqual(r.candidates.map((c) => [c.repo, c.url]), [['a/live', 'https://a.io']]);
+  assert.equal(w.log.inserts.length, 0);
+});
+
+test('without a candidate budget the junk-email repos stay free of the /repos call', async () => {
+  const w = world({ 'a/live': { homepage: 'https://a.io', live: true, commits: [E('1+a@users.noreply.github.com')] } });
+  const r = await runGithub(base(w));
+  assert.deepEqual(r.candidates, []); assert.ok(!w.log.repoCalls.includes('repo:a/live'));
+});
+
+test('candidates are capped at candidateLimit', async () => {
+  const repos = {}; for (let i = 0; i < 4; i++) repos[`o/r${i}`] = { homepage: `https://h${i}.io`, live: true, commits: [E(`1+r${i}@users.noreply.github.com`)] };
+  const r = await runGithub(base(world(repos), { candidateLimit: 2 }));
+  assert.equal(r.candidates.length, 2);
 });

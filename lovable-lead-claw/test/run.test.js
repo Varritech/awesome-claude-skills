@@ -126,3 +126,80 @@ test('logRun succeeding on the second try records normally', async () => {
   assert.equal(r.code, 0);
   assert.equal(rows.filter((x) => x.source === 'apify_linkedin').length, 1);
 });
+
+// ---- scale: leads target, Firecrawl step ----
+const FC_ENV = { ...ENV, FIRECRAWL_API_KEY: 'FC', FIRECRAWL_PAGES_PER_DAY: '40' };
+const siteDeps = (over = {}) => {
+  const d = deps({
+    runGithub: async (o) => { d.calls.github.push(o); return { scanned: 3, found: 2, kept: 2, inserted: 2, notes: '', candidates: [{ repo: 'o/x', url: 'https://x.io' }] }; },
+    runSites: async (o) => { d.calls.sites.push(o); return { pages: 12, dead: 3, skipped: 1, errors: 0, extra: 4, inserted: 4, examined: 30, stopped: null, notes: '' }; },
+    creditUsage: async () => 1100,
+    ...over,
+  });
+  d.calls.sites = []; return d;
+};
+
+test('github gets the leads target (default 1000) and the raised repo budget (default 7000)', async () => {
+  const d = deps();
+  const { GITHUB_REPOS_PER_DAY, ...env } = ENV;
+  await go(['--source', 'github', '--no-report'], env, d);
+  assert.equal(d.calls.github[0].leadsTarget, 1000 - COUNTS.newToday.github);
+  assert.equal(d.calls.github[0].budget, 7000);
+});
+
+test('GITHUB_LEADS_PER_DAY is what is left of today: a rerun after the target was hit scans nothing more', async () => {
+  const d = deps({ createDb: () => ({ ping: async () => {}, logRun: async () => {}, countsSince: async () => ({ ...COUNTS, newToday: { github: 1200, apify_linkedin: 0 } }) }) });
+  await go(['--source', 'github', '--no-report'], { ...ENV, GITHUB_LEADS_PER_DAY: '1000' }, d);
+  assert.equal(d.calls.github[0].leadsTarget, 0);
+});
+
+test('Firecrawl step runs after github with the cap, the candidates, and pages already used today; logged as source firecrawl', async () => {
+  const d = siteDeps({ createDb: () => ({ ping: async () => {}, logRun: async (r) => { d.calls.runs.push(r); }, countsSince: async () => ({ ...COUNTS, pagesToday: 10 }) }) });
+  const r = await go(['--no-report'], FC_ENV, d);
+  assert.equal(r.code, 0);
+  const s = d.calls.sites[0];
+  assert.equal(s.cap, 40); assert.equal(s.usedToday, 10); assert.equal(s.apiKey, 'FC'); assert.equal(s.dry, false);
+  assert.deepEqual(s.candidates, [{ repo: 'o/x', url: 'https://x.io' }]);
+  assert.equal(d.calls.github[0].candidateLimit, 15);
+  const run = d.calls.runs.find((x) => x.source === 'firecrawl');
+  assert.equal(run.scanned, 12); assert.equal(run.kept, 4); assert.equal(run.spend_usd, 0); assert.equal(run.ok, true);
+  assert.equal(run.data.dead, 3);
+});
+
+test('no FIRECRAWL_API_KEY or a zero cap: the site step is skipped and github gets no candidate budget', async () => {
+  const d = siteDeps();
+  await go(['--no-report'], ENV, d);
+  assert.equal(d.calls.sites.length, 0); assert.equal(d.calls.github[0].candidateLimit, 0);
+  const d2 = siteDeps();
+  await go(['--no-report'], { ...FC_ENV, FIRECRAWL_PAGES_PER_DAY: '0' }, d2);
+  assert.equal(d2.calls.sites.length, 0);
+});
+
+test('--source apify never runs the site step; a site step crash is logged ok:false and the run goes on', async () => {
+  const d = siteDeps();
+  await go(['--source', 'apify', '--no-report'], FC_ENV, d);
+  assert.equal(d.calls.sites.length, 0);
+  const d2 = siteDeps({ runSites: async () => { throw new Error('boom'); } });
+  const r = await go(['--no-report'], FC_ENV, d2);
+  assert.equal(r.code, 0);
+  const run = d2.calls.runs.find((x) => x.source === 'firecrawl');
+  assert.equal(run.ok, false); assert.match(run.notes, /boom/);
+});
+
+test('dry run does the domain checks (site step gets dry:true) and writes no firecrawl run', async () => {
+  const d = siteDeps();
+  await go(['--dry', '--no-report'], FC_ENV, d);
+  assert.equal(d.calls.sites[0].dry, true); assert.equal(d.calls.runs.length, 0);
+});
+
+test('the report carries Firecrawl pages used and credits left', async () => {
+  const d = siteDeps({ createDb: () => ({ ping: async () => {}, logRun: async () => {}, countsSince: async () => ({ ...COUNTS, pagesToday: 12 }) }) });
+  await go([], FC_ENV, d);
+  assert.match(d.calls.mail[0].m.text, /Firecrawl: 12 of 40 pages used today, 1100 credits left/);
+});
+
+test('apify gets the wait window from APIFY_MAX_WAIT_MIN', async () => {
+  const d = deps();
+  await go(['--source', 'apify', '--no-report'], { ...ENV, APIFY_MAX_WAIT_MIN: '45' }, d);
+  assert.equal(d.calls.apify[0].maxWaitMs, 45 * 60 * 1000);
+});

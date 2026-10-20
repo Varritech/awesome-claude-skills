@@ -43,9 +43,10 @@ function toLead(p, today) {
   };
 }
 
-export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), budgetUsd = 2, today, dry = false, pollMs = 5000, maxWaitMs = 10 * 60 * 1000 }) {
+export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), budgetUsd = 2, today, dry = false, pollMs = 5000, maxWaitMs = 30 * 60 * 1000, itemsPerMin = 10 }) {
   const out = { scanned: 0, found: 0, kept: 0, inserted: 0, spendUsd: 0, ok: true, notes: '' };
-  const maxItems = maxItemsFor(budgetUsd);
+  // size the run to what the wait window can deliver (observed ~14 profiles/min incl. email search), so it finishes instead of timing out
+  const maxItems = Math.min(maxItemsFor(budgetUsd), Math.max(PAGE_SIZE, Math.floor((maxWaitMs / 60000) * itemsPerMin)));
   if (dry) return { ...out, notes: 'skipped (dry run)' };
   if (!token) return { ...out, notes: 'skipped (no APIFY_TOKEN)' };
   if (maxItems < 1) return { ...out, notes: 'skipped (budget 0)' };
@@ -102,27 +103,44 @@ export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep =
     return assumeCap(e.message);
   }
   out.spendUsd = Number(run.usageTotalUsd ?? 0);
-  if (run.status !== 'SUCCEEDED') {
-    // aborted/timed-out runs report usage late: no figure means assume the worst case
-    // (and after our own abort a late partial figure is not trusted either)
-    if (run.status !== 'FAILED' && (!out.spendUsd || timedOut)) out.spendUsd = budgetUsd;
-    return { ...out, ok: false, notes: `apify run ${run.status}` };
-  }
+  const succeeded = run.status === 'SUCCEEDED';
 
-  // From here the run is billed: never throw, so the spend is still logged and the page is not bought twice.
-  try {
-    const dsRes = await call(`${API}/datasets/${run.defaultDatasetId || started.defaultDatasetId}/items?clean=true&format=json`, { headers });
-    if (!dsRes.ok) throw new Error(`apify dataset fetch failed: ${dsRes.status}`);
-    const items = await dsRes.json();
-    out.scanned = items.length;
-    // usageTotalUsd may omit pay-per-event charges: never report less than the price list for what came back
-    out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
-    const leads = items.map((p) => toLead(p, today)).filter(Boolean);
-    out.found = out.kept = leads.length;
-    out.inserted = (await db.insertLeads(leads)).length;
-  } catch (e) {
-    out.ok = false; out.notes = `after billing: ${String(e.message).slice(0, 200)}`;
+  // The run is billed for whatever it produced, whether it finished or we aborted it: collect the dataset in every case but a plain FAILED.
+  // Never throw from here, so the spend is still logged and the page is not bought twice.
+  let items = null;
+  if (succeeded || run.status !== 'FAILED') {
+    try {
+      const dsRes = await call(`${API}/datasets/${run.defaultDatasetId || started.defaultDatasetId}/items?clean=true&format=json`, { headers });
+      if (!dsRes.ok) throw new Error(`apify dataset fetch failed: ${dsRes.status}`);
+      items = await dsRes.json();
+    } catch (e) {
+      out.ok = false; out.notes = `after billing: ${String(e.message).slice(0, 200)}`;
+    }
   }
-  await db.setCursor('apify', nextCursor);
+  if (!succeeded) {
+    out.ok = false;
+    if (items) {
+      // usageTotalUsd lags after an abort: never report less than the price list for what came back
+      out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
+    } else if (run.status !== 'FAILED' && !out.spendUsd) out.spendUsd = budgetUsd; // no usage figure and no items to price: assume the worst
+    out.notes = `apify run ${run.status}${items ? ` (kept ${items.length} items)` : ''}`;
+    if (!items) {
+      if (items === null && run.status !== 'FAILED' && out.spendUsd) await db.setCursor('apify', nextCursor);
+      return out;
+    }
+  }
+  if (items) {
+    try {
+      out.scanned = items.length;
+      // usageTotalUsd may omit pay-per-event charges: never report less than the price list for what came back
+      out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
+      const leads = items.map((p) => toLead(p, today)).filter(Boolean);
+      out.found = out.kept = leads.length;
+      out.inserted = (await db.insertLeads(leads)).length;
+    } catch (e) {
+      out.ok = false; out.notes = `after billing: ${String(e.message).slice(0, 200)}`;
+    }
+    await db.setCursor('apify', succeeded ? nextCursor : { ...nextCursor, startPage: cursor.startPage + Math.ceil(items.length / PAGE_SIZE) });
+  } else if (succeeded) await db.setCursor('apify', nextCursor);
   return out;
 }
