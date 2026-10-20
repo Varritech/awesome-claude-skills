@@ -26,7 +26,7 @@ const INPUT = {
   companyHeadcount: ['B'], // 1-10
 };
 
-function toLead(p, today) {
+export function toLead(p, today) {
   const raw = p.email || p.emails?.[0]?.email || p.emails?.[0] || p.emailAddress || '';
   const email = String(raw).trim().toLowerCase();
   if (!email || isJunkEmail(email)) return null;
@@ -119,10 +119,8 @@ export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep =
   }
   if (!succeeded) {
     out.ok = false;
-    if (items) {
-      // usageTotalUsd lags after an abort: never report less than the price list for what came back
-      out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
-    } else if (run.status !== 'FAILED' && !out.spendUsd) out.spendUsd = budgetUsd; // no usage figure and no items to price: assume the worst
+    // no usage figure and no items to price (the price floor for returned items is applied below): assume the worst
+    if (!items && run.status !== 'FAILED' && !out.spendUsd) out.spendUsd = budgetUsd;
     out.notes = `apify run ${run.status}${items ? ` (kept ${items.length} items)` : ''}`;
     if (!items) {
       if (items === null && run.status !== 'FAILED' && out.spendUsd) await db.setCursor('apify', nextCursor);
@@ -132,7 +130,7 @@ export async function runApify({ db, token, fetch: f = globalThis.fetch, sleep =
   if (items) {
     try {
       out.scanned = items.length;
-      // usageTotalUsd may omit pay-per-event charges: never report less than the price list for what came back
+      // usageTotalUsd may omit pay-per-event charges and lags after an abort: never report less than the price list for what came back
       out.spendUsd = Math.max(out.spendUsd, estimateCost(items.length));
       const leads = items.map((p) => toLead(p, today)).filter(Boolean);
       out.found = out.kept = leads.length;

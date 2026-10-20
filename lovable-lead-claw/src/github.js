@@ -44,7 +44,9 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
     for (let attempt = 0; attempt < 6; attempt++) {
       const hold = pauseUntil - Date.now();
       if (!isSearch && hold > 0) await sleep(Math.min(hold, 60 * 60 * 1000));
-      const res = await f(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'lovable-lead-claw' } });
+      let res;
+      try { res = await f(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'lovable-lead-claw' }, signal: AbortSignal.timeout(45000) }); }
+      catch (e) { if (attempt === 5) throw e; await sleep(Math.min(5000 * 2 ** attempt, 120000)); continue; }
       const rateLimited = res.status === 429 || (res.status === 403 && (res.headers.get('x-ratelimit-remaining') === '0' || res.headers.get('retry-after')));
       if (rateLimited) {
         const ra = Number(res.headers.get('retry-after'));

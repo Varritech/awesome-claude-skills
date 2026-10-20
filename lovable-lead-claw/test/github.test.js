@@ -275,3 +275,19 @@ test('candidates are capped at candidateLimit', async () => {
   const r = await runGithub(base(world(repos), { candidateLimit: 2 }));
   assert.equal(r.candidates.length, 2);
 });
+
+test('every GitHub call carries an abort signal so one hung connection cannot stall a multi-hour run', async () => {
+  const w = world({ 'a/x': { commits: [E('a@co.io')] } });
+  const signals = []; const f = w.f;
+  w.f = async (u, i = {}) => { if (String(u).startsWith('https://api.github.com')) signals.push(i.signal); return f(u, i); };
+  await runGithub(base(w));
+  assert.ok(signals.length >= 3); assert.ok(signals.every((s) => s instanceof AbortSignal));
+});
+
+test('a dropped connection or timeout is retried after a pause instead of failing the repo or the run', async () => {
+  const w = world({ 'a/x': { commits: [E('a@co.io')] } });
+  const f = w.f; let n = 0; const slept = [];
+  w.f = async (u, i = {}) => { if (String(u).startsWith('https://api.github.com') && ++n % 3 === 1) throw Object.assign(new Error('fetch failed'), { name: 'TimeoutError' }); return f(u, i); };
+  const r = await runGithub(base(w, { sleep: async (ms) => { slept.push(ms); } }));
+  assert.equal(w.log.inserts.length, 1); assert.equal(r.failed, 0); assert.ok(slept.length > 0);
+});
