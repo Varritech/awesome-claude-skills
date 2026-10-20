@@ -203,3 +203,12 @@ test('apify gets the wait window from APIFY_MAX_WAIT_MIN', async () => {
   await go(['--source', 'apify', '--no-report'], { ...ENV, APIFY_MAX_WAIT_MIN: '45' }, d);
   assert.equal(d.calls.apify[0].maxWaitMs, 45 * 60 * 1000);
 });
+
+test('a dry run is a smoke test: it scans at most DRY_REPOS_PER_RUN (default 300) repos, not hours of rate limit', async () => {
+  const d = deps();
+  await go(['--dry', '--source', 'github', '--no-report'], { ...ENV, GITHUB_REPOS_PER_DAY: '7000' }, d);
+  assert.equal(d.calls.github[0].budget, 300);
+  const d2 = deps();
+  await go(['--dry', '--source', 'github', '--no-report'], { ...ENV, GITHUB_REPOS_PER_DAY: '7000', DRY_REPOS_PER_RUN: '50' }, d2);
+  assert.equal(d2.calls.github[0].budget, 50);
+});

@@ -80,7 +80,7 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
   let candidates = [];
   if (args.source !== 'apify') {
     try {
-      const r = await d.runGithub({ db, token: env.GITHUB_TOKEN, budget: Number(env.GITHUB_REPOS_PER_DAY || 7000), leadsTarget: Math.max(0, leadsTarget - before.newToday.github), candidateLimit: fcOn ? Math.floor(Math.max(0, fcCap - pagesUsed) / 2) : 0, maxRunMs: Number(env.GITHUB_MAX_RUN_HOURS || 18) * 3600 * 1000, today, dry: args.dry, log });
+      const r = await d.runGithub({ db, token: env.GITHUB_TOKEN, budget: args.dry ? Math.min(Number(env.GITHUB_REPOS_PER_DAY || 7000), Number(env.DRY_REPOS_PER_RUN || 300)) : Number(env.GITHUB_REPOS_PER_DAY || 7000), leadsTarget: Math.max(0, leadsTarget - before.newToday.github), candidateLimit: fcOn ? Math.floor(Math.max(0, fcCap - pagesUsed) / 2) : 0, maxRunMs: Number(env.GITHUB_MAX_RUN_HOURS || 18) * 3600 * 1000, today, dry: args.dry, log });
       candidates = r.candidates || [];
       await record({ source: 'github', scanned: r.scanned, found: r.found, kept: r.kept, spend_usd: 0, ok: true, notes: r.notes || '', data: { inserted: r.inserted, cursor: r.cursor } });
       out(`github: scanned ${r.scanned}, kept ${r.kept}, inserted ${r.inserted}`);
