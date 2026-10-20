@@ -110,3 +110,50 @@ test('emailRepos merges the row repo with data.repos; addRepo appends without lo
   const rej = fetch.calls.filter((c) => c.method === 'PATCH').at(-1);
   assert.match(rej.url, /enrolled_by=is\.null/); assert.equal(rej.body.status, 'rejected');
 });
+
+// ---- site (Firecrawl) support ----
+test('leadsNeedingSite asks for unscraped, non-rejected rows oldest first, new-today rows or backfill rows', async () => {
+  const { db, fetch } = mk(() => ({ body: [{ id: 5, email: 'a@x.io', data: {} }] }));
+  const rows = await db.leadsNeedingSite({ firstSeen: '2026-10-20', afterId: 3, limit: 50 });
+  assert.equal(rows.length, 1);
+  const u = decodeURIComponent(fetch.calls[0].url);
+  assert.match(u, /data->site=is\.null/); assert.match(u, /status=neq\.rejected/); assert.match(u, /first_seen=eq\.2026-10-20/);
+  assert.match(u, /id=gt\.3/); assert.match(u, /order=id\.asc/); assert.match(u, /limit=50/);
+  await db.leadsNeedingSite({ before: '2026-10-20', afterId: 0, limit: 10 });
+  assert.match(decodeURIComponent(fetch.calls[1].url), /first_seen=lt\.2026-10-20/);
+});
+
+test('setSite merges the site block into the row data without losing the rest', async () => {
+  const { db, fetch } = mk(() => ({ status: 204 }));
+  await db.setSite({ id: 7, data: { homepage: 'h', repos: ['o/a'] } }, { status: 'ok', emails: [] });
+  const c = fetch.calls[0];
+  assert.equal(c.method, 'PATCH'); assert.match(c.url, /id=eq\.7/);
+  assert.deepEqual(c.body.data, { homepage: 'h', repos: ['o/a'], site: { status: 'ok', emails: [] } });
+});
+
+test('siteForDomain returns an already scraped site block for the domain, or null', async () => {
+  const { db, fetch } = mk(() => ({ body: [{ data: { site: { status: 'ok', emails: ['a@x.io'] } } }] }));
+  assert.deepEqual(await db.siteForDomain('x.io'), { status: 'ok', emails: ['a@x.io'] });
+  assert.match(decodeURIComponent(fetch.calls[0].url), /domain=eq\.x\.io/);
+  const { db: db2 } = mk(() => ({ body: [] }));
+  assert.equal(await db2.siteForDomain('y.io'), null);
+});
+
+test('firecrawlPagesSince sums the pages logged by firecrawl runs since the given time', async () => {
+  const { db, fetch } = mk(() => ({ body: [{ scanned: 12 }, { scanned: 3 }] }));
+  assert.equal(await db.firecrawlPagesSince('2026-10-20T00:00:00Z'), 15);
+  const u = decodeURIComponent(fetch.calls[0].url);
+  assert.match(u, /source=eq\.firecrawl/); assert.match(u, /run_at=gte\.2026-10-20/);
+});
+
+test('countsSince also reports firecrawl pages today and how many leads are scraped / still waiting', async () => {
+  const { db } = mk((c) => {
+    const u = decodeURIComponent(c.url);
+    if (u.includes('lovable_lead_runs')) return { body: [{ source: 'firecrawl', spend_usd: 0, run_at: '2026-10-20T07:00:00Z', scanned: 40, ok: true, notes: '' }] };
+    const m = { 'data->site=not.is.null': 11, 'data->site=is.null': 700, 'data->>via=eq.site': 4 };
+    const key = Object.keys(m).find((k) => u.includes(k));
+    return { body: [], headers: { 'content-range': `0-0/${key ? m[key] : 9}` } };
+  });
+  const r = await db.countsSince('2026-10-20T00:00:00Z', '2026-10-01');
+  assert.equal(r.pagesToday, 40); assert.equal(r.scraped, 11); assert.equal(r.unscraped, 700); assert.equal(r.viaSiteToday, 4);
+});

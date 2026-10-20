@@ -148,8 +148,8 @@ test('a start request that never got a response is not billed: it throws and the
   assert.equal(db.s.cursor.startPage, 5);
 });
 
-test('ABORTED/TIMED-OUT run with no usage figure is charged the full cap', async () => {
-  const a = apify({ items: [], status: 'ABORTED', usage: null });
+test('ABORTED run with no usage figure and no readable dataset is charged the full cap', async () => {
+  const a = apify({ items: [], status: 'ABORTED', usage: null, dsStatus: 500 });
   const r = await run(mkdb(), a);
   assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
 });
@@ -180,10 +180,35 @@ test('every Apify call carries an abort signal so a hung connection cannot block
   assert.ok(signals.every((s) => s instanceof AbortSignal));
 });
 
-test('run we timed out and aborted is charged the cap even if a small partial usage is reported', async () => {
-  const base = apify({ items: [], status: 'RUNNING', usage: 0.05, polls: 999 });
+// 10-19 / 10-20: two runs hit our wait limit, were aborted, had paid for 142 and 113 profiles, and the claw threw the items away
+// and booked the whole $20 cap. A timed-out run now keeps what it paid for and books what Apify actually billed.
+test('a run we timed out and aborted still ingests the items it produced and books real usage, not the cap', async () => {
+  const base = apify({ items: ITEMS, status: 'RUNNING', usage: 0.05, polls: 999 });
   const f = async (u, init = {}) => (String(u).endsWith('/abort') ? new Response('{}', { status: 200 }) : base.f(u, init));
-  const r = await run(mkdb(), { f }, { maxWaitMs: -1 });
+  const db = mkdb({ startPage: 2 });
+  const r = await run(db, { f }, { maxWaitMs: -1 });
   assert.match(r.notes, /TIMED-OUT/);
-  assert.equal(r.ok, false); assert.equal(r.spendUsd, 2);
+  assert.equal(r.ok, false);
+  assert.deepEqual(db.s.inserted.map((l) => l.email).sort(), ['ann@buildfast.io', 'di@gmail.com']);
+  assert.equal(r.inserted, 2);
+  assert.equal(r.spendUsd, estimateCost(ITEMS.length)); // usage 0.05 under-reports; price list for 4 items wins
+  assert.ok(r.spendUsd < 2);
+  assert.equal(db.s.cursor.startPage, 2 + Math.ceil(ITEMS.length / 25));
+});
+
+test('a timed-out run that produced nothing books reported usage and leaves the cursor', async () => {
+  const base = apify({ items: [], status: 'RUNNING', usage: 0.3, polls: 999 });
+  const f = async (u, init = {}) => (String(u).endsWith('/abort') ? new Response('{}', { status: 200 }) : base.f(u, init));
+  const db = mkdb({ startPage: 4 });
+  const r = await run(db, { f }, { maxWaitMs: -1 });
+  assert.equal(r.spendUsd, 0.3); assert.equal(db.s.cursor.startPage, 4);
+});
+
+test('maxItems is sized to what the wait window can deliver, so the run finishes instead of timing out', async () => {
+  const a = apify({ items: ITEMS });
+  await run(mkdb(), a, { budgetUsd: 20, maxWaitMs: 30 * 60 * 1000, itemsPerMin: 10 });
+  const start = a.calls.find((c) => c.method === 'POST');
+  assert.equal(start.body.maxItems, 300);
+  assert.equal(start.body.takePages, 12);
+  assert.equal(new URL(start.url).searchParams.get('maxTotalChargeUsd'), '20');
 });

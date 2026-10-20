@@ -39,3 +39,18 @@ test('successful:false is an error even on HTTP 200', async () => {
   const f = async () => new Response(JSON.stringify({ successful: false, error: 'no auth' }), { status: 200 });
   await assert.rejects(() => sendReport(cfg(f), { subject: 's', text: 't' }), /not sent.*no auth/);
 });
+
+test('report shows Firecrawl usage, extra emails, scraped backlog and days left at today\'s rate', () => {
+  const c = { ...counts, pagesToday: 12, scraped: 300, unscraped: 500, viaSiteToday: 4, githubScanned: 7000, githubScannedTotal: 14000 };
+  const { text } = buildReport(c, { today: '2026-10-19', firecrawl: { cap: 40, creditsLeft: 1100 }, leadsTarget: 1000 });
+  assert.match(text, /Firecrawl: 12 of 40 pages used today, 1100 credits left/);
+  assert.match(text, /4 of today's new leads came from emails found on the sites/);
+  assert.match(text, /300 leads scraped, 500 waiting/);
+  assert.match(text, /about 10 days left at 7,000 repos a day/);
+  assert.match(text, /target 1000 leads a day/);
+});
+
+test('report without Firecrawl says it is off, and unknown credits are not invented', () => {
+  assert.match(buildReport(counts, { today: 'd' }).text, /Firecrawl: off/);
+  assert.match(buildReport({ ...counts, pagesToday: 3 }, { today: 'd', firecrawl: { cap: 40, creditsLeft: null } }).text, /credits left unknown/);
+});

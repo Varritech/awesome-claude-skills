@@ -1,6 +1,7 @@
 // GitHub source: public repos whose package.json mentions "lovable-tagger".
 // Code search caps at 1000 results/query, so the corpus is sharded by package.json byte size
 // and (shard, page, skip) is persisted in lovable_lead_cursors so each daily run resumes.
+import { liveCheck } from './web.js';
 import { emailDomain, isFreeDomain, isJunkEmail, isJunkRepo, dropRepeatEmails } from './filters.js';
 
 const API = 'https://api.github.com';
@@ -33,11 +34,16 @@ function normalizeHomepage(h) {
   } catch { return ''; }
 }
 
-export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), budget = 800, today, dry = false, log = () => {} }) {
+export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), budget = 7000, leadsTarget = Infinity, chunk = 50, maxRunMs = 20 * 3600 * 1000, candidateLimit = 0, now = () => Date.now(), today, dry = false, log = () => {} }) {
+  let pauseUntil = 0; // core quota nearly spent: every worker waits for the reset instead of earning a 403
+  const t0 = now();
   const gh = async (path, params) => {
     const url = new URL(path.startsWith('http') ? path : API + path);
+    const isSearch = url.pathname.startsWith('/search');
     for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
     for (let attempt = 0; attempt < 6; attempt++) {
+      const hold = pauseUntil - Date.now();
+      if (!isSearch && hold > 0) await sleep(Math.min(hold, 60 * 60 * 1000));
       const res = await f(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'lovable-lead-claw' } });
       const rateLimited = res.status === 429 || (res.status === 403 && (res.headers.get('x-ratelimit-remaining') === '0' || res.headers.get('retry-after')));
       if (rateLimited) {
@@ -48,26 +54,36 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
         await sleep(Math.min(wait, 15 * 60 * 1000));
         continue;
       }
+      const left = res.headers.get('x-ratelimit-remaining'); const reset = Number(res.headers.get('x-ratelimit-reset'));
+      if (!isSearch && left !== null && Number(left) <= 25 && reset) {
+        if (pauseUntil < Date.now()) log(`github core quota ${left} left, waiting ${Math.round((reset * 1000 - Date.now()) / 60000)} min for the reset`);
+        pauseUntil = Math.max(pauseUntil, reset * 1000 + 1000);
+      }
       return res;
     }
     throw new Error(`github rate limit not clearing for ${url.pathname}`);
   };
 
-  const live = async (url) => {
-    const opts = { redirect: 'manual', signal: AbortSignal.timeout(12000) };
-    try {
-      let res = await f(url, { ...opts, method: 'HEAD' });
-      if ([403, 405, 501].includes(res.status)) res = await f(url, { ...opts, method: 'GET', signal: AbortSignal.timeout(12000) });
-      return res.status >= 200 && res.status < 400;
-    } catch { return false; }
-  };
+  const live = (url) => liveCheck(f, url);
 
-  async function processRepo(full) {
-    const res = await gh(`/repos/${full}`);
-    if (res.status >= 500) throw new Error(`repo ${res.status}`);
-    if (!res.ok) return [];
-    const meta = await res.json();
-    if (meta.fork || meta.archived || isJunkRepo(meta)) return [];
+  // junk-only commit emails: if the repo still has a live homepage, the Firecrawl step may find a real contact on the site
+  async function candidate(full) {
+    if (stats.candidateSlots >= candidateLimit || stats.candidateTries >= candidateLimit * 4) return;
+    stats.candidateTries++; stats.candidateSlots++; // slot reserved up front: workers run in parallel
+    let kept = false;
+    try {
+      const res = await gh(`/repos/${full}`);
+      if (!res.ok) return;
+      const meta = await res.json();
+      if (meta.fork || meta.archived || isJunkRepo(meta)) return;
+      const hp = normalizeHomepage(meta.homepage);
+      if (hp && await live(hp)) { stats.candidates.push({ repo: full, url: hp, description: meta.description || null }); kept = true; }
+    } finally { if (!kept) stats.candidateSlots--; }
+  }
+
+  async function processRepo(full, item = {}) {
+    // the code-search item already carries fork/name/description: skip those repos before spending any call
+    if (item.fork || isJunkRepo({ name: item.name || '', description: item.description || '' })) return [];
     const cres = await gh(`/repos/${full}/commits`, { per_page: 30 });
     if (cres.status >= 500) throw new Error(`commits ${cres.status}`);
     if (!cres.ok) return [];
@@ -79,7 +95,13 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
       const e = byEmail.get(em) || { n: 0, name: c.commit.author.name || '' };
       e.n++; byEmail.set(em, e);
     }
-    if (!byEmail.size) return [];
+    if (!byEmail.size) { await candidate(full); return []; }
+    // homepage, archived and pushed_at only live on the repo object, so it is fetched only for repos that have an email worth keeping
+    const res = await gh(`/repos/${full}`);
+    if (res.status >= 500) throw new Error(`repo ${res.status}`);
+    if (!res.ok) return [];
+    const meta = await res.json();
+    if (meta.fork || meta.archived || isJunkRepo(meta)) return [];
     const homepage = normalizeHomepage(meta.homepage);
     const homepageLive = homepage ? await live(homepage) : false;
     const rows = [];
@@ -108,17 +130,26 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
 
   let cursor = (await db.getCursor('github')) || initialCursor();
   const save = async () => { if (!dry) await db.setCursor('github', cursor); };
-  const stats = { scanned: 0, found: 0, kept: 0, inserted: 0, failed: 0, notes: '' };
+  const stats = { scanned: 0, found: 0, kept: 0, inserted: 0, failed: 0, notes: '', candidates: [], candidateTries: 0, candidateSlots: 0 };
   const seen = []; // {email, repo} across the run, for the 3+ repos rule
   let lastSearch = 0;
 
-  while (stats.scanned < budget && !cursor.done) {
-    const gap = SEARCH_GAP_MS - (Date.now() - lastSearch);
-    if (lastSearch && gap > 0) await sleep(gap);
-    lastSearch = Date.now();
-    const res = await gh('/search/code', { q: query(cursor), per_page: PER_PAGE, page: cursor.page });
-    if (!res.ok) { stats.notes = `search ${res.status}`; throw new Error(`github code search failed: ${res.status}`); }
-    const body = await res.json();
+  const got = () => (dry ? stats.kept : stats.inserted);
+  let page = null; // last code-search result, reused while a page is consumed in chunks
+  while (stats.scanned < budget && got() < leadsTarget && !cursor.done) {
+    if (now() - t0 > maxRunMs) { stats.timeLimit = true; break; }
+    const key = `${query(cursor)}|${cursor.page}`;
+    let body;
+    if (page?.key === key) body = page.body;
+    else {
+      const gap = SEARCH_GAP_MS - (Date.now() - lastSearch);
+      if (lastSearch && gap > 0) await sleep(gap);
+      lastSearch = Date.now();
+      const res = await gh('/search/code', { q: query(cursor), per_page: PER_PAGE, page: cursor.page });
+      if (!res.ok) { stats.notes = `search ${res.status}`; throw new Error(`github code search failed: ${res.status}`); }
+      body = await res.json();
+      page = { key, body };
+    }
     const total = body.total_count || 0;
     if (cursor.page === 1 && cursor.skip === 0 && total > 1000 && cursor.hi > cursor.lo) {
       cursor = { ...cursor, hi: Math.floor((cursor.lo + cursor.hi) / 2), step: Math.max(1, Math.floor(cursor.step / 2)) };
@@ -127,14 +158,15 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
     const maxPage = Math.ceil(Math.min(total, 1000) / PER_PAGE);
     if (cursor.page > maxPage || !body.items?.length) { cursor = nextCursor(cursor, total); await save(); continue; }
 
-    const list = [...new Set(body.items.map((i) => i.repository.full_name))].slice(cursor.skip);
+    const items = new Map(body.items.map((i) => [i.repository.full_name, i.repository]));
+    const list = [...items.keys()].slice(cursor.skip);
     const known = await db.existingRepos(list);
     const take = []; let consumed = 0;
     for (const r of list) {
-      if (!known.has(r)) { if (stats.scanned + take.length >= budget) break; take.push(r); }
+      if (!known.has(r)) { if (stats.scanned + take.length >= budget || take.length >= chunk) break; take.push(r); }
       consumed++;
     }
-    const perRepo = await pool(take, 5, processRepo);
+    const perRepo = await pool(take, 6, (r) => processRepo(r, items.get(r)));
     stats.scanned += take.length;
     let rows = perRepo.flat();
     stats.found += rows.length;
@@ -154,6 +186,7 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
       }
     }
 
+    log(`github: scanned ${stats.scanned}/${budget}, kept ${stats.kept}, inserted ${stats.inserted}/${leadsTarget === Infinity ? '-' : leadsTarget}, shard ${cursor.lo}-${cursor.hi} p${cursor.page}`);
     if (consumed < list.length) cursor = { ...cursor, skip: cursor.skip + consumed };
     else cursor = cursor.page + 1 > maxPage ? nextCursor(cursor, total) : { ...cursor, page: cursor.page + 1, skip: 0 };
     await save();
@@ -161,6 +194,7 @@ export async function runGithub({ db, token, fetch: f = globalThis.fetch, sleep 
   const notes = [];
   if (stats.failed) notes.push(`${stats.failed} repos failed (GitHub 5xx or error), skipped`);
   if (cursor.done) notes.push('corpus complete');
+  if (stats.timeLimit) notes.push('time limit reached, resumes next run');
   stats.notes = notes.join('; ');
   stats.cursor = cursor;
   return stats;

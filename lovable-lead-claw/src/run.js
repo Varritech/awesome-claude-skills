@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { createDb } from './db.js';
 import { runGithub } from './github.js';
 import { runApify } from './apify.js';
+import { runSites } from './site.js';
+import { creditUsage } from './firecrawl.js';
 import { buildReport, sendReport } from './report.js';
 
 export function parseArgs(argv) {
@@ -20,7 +22,7 @@ export function parseArgs(argv) {
 const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export async function main({ argv = process.argv.slice(2), env = process.env, deps = {}, out = console.log } = {}) {
-  const d = { createDb, runGithub, runApify, sendReport, ...deps };
+  const d = { createDb, runGithub, runApify, runSites, creditUsage, sendReport, ...deps };
   const args = parseArgs(argv);
   const now = new Date();
   const today = localDay(now);
@@ -55,22 +57,19 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
   };
   const log = (m) => out(m);
 
-  if (args.source !== 'apify') {
-    try {
-      const r = await d.runGithub({ db, token: env.GITHUB_TOKEN, budget: Number(env.GITHUB_REPOS_PER_DAY || 800), today, dry: args.dry, log });
-      await record({ source: 'github', scanned: r.scanned, found: r.found, kept: r.kept, spend_usd: 0, ok: true, notes: r.notes || '', data: { inserted: r.inserted, cursor: r.cursor } });
-      out(`github: scanned ${r.scanned}, kept ${r.kept}, inserted ${r.inserted}`);
-    } catch (e) {
-      await record({ source: 'github', scanned: 0, found: 0, kept: 0, spend_usd: 0, ok: false, notes: String(e.message).slice(0, 300), data: {} });
-      out(`github FAILED: ${e.message}`);
-    }
-  }
+  const fcKey = env.FIRECRAWL_API_KEY;
+  const fcCap = Number(env.FIRECRAWL_PAGES_PER_DAY || 0);
+  const fcOn = !!fcKey && fcCap > 0;
+  const pagesUsed = before.pagesToday || 0;
+  const leadsTarget = Number(env.GITHUB_LEADS_PER_DAY || 1000);
+
+  // Apify first: it needs <= 30 min, GitHub may sleep through hours of rate limit.
   if (args.source !== 'github') {
     const daily = Number(env.APIFY_DAILY_USD ?? 2) - before.spendToday;
     const lifetime = Number(env.APIFY_TOTAL_USD ?? 2) - (before.spendTotal ?? before.spendMonth);
     const budgetUsd = Math.max(0, Math.round(Math.min(daily, lifetime) * 100) / 100);
     try {
-      const r = await d.runApify({ db, token: env.APIFY_TOKEN, budgetUsd, today, dry: args.dry });
+      const r = await d.runApify({ db, token: env.APIFY_TOKEN, budgetUsd, today, dry: args.dry, maxWaitMs: Number(env.APIFY_MAX_WAIT_MIN || 30) * 60 * 1000, itemsPerMin: Number(env.APIFY_ITEMS_PER_MIN || 10) });
       if (!/^skipped/.test(r.notes)) await record({ source: 'apify_linkedin', scanned: r.scanned, found: r.found, kept: r.kept, spend_usd: r.spendUsd, ok: r.ok, notes: r.notes || '', data: { inserted: r.inserted, budgetUsd } });
       out(`apify: ${r.notes || `scanned ${r.scanned}, kept ${r.kept}, spend $${r.spendUsd}`}`);
     } catch (e) {
@@ -78,10 +77,34 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
       out(`apify FAILED: ${e.message}`);
     }
   }
+  let candidates = [];
+  if (args.source !== 'apify') {
+    try {
+      const r = await d.runGithub({ db, token: env.GITHUB_TOKEN, budget: Number(env.GITHUB_REPOS_PER_DAY || 7000), leadsTarget: Math.max(0, leadsTarget - before.newToday.github), candidateLimit: fcOn ? Math.floor(Math.max(0, fcCap - pagesUsed) / 2) : 0, maxRunMs: Number(env.GITHUB_MAX_RUN_HOURS || 18) * 3600 * 1000, today, dry: args.dry, log });
+      candidates = r.candidates || [];
+      await record({ source: 'github', scanned: r.scanned, found: r.found, kept: r.kept, spend_usd: 0, ok: true, notes: r.notes || '', data: { inserted: r.inserted, cursor: r.cursor } });
+      out(`github: scanned ${r.scanned}, kept ${r.kept}, inserted ${r.inserted}`);
+    } catch (e) {
+      await record({ source: 'github', scanned: 0, found: 0, kept: 0, spend_usd: 0, ok: false, notes: String(e.message).slice(0, 300), data: {} });
+      out(`github FAILED: ${e.message}`);
+    }
+    if (fcOn) {
+      try {
+        const r = await d.runSites({ db, apiKey: fcKey, cap: fcCap, usedToday: pagesUsed, today, dry: args.dry, candidates, log });
+        await record({ source: 'firecrawl', scanned: r.pages, found: r.extra, kept: r.inserted, spend_usd: 0, ok: !r.error, notes: r.notes || '', data: { dead: r.dead, skipped: r.skipped, errors: r.errors, examined: r.examined, stopped: r.stopped, wouldScrape: r.wouldScrape } });
+        out(`firecrawl: ${args.dry ? `dry, would scrape ${r.wouldScrape ?? 0}` : `scraped ${r.pages}`}, dead ${r.dead}, skipped ${r.skipped}, extra emails ${r.extra}, inserted ${r.inserted}${r.stopped ? `, stopped: ${r.stopped}` : ''}`);
+      } catch (e) {
+        await record({ source: 'firecrawl', scanned: 0, found: 0, kept: 0, spend_usd: 0, ok: false, notes: String(e.message).slice(0, 300), data: {} });
+        out(`firecrawl FAILED: ${e.message}`);
+      }
+    }
+  }
 
   if (!args.report) return 0;
   const counts = await db.countsSince(dayIso, monthIso);
-  const msg = buildReport(counts, { today });
+  let creditsLeft = null;
+  if (fcOn) { try { creditsLeft = await d.creditUsage({ apiKey: fcKey }); } catch { creditsLeft = null; } }
+  const msg = buildReport(counts, { today, leadsTarget, firecrawl: fcOn ? { cap: fcCap, creditsLeft } : null });
   for (const r of lost) msg.text += `\nWARNING: ${r.source} spend of $${Number(r.spend_usd).toFixed(2)} was not recorded in the database. Add it by hand before the next run.`;
   out(`\n${msg.subject}\n${msg.text}`);
   if (args.dry) return 0;
