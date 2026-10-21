@@ -1,15 +1,15 @@
 // Domain check + Firecrawl scrape of each lead's site. Dead domains cost no credit. Own-domain emails found on a site become extra lead rows.
 import { scrapePage } from './firecrawl.js';
-import { liveCheck, dnsResolves } from './web.js';
+import { probeSite, dnsResolves, isPrivateHost } from './web.js';
 import { emailDomain, isFreeDomain, isJunkEmail } from './filters.js';
 
 const SKIP_HOST = /(^|\.)(linkedin\.com|github\.com|github\.io|gitlab\.io|facebook\.com|instagram\.com|twitter\.com|x\.com|youtube\.com|npmjs\.com|lovable\.(app|dev)|lovableproject\.com|gptengineer\.app)$/i;
 const ROLE_BOX = /^(privacy|legal|abuse|dpo|gdpr|postmaster|webmaster|press|careers|jobs|hr|unsubscribe|compliance)$/i;
 const MAX_EXTRA_PER_SITE = 3;
-const NOT_PERSISTED = new Set(['capped', 'credits', 'rate', 'dry']);
+const NOT_PERSISTED = new Set(['capped', 'credits', 'rate', 'dry', 'flaky']);
 
 const cleanUrl = (s) => {
-  try { const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`); return SKIP_HOST.test(u.hostname) ? null : `${u.origin}${u.pathname.replace(/\/$/, '')}`; } catch { return null; }
+  try { const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`); return SKIP_HOST.test(u.hostname) || isPrivateHost(u.hostname) ? null : `${u.origin}${u.pathname.replace(/\/$/, '')}`; } catch { return null; }
 };
 const bare = (host) => String(host).toLowerCase().replace(/^www\./, '');
 
@@ -37,8 +37,8 @@ export function ownDomainEmails(emails, host) {
   return out.slice(0, MAX_EXTRA_PER_SITE);
 }
 
-export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry = false, candidates = [], fetch: f = globalThis.fetch, look, log = () => {}, concurrency = 4, batch = 200, maxExamine = 4000, scrape = scrapePage }) {
-  const stats = { pages: 0, dead: 0, skipped: 0, errors: 0, extra: 0, inserted: 0, wouldScrape: 0, examined: 0, stopped: null, notes: '' };
+export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry = false, candidates = [], fetch: f = globalThis.fetch, look, log = () => {}, concurrency = 4, batch = 200, maxExamine = 4000, scrape = scrapePage, checkpoint = null }) {
+  const stats = { pages: 0, dead: 0, flaky: 0, skipped: 0, errors: 0, extra: 0, inserted: 0, wouldScrape: 0, examined: 0, stopped: null, notes: '' };
   let left = Math.max(0, cap - usedToday);
   if (left <= 0) stats.stopped = 'cap';
   const hosts = new Map();
@@ -48,7 +48,9 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
   function check(host, url) {
     if (hosts.has(host)) return hosts.get(host);
     const p = (async () => {
-      if (!(await dnsResolves(host, look)) || !(await liveCheck(f, url))) return { status: 'dead' };
+      if (!(await dnsResolves(host, look))) return { status: 'dead' };
+      const probe = await probeSite(f, url);
+      if (probe !== 'live') return { status: probe };
       const prior = await db.siteForDomain(host).catch(() => null);
       if (prior) return { ...prior, status: 'ok', cached: true };
       if (!claim()) return { status: 'capped' };
@@ -84,6 +86,7 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
     const host = new URL(url).hostname;
     const res = await check(host, url);
     if (res.status === 'dead') stats.dead++;
+    if (res.status === 'flaky') stats.flaky++;
     if (NOT_PERSISTED.has(res.status)) return;
     const site = { title: res.title ?? null, description: res.description ?? null, emails: res.emails || [], scraped_at: res.scraped_at || today, status: res.status };
     if (!dry) await db.setSite(row, site);
@@ -99,6 +102,12 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
     await addExtra(res, host, url, { source: 'github', repo: c.repo, site: { title: res.title ?? null, description: res.description ?? null, emails: res.emails || [], scraped_at: today, status: 'ok' } });
   }
 
+  let flushed = 0;
+  async function flush() {
+    const n = stats.pages - flushed;
+    if (n > 0 && checkpoint && !dry) { await checkpoint(n); flushed = stats.pages; }
+  }
+
   async function pool(items, fn) {
     let i = 0;
     await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, async () => {
@@ -108,6 +117,7 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
 
   try {
     await pool(candidates, handleCandidate);
+    await flush();
     for (const phase of [{ firstSeen: today }, { before: today }]) {
       let afterId = 0;
       while (stats.examined < maxExamine) {
@@ -115,6 +125,7 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
         if (!rows.length) break;
         afterId = rows.at(-1).id;
         await pool(rows, handleRow);
+        await flush();
         log(`site: examined ${stats.examined}, scraped ${stats.pages}, dead ${stats.dead}, skipped ${stats.skipped}, extra emails ${stats.extra}`);
       }
     }
@@ -125,7 +136,9 @@ export async function runSites({ db, apiKey, cap = 0, usedToday = 0, today, dry 
   const notes = [];
   if (stats.stopped) notes.push(`stopped: ${stats.stopped}`);
   if (stats.errors) notes.push(`${stats.errors} scrape errors`);
+  if (stats.flaky) notes.push(`${stats.flaky} sites timed out / 5xx, retried next run`);
   if (stats.error) notes.push(stats.error);
   stats.notes = notes.join('; ');
+  stats.unflushed = stats.pages - flushed;
   return stats;
 }

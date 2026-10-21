@@ -90,8 +90,10 @@ export async function main({ argv = process.argv.slice(2), env = process.env, de
     }
     if (fcOn) {
       try {
-        const r = await d.runSites({ db, apiKey: fcKey, cap: fcCap, usedToday: pagesUsed, today, dry: args.dry, candidates, log });
-        await record({ source: 'firecrawl', scanned: r.pages, found: r.extra, kept: r.inserted, spend_usd: 0, ok: !r.error, notes: r.notes || '', data: { dead: r.dead, skipped: r.skipped, errors: r.errors, examined: r.examined, stopped: r.stopped, wouldScrape: r.wouldScrape } });
+        let flushed = 0;
+        const checkpoint = async (n) => { await record({ source: 'firecrawl', scanned: n, found: 0, kept: 0, spend_usd: 0, ok: true, notes: 'checkpoint', data: {} }); flushed += n; };
+        const r = await d.runSites({ db, apiKey: fcKey, cap: fcCap, usedToday: pagesUsed, today, dry: args.dry, candidates, log, checkpoint });
+        await record({ source: 'firecrawl', scanned: r.pages - flushed, found: r.extra, kept: r.inserted, spend_usd: 0, ok: !r.error, notes: r.notes || '', data: { dead: r.dead, skipped: r.skipped, errors: r.errors, examined: r.examined, stopped: r.stopped, wouldScrape: r.wouldScrape } });
         out(`firecrawl: ${args.dry ? `dry, would scrape ${r.wouldScrape ?? 0}` : `scraped ${r.pages}`}, dead ${r.dead}, skipped ${r.skipped}, extra emails ${r.extra}, inserted ${r.inserted}${r.stopped ? `, stopped: ${r.stopped}` : ''}`);
       } catch (e) {
         await record({ source: 'firecrawl', scanned: 0, found: 0, kept: 0, spend_usd: 0, ok: false, notes: String(e.message).slice(0, 300), data: {} });
