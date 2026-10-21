@@ -166,6 +166,16 @@ test('Firecrawl step runs after github with the cap, the candidates, and pages a
   assert.equal(run.data.dead, 3);
 });
 
+test('Firecrawl pages are logged as they are scraped (checkpoints) and the final row only adds the rest, so the cap survives a killed run', async () => {
+  const d = siteDeps({
+    createDb: () => ({ ping: async () => {}, logRun: async (r) => { d.calls.runs.push(r); }, countsSince: async () => COUNTS }),
+    runSites: async (o) => { await o.checkpoint(7); return { pages: 12, dead: 0, skipped: 0, errors: 0, extra: 0, inserted: 0, examined: 12, stopped: null, notes: '' }; },
+  });
+  await go(['--no-report'], FC_ENV, d);
+  const fc = d.calls.runs.filter((x) => x.source === 'firecrawl');
+  assert.deepEqual(fc.map((x) => x.scanned), [7, 5]);
+});
+
 test('no FIRECRAWL_API_KEY or a zero cap: the site step is skipped and github gets no candidate budget', async () => {
   const d = siteDeps();
   await go(['--no-report'], ENV, d);

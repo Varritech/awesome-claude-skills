@@ -17,7 +17,9 @@ function world({ rows = [], pages = {}, live = {}, dnsDead = [], siteFor = {} } 
       return new Response(JSON.stringify({ success: true, data: { markdown: p.markdown || '', links: p.links || [], metadata: { title: p.title, description: p.description } } }), { status: 200 });
     }
     log.liveChecks.push(u.hostname);
-    return new Response(null, { status: live[u.hostname] === false ? 503 : 200 });
+    if (live[u.hostname] === 'timeout') throw new Error('timeout');
+    log.hit = (log.hit || []).concat(u.hostname);
+    return new Response(null, { status: typeof live[u.hostname] === 'number' ? live[u.hostname] : live[u.hostname] === false ? 404 : 200 });
   };
   const s = { rows: rows.map((r, i) => ({ id: i + 1, source: 'github', first_seen: '2026-10-01', data: {}, ...r })), inserted: [], sites: new Map() };
   const db = {
@@ -136,4 +138,29 @@ test('an error on one site does not stop the run and the row is marked error', a
   const f = async (u, i) => (String(u).includes('firecrawl') && JSON.parse(i.body).url === 'https://acme.io' ? new Response('{}', { status: 500 }) : f0.f(u, i));
   const r = await runSites({ db: f0.db, apiKey: 'k', cap: 40, usedToday: 0, today: TODAY, fetch: f, look: f0.look, concurrency: 1 });
   assert.equal(f0.db.s.sites.get(1).status, 'error'); assert.equal(f0.db.s.sites.get(2).status, 'ok'); assert.equal(r.errors, 1);
+});
+
+test('a timeout or 5xx is not proof of a dead site: nothing is persisted, no credit spent, and it is retried next run', async () => {
+  const w = world({ rows: [row('a@slow.io', { url: 'https://slow.io', domain: 'slow.io' }), row('b@err.io', { url: 'https://err.io', domain: 'err.io' })], live: { 'slow.io': 'timeout', 'err.io': 503 } });
+  const r = await go(w);
+  assert.equal(r.pages, 0); assert.equal(r.dead, 0); assert.equal(r.flaky, 2);
+  assert.equal(w.db.s.sites.size, 0); assert.equal(w.log.scraped.length, 0);
+});
+
+test('private and local hosts are never fetched: IP literals, localhost, and names that resolve to private ranges', async () => {
+  const w = world({
+    rows: [row('a@gmail.com', { url: 'http://192.168.1.5', domain: 'x.io' }), row('b@gmail.com', { url: 'http://localhost:3000', domain: 'y.io' }), row('c@gmail.com', { url: 'http://169.254.169.254', domain: 'z.io' }), row('d@gmail.com', { url: 'https://sneaky.io', domain: 'sneaky.io' })],
+  });
+  const r = await go(w, { look: async (h) => ({ address: h === 'sneaky.io' ? '10.0.0.7' : '1.1.1.1' }) });
+  assert.equal(r.pages, 0); assert.equal(w.log.scraped.length, 0); assert.deepEqual(w.log.hit || [], []);
+  assert.equal(w.db.s.sites.get(4).status, 'dead');
+});
+
+test('pages scraped are checkpointed after each batch so a killed run still counts against the daily cap', async () => {
+  const rows = [1, 2, 3].map((i) => row(`a@s${i}.io`, { url: `https://s${i}.io`, domain: `s${i}.io` }));
+  const w = world({ rows, pages: Object.fromEntries([1, 2, 3].map((i) => [`https://s${i}.io`, { title: `S${i}`, markdown: '' }])) });
+  const seen = [];
+  const r = await go(w, { batch: 2, checkpoint: async (n) => { seen.push(n); } });
+  assert.equal(r.pages, 3);
+  assert.deepEqual(seen, [2, 1]);
 });

@@ -75,3 +75,13 @@ test('drops local-machine hostnames and coding-school addresses', () => {
   for (const e of ['a@mac.mynet', 'a@x.fritz.box', 'a@finns-macbook-pro.fritz.box', 'a@host.home', 'a@pc.corp', 'a@router.lan', 'a@student.42.fr', 'a@x.student.somewhere.com', 'a@42.fr']) assert.equal(isJunkEmail(e), true, e);
   for (const e of ['sam@boxhq.io', 'sam@homebase.com', 'sam@studentloans.io', 'sam@fortytwo.fr']) assert.equal(isJunkEmail(e), false, e);
 });
+
+test('university sub-domains (edu.<school>.ca, cs.<school>.ca) are junk', () => {
+  for (const e of ['a@edu.uwaterloo.ca', 'a@cs.uwaterloo.ca', 'a@ece.mcgill.ca']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['a@education.io', 'a@mathpal.com', 'a@cs.io']) assert.equal(isJunkEmail(e), false, e);
+});
+
+test('placeholder / service-desk local parts are junk', () => {
+  for (const e of ['git@acme.io', 'emailgit@acme.io', 'ssh@acme.io', 'servicedesk@acme.io', 'helpdesk@acme.io', 'postmaster@acme.io', 'sentry@acme.io', 'root@acme.io']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['hello@acme.io', 'contact@acme.io', 'info@acme.io', 'gitte@acme.io']) assert.equal(isJunkEmail(e), false, e);
+});
