@@ -85,3 +85,8 @@ test('placeholder / service-desk local parts are junk', () => {
   for (const e of ['git@acme.io', 'emailgit@acme.io', 'ssh@acme.io', 'servicedesk@acme.io', 'helpdesk@acme.io', 'postmaster@acme.io', 'sentry@acme.io', 'root@acme.io']) assert.equal(isJunkEmail(e), true, e);
   for (const e of ['hello@acme.io', 'contact@acme.io', 'info@acme.io', 'gitte@acme.io']) assert.equal(isJunkEmail(e), false, e);
 });
+
+test('VPS / cloud default hostnames are junk (git commit email of a server user)', () => {
+  for (const e of ['a@vps-2856eaec.vps.ovh.net', 'a@vmi2763874.contaboserver.net', 'a@srv841983.hstgr.cloud', 'a@vultr.guest', 'a@vps43784.publiccloud.com.br', 'a@ec2-1-2-3-4.compute-1.amazonaws.com']) assert.equal(isJunkEmail(e), true, e);
+  for (const e of ['sam@ovhcloud.io', 'sam@vpsfinder.com', 'sam@srvr.io', 'sam@acme.cloud']) assert.equal(isJunkEmail(e), false, e);
+});
