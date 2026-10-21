@@ -6,6 +6,7 @@ const PRIVATE_HOST = /\.(box|mynet|home|corp|lan|router|intranet|private|lcl|tes
 const SCHOOL = /(\.edu(\.[a-z]{2})?|\.ac\.[a-z]{2}|\.sch\.[a-z]{2}|\.k12\.[a-z.]+|\.school|\.edu\.[a-z]{2})$/;
 const SCHOOL_SUB = /(^|\.)(edu|cs|ece|eng|math|sci|engr)\.[a-z0-9-]+\.[a-z]{2,}$/;
 const PLACEHOLDER_LOCAL = /^(git|emailgit|ssh|www|root|admin|webmaster|postmaster|hostmaster|servicedesk|helpdesk|sentry|mailer-daemon|daemon)$/;
+const VPS_HOST = /(^|[.-])(vps[-\d][a-z0-9-]*\.vps\.ovh\.(net|us|ca)|[a-z0-9-]+\.contaboserver\.net|(srv|vps|vmi)\d+\.[a-z0-9.-]+|[a-z0-9-]+\.hstgr\.cloud|vultr\.guest|[a-z0-9-]+\.(publiccloud\.com\.br|compute(-\d)?\.amazonaws\.com|compute\.internal))$/;
 const JUNK_REPO = /portfolio|portfomio|porfolio|portafolio|portifolio|resume|\bcv\b|homework|assignment|tutorial|clone|practice|course|test|hackathon|bootcamp|template|boilerplate/i;
 const VENDOR_REPO = /\b(official|plugin|sdk|starter)\b|\b(component|library) (for|of)\b|\baudit (for|of)\b|\bapps? built with lovable\b/i;
 const SCHOOL_WORD = /(^|[.-])(univ([-.\d]|$)|univers(ity|idad|idade|ite|itat)|polytech|ecole|utfpr|uivo)|(^|[.-])college(\.|$)|(^|\.)ept\.sn$/;
@@ -29,7 +30,7 @@ export function isJunkEmail(email) {
   if (/\[bot\]$|-bot$|^bot$/.test(local) || local.startsWith('noreply') || local.startsWith('no-reply')) return true;
   if (/^(test|your)$/i.test(local) || /^(agent|openhands|devin|copilot|claude|codex|aider)([-_.+]|$)/.test(local)) return true;
   if (/^(no-?reply|donotreply|onboarding|bot)$/i.test(local) || PLACEHOLDER_LOCAL.test(local)) return true;
-  if (PLACEHOLDER_DOMAINS.test(domain) || PRIVATE_HOST.test(domain)) return true;
+  if (PLACEHOLDER_DOMAINS.test(domain) || PRIVATE_HOST.test(domain) || VPS_HOST.test(domain)) return true;
   if (SCHOOL.test(domain) || SCHOOL_SUB.test(domain) || SCHOOL_WORD.test(domain)) return true;
   return false;
 }
