@@ -24,7 +24,7 @@
  */
 
 import { isSendingWindow } from './select.js';
-import { offerBriefing, VOICE, quotesOnlyKnownPrices, misattributesVaultPrice } from './offers.js';
+import { offerBriefing, workforceBriefing, SMS_KNOWN_PRICES, VOICE, quotesOnlyKnownPrices, misattributesVaultPrice } from './offers.js';
 
 const HOUR = 3600_000;
 const DAY = 86400_000;
@@ -121,6 +121,23 @@ export const FIRST_TOUCH_BODY =
   'Any questions about them, just text me here. ' +
   'What are you building?';
 
+/*
+ * How a text conversation sells. Cristiano, 2026-09-25: "a flowing message,
+ * you can't try to sell it right off the bat, it's got to answer his
+ * questions." Built from the sales-trainer closer rubric (SPIN discovery,
+ * Voss labeling, Daniel G question-first objections, assumptive two-slot ask).
+ */
+export const SELLING_FRAMEWORK = [
+  'HOW YOU SELL OVER TEXT. Follow these stages in order, one step per text.',
+  '1. Answer their question first, always, in one or two sentences, before anything else.',
+  '2. Discovery. Do not pitch any offer until they have told you a problem. One question per text: what they run, how delivery or leads are handled today, where the team\'s week goes.',
+  '3. Cost of the problem: ask what happens if it stays like this, or when they land five more clients. Let them say the value of fixing it in their own words.',
+  '4. Label it back ("sounds like the team is the bottleneck"), then give ONE proof that matches their pain, and offer to show it running instead of describing it.',
+  '5. Every objection gets a question first, not an answer: price -> "compared to what?", "send me info" -> "what would you need to see to say yes?", "not now" -> "what would need to change?".',
+  '6. Only after they have named a pain, ask for a 15 minute call with two time slots, assumptively. Send the booking link only after they pick a time.',
+  'Never quote a price unless they ask for it. Never send two texts in a row without a reply.',
+].join('\n');
+
 /** The transcript, in the shape a model reads it. */
 const renderThread = (thread = []) =>
   thread
@@ -131,7 +148,13 @@ export function buildReplyPrompt({ thread, lead }) {
   return [
     VOICE,
     '',
+    SELLING_FRAMEWORK,
+    '',
     'OFFER MEMORY. This is the only place you may get a fact from. If the answer is not in here, say you will check and offer a call instead of guessing.',
+    'THE OFFER YOU LEAD WITH once they have a problem it solves:',
+    workforceBriefing(),
+    '',
+    'Also in the catalogue:',
     offerBriefing(),
     '',
     `They gave us this email on the landing page: ${lead?.email ?? 'unknown'}. They already have the free 5-skill pack.`,
@@ -171,7 +194,7 @@ export async function draftReply({ thread, lead, llm }) {
   if (hasPlaceholder(text)) return '';
 
   // ⛔ The three that would actually cost money or trust.
-  if (!quotesOnlyKnownPrices(text)) return '';
+  if (!quotesOnlyKnownPrices(text, SMS_KNOWN_PRICES)) return '';
   if (misattributesVaultPrice(text)) return '';
   if (/\bdiscount|coupon|promo code\b/i.test(text)) return '';
 

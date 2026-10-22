@@ -253,8 +253,8 @@ export const KNOWN_PRICES = OFFERS.map((o) => o.price).filter((p) => p.startsWit
  * LLM reaches for. Commas and cents are normalised first so "$15,000" and
  * "$47.00" cannot slip past a naive string compare.
  */
-export function quotesOnlyKnownPrices(text) {
-  const allowed = new Set(KNOWN_PRICES.map((p) => p.replace(/[$,]/g, '').replace(/\.00$/, '')));
+export function quotesOnlyKnownPrices(text, known = KNOWN_PRICES) {
+  const allowed = new Set(known.map((p) => p.replace(/[$,]/g, '').replace(/\.00$/, '')));
   const found = String(text ?? '').match(/\$\s?[0-9][0-9,]*(?:\.[0-9]{1,2})?/g) ?? [];
   return found.every((raw) => allowed.has(raw.replace(/[$,\s]/g, '').replace(/\.00$/, '')));
 }
@@ -280,10 +280,12 @@ const TIER_WORDS = [
 ];
 
 export function misattributesVaultPrice(text) {
-  const clauses = String(text ?? '').split(/[.!?;,]|\s(?:or|and|but)\s/i);
+  const clauses = String(text ?? '').split(/[!?;]|\.(?!\d)|,(?!\d)|\s(?:or|and|but)\s/i);
   return clauses.some((clause) => {
     const prices = (clause.match(/\$\s?[0-9][0-9,]*/g) ?? []).map((p) => p.replace(/[$,\s]/g, ''));
     if (prices.length !== 1) return false;
+    // The workforce owns its own prices; its "agents" are not the $299 add-on.
+    if (/\bworkforce\b/i.test(clause)) return !WORKFORCE_PRICE_KEYS.includes(prices[0]);
     const tiers = TIER_WORDS.filter((w) => w.re.test(clause)).map((w) => w.price);
     return tiers.length > 0 && !tiers.includes(prices[0]);
   });
@@ -331,4 +333,40 @@ ${objections}
 LINKS
 - The library: ${SKILLS_LP_URL}
 - Book a call: ${BOOKING_URL}`;
+}
+
+/*
+ * The AI Workforce. Kept OUT of OFFERS on purpose: OFFERS is also the
+ * Instagram runner's price list (runner-prompt-offers.test.js), and this is
+ * a call-closed service sold by the SMS concierge, not a checkout product.
+ * Cristiano, 2026-09-25: sell the full workforce package, not the $299 tier.
+ */
+export const WORKFORCE = {
+  name: 'AI Workforce',
+  summary:
+    'A team of up to ten AI agents built for their business, each owning one job (outbound, ads, onboarding, support, reporting), plus a Mission Control dashboard. Built and handed over in about three weeks.',
+  pricing:
+    '$7,999 one time. $6,799 if the agreement is signed by Wed 30 Sep. Optional maintenance $799 a month after handover.',
+  prices: ['$7,999', '$6,799', '$799'],
+  // Client names stay out of cold texts until each client says yes to being named.
+  proof: [
+    { pain: 'fulfilment', text: 'a 25 year agency with 200 retail clients: seven agents running ads, SEO, landing pages, onboarding, support and reporting so the team stops being the bottleneck' },
+    { pain: 'outbound', text: 'a social growth agency: an outbound team of agents that finds leads, writes the outreach and books the calls' },
+    { pain: 'operations', text: 'a hotel chain we are building it now for: agents that follow up with guests to find and change their booking, and adjust room prices against nearby hotels. In progress, never describe it as finished or as a result' },
+  ],
+  note: 'Price only when they ask. Close on a 15 minute call, not payment over text.',
+};
+
+const WORKFORCE_PRICE_KEYS = WORKFORCE.prices.map((p) => p.replace(/[$,]/g, ''));
+
+/** Every price the SMS concierge may say: the catalogue plus the workforce. */
+export const SMS_KNOWN_PRICES = [...KNOWN_PRICES, ...WORKFORCE.prices];
+
+export function workforceBriefing() {
+  return [
+    `${WORKFORCE.name}: ${WORKFORCE.summary}`,
+    `  pricing: ${WORKFORCE.pricing}`,
+    ...WORKFORCE.proof.map((p) => `  proof (${p.pain}): ${p.text}`),
+    `  note: ${WORKFORCE.note}`,
+  ].join('\n');
 }

@@ -8,7 +8,9 @@
 // the message can actually be specific.
 import { normalizeHandle } from './handle.js';
 
-const PRIORITY = { commenter: 0, liker: 1, follower: 2 };
+// Followers first (Cristiano 2026-10-10: "the ones who followed us recently"), then
+// likers, then commenters. All three come from the notifications feed only.
+const PRIORITY = { follower: 0, liker: 1, commenter: 2 };
 
 // Every day, including weekends (changed 2026-09-06 on Cristiano's instruction:
 // "it needs to be everyday"). It used to be Mon-Fri, which meant a follower who
@@ -80,5 +82,14 @@ export function selectBatch({ targets, ledger, cap, now, window: win, rate, excl
   const blocked = new Set(exclude.map(normalizeHandle));
   const fresh = targets.filter((t) => !blocked.has(normalizeHandle(t.handle)) && !ledger.has(t.handle));
   fresh.sort((a, b) => (PRIORITY[a.source] ?? 9) - (PRIORITY[b.source] ?? 9));
-  return fresh.slice(0, budget);
+  // One slot per PERSON. The feed can list the same event twice, and two
+  // entries for one handle means two different openers in one thread.
+  const once = new Set();
+  const people = fresh.filter((t) => {
+    const h = normalizeHandle(t.handle);
+    if (once.has(h)) return false;
+    once.add(h);
+    return true;
+  });
+  return people.slice(0, budget);
 }

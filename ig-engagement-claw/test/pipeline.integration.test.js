@@ -36,8 +36,8 @@ describe('plan -> send -> commit -> replan', () => {
 
     const first = await planBatch({ notifications: NOTIFS, seen: seenStore(), ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY });
     expect(first.batch.map((t) => t.handle).sort()).toEqual(['ana', 'bob', 'carl']);
-    // carl liked P1, so he is ranked first and his opener can reference the post
-    expect(first.batch[0].handle).toBe('carl');
+    // Followers outrank likers (Cristiano 2026-10-10), newest first: ana followed 5m ago.
+    expect(first.batch[0].handle).toBe('ana');
     // the link the model tacked on must not survive to the browser
     for (const t of first.batch) expect(t.text).not.toMatch(/varritech\.com|https?:/);
 

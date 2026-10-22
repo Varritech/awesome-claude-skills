@@ -66,3 +66,31 @@ describe('parseNotifications', () => {
     ]);
   });
 });
+
+describe('grouped like notifications', () => {
+  // Live 2026-10-10: 20 rows read "a , b and others liked your reel" and only
+  // `a` (the row's link) ever reached the queue; `b` was silently dropped.
+  it('queues every named liker on a grouped row, not just the first', () => {
+    const out = parseNotifications([
+      { handle: 'skaredeclipz', text: 'skaredeclipz , pascomiguelito and others liked your reel. 42m', postHref: '/reel/ABC/' },
+    ]);
+    expect(out.map((t) => [t.handle, t.source, t.postId])).toEqual([
+      ['skaredeclipz', 'liker', 'ABC'],
+      ['pascomiguelito', 'liker', 'ABC'],
+    ]);
+  });
+
+  it('queues both people on a two-name like row', () => {
+    const out = parseNotifications([
+      { handle: 'ana', text: 'ana and bob.smith liked your post. 3h', postHref: '/p/P1/' },
+    ]);
+    expect(out.map((t) => t.handle)).toEqual(['ana', 'bob.smith']);
+  });
+
+  it('never turns "and 1 other" into a person', () => {
+    const out = parseNotifications([
+      { handle: 'ana', text: 'ana and 1 other liked your reel. 2h', postHref: '/reel/R1/' },
+    ]);
+    expect(out.map((t) => t.handle)).toEqual(['ana']);
+  });
+});
