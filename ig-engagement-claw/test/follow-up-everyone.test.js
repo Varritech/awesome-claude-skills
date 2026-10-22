@@ -108,7 +108,7 @@ describe('reopening an old thread reads like a person, not a pitch', () => {
     const out = await draftFollowUp({
       target: { handle: 'olddm', followUpNumber: 1, reopen: true, silentDays: 200 },
       library: buildLibrary({ news: [], now: new Date() }), linksBlocked: true,
-      llm: async () => 'We built a router that sends each request to the cheapest model that can do it. Reply and I will set you up with free access.',
+      llm: async ({ prompt }) => (/ROUTER/i.test(prompt) ? 'We built a router that sends each request to the cheapest model that can do it. Reply and I will set you up with free access.' : 'The free strategy guide walks through discovery, happy to send it if you reply.'),
     });
     expect(out).not.toMatch(/\$149\.99|268|\$299|\$999/);
     expect(out).toMatch(/router|guide/i);
