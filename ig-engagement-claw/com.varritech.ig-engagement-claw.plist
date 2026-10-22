@@ -39,11 +39,11 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; "$HOME/.local/bin/claude" -p "Execute an ig-engagement-claw run NOW, following the runbook below as instructions to carry out, not as a document to summarise. Start at the preflight step and finish with the one-line report.
+    <string>cd "$HOME/awesome-claude-skills/ig-engagement-claw" &amp;&amp; unset ANTHROPIC_API_KEY &amp;&amp; export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.varritech/claude-oauth-token")" &amp;&amp; "$HOME/.local/bin/claude" -p "Execute an ig-engagement-claw run NOW, following the runbook below as instructions to carry out, not as a document to summarise. Start at the preflight step and finish with the one-line report.
 
 === RUNBOOK ===
 
-$(cat runner-prompt.md)" --model claude-sonnet-5 --allowedTools "mcp__browsermcp__browser_tab,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
+$(cat runner-prompt.md)" --model claude-sonnet-5-5 --allowedTools "mcp__browsermcp__browser_tab,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_click,mcp__browsermcp__browser_type,mcp__browsermcp__browser_press_key,mcp__browsermcp__browser_scroll,mcp__browsermcp__browser_execute_js,Bash(node src/cli.js:*)" &gt;&gt; state/run.log 2&gt;&amp;1</string>
   </array>
 
   <key>RunAtLoad</key><false/>

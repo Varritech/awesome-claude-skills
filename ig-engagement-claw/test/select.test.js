@@ -17,36 +17,52 @@ describe('selectBatch', () => {
     expect(batch.map((t) => t.handle)).toEqual(['ana', 'carl']);
   });
 
-  it('caps the batch and spends the slots on likers before followers', () => {
+  it('returns each person once even when the feed lists them twice', () => {
+    // Live 2026-10-10: the extracted notification rows came in pairs, so next
+    // planned the same person twice with two different openers. Only the
+    // runner's own caution stopped a double DM.
     const batch = selectBatch({
       targets: [
+        { handle: 'kidtuf84', source: 'commenter' },
+        { handle: 'kidtuf84', source: 'commenter' },
         { handle: 'ana', source: 'follower' },
-        { handle: 'bob', source: 'liker', postId: 'P1' },
-        { handle: 'carl', source: 'follower' },
-        { handle: 'dee', source: 'liker', postId: 'P1' },
       ],
       ledger: ledgerOf(),
-      cap: 2,
+      cap: 10,
       now: WORKDAY,
     });
-    expect(batch).toHaveLength(2);
-    expect(batch.map((t) => t.handle).sort()).toEqual(['bob', 'dee']);
+    expect(batch.map((t) => t.handle).sort()).toEqual(['ana', 'kidtuf84']);
   });
 
-  it('spends a scarce slot on a commenter before a liker or a follower', () => {
-    // A commenter typed words at us. That is the only source that gives the
-    // opener something real to quote, so it outranks a bare like.
+  it('spends scarce slots on new followers first, then likers, then commenters', () => {
+    // Cristiano 2026-10-10: "the ones who followed us recently", from the
+    // notifications feed. Reversed the old commenter > liker > follower order,
+    // which spent every slot on commenters and never reached a follower.
     const batch = selectBatch({
       targets: [
-        { handle: 'ana', source: 'follower' },
-        { handle: 'bob', source: 'liker', postId: 'P1' },
         { handle: 'carl', source: 'commenter', postId: 'P1', commentText: 'Build' },
+        { handle: 'bob', source: 'liker', postId: 'P1' },
+        { handle: 'ana', source: 'follower' },
+        { handle: 'dee', source: 'follower' },
+      ],
+      ledger: ledgerOf(),
+      cap: 3,
+      now: WORKDAY,
+    });
+    expect(batch.map((t) => t.handle)).toEqual(['ana', 'dee', 'bob']);
+  });
+
+  it('keeps the feed order inside a source, so the newest follower goes first', () => {
+    const batch = selectBatch({
+      targets: [
+        { handle: 'newest', source: 'follower' },
+        { handle: 'older', source: 'follower' },
       ],
       ledger: ledgerOf(),
       cap: 1,
       now: WORKDAY,
     });
-    expect(batch.map((t) => t.handle)).toEqual(['carl']);
+    expect(batch.map((t) => t.handle)).toEqual(['newest']);
   });
 
   it('sends at 3am, because there is no send window any more', () => {

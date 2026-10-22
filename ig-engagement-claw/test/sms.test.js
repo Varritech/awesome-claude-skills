@@ -237,3 +237,75 @@ describe('buildReplyPrompt — the model can only see what we know', () => {
     expect(prompt).toContain('what is in it');
   });
 });
+
+describe('buildReplyPrompt — it sells by the framework, not by pitching', () => {
+  const prompt = buildReplyPrompt({
+    thread: [{ direction: 'incoming', text: 'yeah this is her, who is this' }],
+    lead: lead(),
+  });
+
+  it('forbids pitching before they have named a problem', () => {
+    expect(prompt).toMatch(/do not pitch/i);
+    expect(prompt).toMatch(/until they have told you (a|the) problem/i);
+  });
+
+  it('asks one discovery question at a time and answers theirs first', () => {
+    expect(prompt).toMatch(/answer their question first/i);
+    expect(prompt).toMatch(/one question per text/i);
+  });
+
+  it('handles objections with a question before an answer', () => {
+    expect(prompt).toMatch(/objection.*question first/i);
+  });
+
+  it('only asks for the call after a pain is named, and sends the link only after they pick a time', () => {
+    expect(prompt).toMatch(/two time slots/i);
+    expect(prompt).toMatch(/link only after they pick/i);
+  });
+});
+
+describe('buildReplyPrompt — the AI Workforce is the offer it leads with', () => {
+  const prompt = buildReplyPrompt({ thread: [{ direction: 'incoming', text: 'what do you do' }], lead: lead() });
+
+  it('carries the AI Workforce package and its real prices', () => {
+    expect(prompt).toMatch(/AI Workforce/);
+    expect(prompt).toContain('$7,999');
+    expect(prompt).toContain('$6,799');
+    expect(prompt).toContain('$799');
+  });
+
+  it('carries the three proof points, the hotel one as in progress, not a result', () => {
+    expect(prompt).toMatch(/200 retail clients/);
+    expect(prompt).toMatch(/social growth agency/i);
+    expect(prompt).toMatch(/hotel chain/i);
+    expect(prompt).toMatch(/building (it )?now/i);
+  });
+
+  it('never names the clients behind the proof', () => {
+    expect(prompt).not.toMatch(/Lucas|Philipp|IMP Canada|Interactive Media|Social Growth Engine/);
+  });
+});
+
+describe('draftReply — AI Workforce prices get through, invented ones still do not', () => {
+  const thread = [{ direction: 'incoming', text: 'ok what does that cost' }];
+
+  it('ships the real workforce price when they asked for it', async () => {
+    const llm = async () => 'The AI Workforce is $7,999 for up to ten agents, or $6,799 if signed by Wed 30 Sep.';
+    expect(await draftReply({ thread, lead: lead(), llm })).toMatch(/\$7,999/);
+  });
+
+  it('ships the maintenance price', async () => {
+    const llm = async () => 'Maintenance on the workforce is optional, $799 a month.';
+    expect(await draftReply({ thread, lead: lead(), llm })).toMatch(/\$799/);
+  });
+
+  it('still drops a made-up workforce price', async () => {
+    const llm = async () => 'The AI Workforce is $4,999 for ten agents.';
+    expect(await draftReply({ thread, lead: lead(), llm })).toBe('');
+  });
+
+  it('still drops the $299 add-on price pinned on the workforce', async () => {
+    const llm = async () => 'The AI Workforce agents are $299.';
+    expect(await draftReply({ thread, lead: lead(), llm })).toBe('');
+  });
+});

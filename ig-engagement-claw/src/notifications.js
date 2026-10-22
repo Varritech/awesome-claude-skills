@@ -60,6 +60,16 @@ function commentFields(text, splitter) {
   return { commentText: body, ...(truncated ? { truncated: true } : {}) };
 }
 
+function namedLikers(text) {
+  const head = text.split(LIKE_RE)[0].replace(/\band (?:\d+ )?others?\b/i, '');
+  return head
+    .split(/\s*,\s*|\s+and\s+/i)
+    .map((h) => h.trim())
+    .filter((h) => /^@?[A-Za-z0-9._]+$/.test(h))
+    .map(normalizeHandle)
+    .filter(Boolean);
+}
+
 export function parseNotifications(rows) {
   const out = [];
   for (const row of rows ?? []) {
@@ -74,13 +84,20 @@ export function parseNotifications(rows) {
     if (!handle) continue;
 
     const source = isComment ? 'commenter' : isFollow ? 'follower' : 'liker';
-    out.push({
-      handle,
+    const base = {
       source,
       postId: isFollow ? null : postIdFrom(row.postHref),
       ageText: (AGE_RE.exec(text) ?? [])[1] ?? null,
       ...(isComment ? commentFields(text, isReply ? REPLY_RE : COMMENT_RE) : {}),
-    });
+    };
+    out.push({ handle, ...base });
+    // "a , b and others liked your reel" names two people but links only `a`.
+    // Everyone under "others" comes from the likes list the runner expands.
+    if (isLike) {
+      for (const extra of namedLikers(text)) {
+        if (extra !== handle) out.push({ handle: extra, ...base });
+      }
+    }
   }
   return out;
 }
