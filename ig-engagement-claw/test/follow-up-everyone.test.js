@@ -102,23 +102,25 @@ describe('the two guards that stay', () => {
  * guide N days ago, which never happened.
  */
 describe('reopening an old thread reads like a person, not a pitch', () => {
-  it('does not fire the fixed knock-one pitch at them', async () => {
+  it('does not fire the fixed knock-one pitch at them, and sends a value item instead', async () => {
     const { draftFollowUp } = await import('../src/opener.js');
+    const { buildLibrary } = await import('../src/value.js');
     const out = await draftFollowUp({
       target: { handle: 'olddm', followUpNumber: 1, reopen: true, silentDays: 200 },
-      llm: async () => 'Hey, been a while. What are you building these days?',
+      library: buildLibrary({ news: [], now: new Date() }), linksBlocked: true,
+      llm: async () => 'We built a router that sends each request to the cheapest model that can do it. Reply and I will set you up with free access.',
     });
     expect(out).not.toMatch(/\$149\.99|268|\$299|\$999/);
-    expect(out).toBeTruthy();
+    expect(out).toMatch(/router|guide/i);
   });
 
-  it('asks the model for a reopen, never claiming a message we never sent', async () => {
-    const { buildReopenPrompt } = await import('../src/opener.js');
-    const p = buildReopenPrompt({ handle: 'olddm', silentDays: 200 });
+  it('the reopen prompt never claims a message we never sent, and offers a real item', async () => {
+    const { buildValuePrompt, buildLibrary, pickValueItem } = await import('../src/value.js');
+    const library = buildLibrary({ news: [], now: new Date() });
+    const target = { handle: 'olddm', silentDays: 200, reopen: true, followUpNumber: 1 };
+    const p = buildValuePrompt({ target, item: pickValueItem({ target, library }), linksBlocked: true });
     expect(p).not.toMatch(/sent them a free guide|you messaged/i);
-    expect(p).toMatch(/spoke|talked|been a while|before/i);
     expect(p).toMatch(/no pitch|no price/i);
-    expect(p).toMatch(/question/i);
   });
 
   it('a normal follow-up is untouched', async () => {

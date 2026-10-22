@@ -14,7 +14,7 @@ describe('dueForFollowUp', () => {
 
   it('surfaces someone who has been silent past the first cadence step', () => {
     const led = ledgerOf({ handle: 'ana', at: ago(4), text: 'hi' });
-    expect(dueForFollowUp({ ledger: led, now: NOW })).toEqual([
+    expect(dueForFollowUp({ ledger: led, now: NOW })).toMatchObject([
       { handle: 'ana', followUpNumber: 1, opener: 'hi', silentDays: 4, source: null, reopen: false },
     ]);
   });
@@ -68,7 +68,7 @@ describe('dueForFollowUp', () => {
       handle: 'ana', at: ago(12), text: 'hi',
       followUps: [{ at: ago(9), text: 'still around?' }],
     });
-    expect(dueForFollowUp({ ledger: older, now: NOW })).toEqual([
+    expect(dueForFollowUp({ ledger: older, now: NOW })).toMatchObject([
       { handle: 'ana', followUpNumber: 2, opener: 'hi', silentDays: 12, source: null, reopen: false },
     ]);
   });

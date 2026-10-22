@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { draftOpener, buildPrompt, buildFollowUpPrompt, draftFollowUp, ALLOWED_LINK_HOSTS, FOLLOW_UP_GUIDE_TEXT } from '../src/opener.js';
+import { draftOpener, buildPrompt, draftFollowUp, ALLOWED_LINK_HOSTS, FOLLOW_UP_GUIDE_TEXT } from '../src/opener.js';
+import { buildLibrary, GUIDES } from '../src/value.js';
 
 const llmSaying = (text) => async () => text;
 const LIKER = { handle: 'ana', source: 'liker', postId: 'P1', caption: 'how we cut render time' };
@@ -102,44 +103,37 @@ describe('never ships an em dash', () => {
 });
 
 describe('follow-up drafting', () => {
+  // Knock two and later are value touchpoints (src/value.js, value.test.js).
   const TARGET = { handle: 'ana', source: 'liker', followUpNumber: 2, opener: 'Saw you liked the post. What are you building?', silentDays: 4 };
+  const library = buildLibrary({ news: [], now: new Date('2026-10-22T12:00:00Z') });
 
-  it('tells the model what we already said, so the follow-up is not a copy of the opener', () => {
-    const prompt = buildFollowUpPrompt(TARGET);
+  it('hands the model the value item and what we already said, and bans the empty check-in', async () => {
+    let prompt = '';
+    await draftFollowUp({ target: TARGET, library, linksBlocked: true, llm: async ({ prompt: p }) => { prompt = p; return 'x'; }, log: () => {} });
     expect(prompt).toContain('Saw you liked the post. What are you building?');
-    expect(prompt).toMatch(/do not repeat|already sent|different/i);
+    expect(prompt).toMatch(/never say: hope it is going well|wishing you the best|just following up/i);
+    expect(prompt).toMatch(/free guide|router/i);
   });
 
-  it('never guilt-trips them for not replying', () => {
-    // "just following up" / "did you see my message" is the tell of a bot and
-    // the fastest way to get reported. It has to add something or say nothing.
-    expect(buildFollowUpPrompt(TARGET)).toMatch(/never (?:guilt|shame|nag)|do not.*chase/i);
-  });
-
-  it('says plainly that this is the last message on the second knock', () => {
-    const prompt = buildFollowUpPrompt(TARGET);
-    expect(prompt).toMatch(/last|final/i);
-  });
-
-  it('runs a follow-up through the same link, em dash and placeholder guards as an opener', async () => {
+  it('drops a draft with a template placeholder instead of sending it', async () => {
     const text = await draftFollowUp({
-      target: TARGET,
-      llm: async () => 'Still building? Grab it at https://varritech.com/x \u2014 [niche] founders love it',
+      target: TARGET, library, linksBlocked: true, log: () => {},
+      llm: async () => 'The strategy guide helps [niche] founders',
     });
-    // Placeholder means drop entirely, same as an opener.
     expect(text).toBe('');
   });
 
-  it('keeps a clean follow-up, stripped of links and em dashes', async () => {
+  it('keeps a clean value follow-up, stripped of em dashes', async () => {
     const text = await draftFollowUp({
-      target: TARGET,
-      llm: async () => 'No worries if the timing is off \u2014 what are you working on this week?',
+      target: TARGET, library, linksBlocked: true,
+      llm: async () => 'We put together a free strategy guide \u2014 want it for what you are building?',
     });
     expect(text).not.toMatch(/[\u2014\u2013]/);
-    expect(text).toContain('what are you working on this week');
+    expect(text).toContain('strategy guide');
   });
 });
 
+const oneGuide = { now: new Date(), items: GUIDES.slice(0, 1) };
 describe('links in follow-ups', () => {
   // followUpNumber 2 — knock ONE is fixed copy with no model involved, so the
   // link/em-dash/placeholder guards only have anything to guard on knock two.
@@ -150,8 +144,9 @@ describe('links in follow-ups', () => {
     // rejects any DM containing a URL. This claw types into the real web
     // composer, so that constraint simply does not apply here.
     const text = await draftFollowUp({
-      target: T,
-      llm: async () => 'Here it is: https://varritech-product-playbook.vercel.app/guide-1',
+      target: { ...T, valueItems: [] },
+      library: oneGuide,
+      llm: async () => 'Here is the free strategy guide: https://varritech-product-playbook.vercel.app/guide-1',
     });
     expect(text).toContain('https://varritech-product-playbook.vercel.app/guide-1');
   });
@@ -160,8 +155,8 @@ describe('links in follow-ups', () => {
     // An allowlist, not a free-for-all: a hallucinated or mistyped URL in a DM
     // going out under Cristiano's name is worse than no link at all.
     const text = await draftFollowUp({
-      target: T,
-      llm: async () => 'Check https://bit.ly/xyz and https://random-site.com/thing',
+      target: T, library: oneGuide, log: () => {},
+      llm: async () => 'Check the strategy guide https://bit.ly/xyz and https://random-site.com/thing',
     });
     expect(text).not.toMatch(/bit\.ly|random-site/);
   });
@@ -202,9 +197,12 @@ describe('the value drop', () => {
     expect(FOLLOW_UP_GUIDE_TEXT).not.toMatch(/[\u2014\u2013]/);
   });
 
-  it('leaves the final knock as a warm LLM close with no link', async () => {
-    const prompt = buildFollowUpPrompt({ ...T, followUpNumber: 2 });
-    expect(prompt).not.toContain('guide-1');
-    expect(prompt).toMatch(/last|final/i);
+  it('never repeats the knock-one guide in a later knock', async () => {
+    const out = await draftFollowUp({
+      target: { ...T, followUpNumber: 2, valueItems: ['guide-1'] },
+      library: { now: new Date(), items: GUIDES.slice(0, 2) }, linksBlocked: true,
+      llm: async ({ prompt }) => (/guide-1/.test(prompt) ? 'the strategy guide' : 'The design system guide covers UI and UX basics for founders.'),
+    });
+    expect(out).toMatch(/design/i);
   });
 });

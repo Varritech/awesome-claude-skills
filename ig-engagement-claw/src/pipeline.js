@@ -5,7 +5,8 @@
 import { parseNotifications } from './notifications.js';
 import { newSince } from './seen.js';
 import { selectBatch, isSendingWindow, remainingBudget } from './select.js';
-import { draftOpener, draftFollowUp } from './opener.js';
+import { draftOpener, draftFollowUpFull } from './opener.js';
+import { inferValueId, buildLibrary, loadNews } from './value.js';
 import { dueForFollowUp } from './followups.js';
 import { recordOpener } from './handoff.js';
 
@@ -19,7 +20,7 @@ import { recordOpener } from './handoff.js';
  */
 export async function planBatch({
   notifications, seen, ledger, llm, cap, rate, now, window: win, exclude, killSwitch = false, followUpDays,
-  linksBlocked = false,
+  linksBlocked = false, library, log,
 }) {
   if (killSwitch) return { killed: true, baseline: false, considered: 0, batch: [], followUps: [] };
 
@@ -56,9 +57,9 @@ export async function planBatch({
     let left = remainingBudget({ ledger, rate, cap, alreadyPlanned: withOpeners.length });
     for (const target of dueForFollowUp({ ledger, now, cadenceDays: followUpDays })) {
       if (left <= 0) break;
-      const text = await draftFollowUp({ target, llm, linksBlocked });
-      if (!text) continue; // unusable draft — they come back around next run
-      followUps.push({ ...target, text });
+      const { text, valueId } = await draftFollowUpFull({ target, llm, linksBlocked, library, log });
+      if (!text) continue; // unusable draft or no value item — they come back around next run
+      followUps.push({ ...target, text, valueId });
       left -= 1;
     }
   }
@@ -119,4 +120,16 @@ export async function commitSend({ ledger, store, handle, text, igUserId = null,
     console.error(`[claw] ⚠ HANDOFF FAILED for ${handle} (${handoffError}) — send IS recorded, sales claw will re-introduce the founder on reply`);
     return { recorded: true, handoff: null, handoffError };
   }
+}
+
+/**
+ * A follow-up the agent CONFIRMED landed. Records which value item it carried
+ * so that person is never sent the same one again. If the runner did not pass
+ * the id, it is recovered from the text (guide url, news/router anchor).
+ */
+export async function recordFollowUpSent({ ledger, handle, text, valueId = null, library, now = new Date() }) {
+  const lib = library ?? buildLibrary({ news: loadNews(process.env.CLAW_VALUE || new URL('../state/value-library.json', import.meta.url).pathname), now });
+  const id = valueId || inferValueId(text, lib);
+  ledger.recordFollowUp(handle, { at: new Date(now).toISOString(), text, valueId: id });
+  return { valueId: id };
 }
