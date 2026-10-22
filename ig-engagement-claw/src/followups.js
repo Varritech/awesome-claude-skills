@@ -73,6 +73,9 @@ export function dueForFollowUp({ ledger, now = new Date(), cadenceDays }) {
       // No opener exists for a reopened thread — we never sent one. The copy
       // must not say "following up on my message".
       reopen,
+      // What we already sent them, so a value follow-up never repeats an item.
+      valueItems: e.valueItems ?? [],
+      priorFollowUps: sent,
     });
   }
   // Longest-silent first: without this the same fresh names win every run and

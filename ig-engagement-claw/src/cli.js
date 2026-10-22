@@ -15,8 +15,14 @@
 import { readFileSync } from 'node:fs';
 import { createLedger } from './ledger.js';
 import { createSeenStore } from './seen.js';
-import { planBatch, commitSend, skipTarget, blockTarget } from './pipeline.js';
-import { anthropicLlm } from './llm.js';
+import { planBatch, commitSend, skipTarget, blockTarget, recordFollowUpSent } from './pipeline.js';
+import { anthropicLlm, claudeCliLlm } from './llm.js';
+
+// LLM_BACKEND=anthropic-api uses the raw key; anything else uses the Mac's
+// Claude Code login, which keeps working when the API keys die.
+const makeLlm = () => cfg.llmBackend === 'anthropic-api'
+  ? anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId })
+  : claudeCliLlm({ model: cfg.model, oauthToken: cfg.claudeOauthToken });
 import { firestoreStore, nullStore } from './firestore-store.js';
 import { config } from './config.js';
 
@@ -39,7 +45,7 @@ if (cmd === 'next') {
     notifications: JSON.parse(readStdin()),
     seen: createSeenStore({ path: cfg.seenPath }),
     ledger,
-    llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId }),
+    llm: makeLlm(),
     cap: cfg.cap,
     rate: cfg.rate,
     exclude: cfg.exclude,
@@ -80,10 +86,10 @@ if (cmd === 'next') {
 } else if (cmd === 'followup-sent') {
   // A follow-up the agent CONFIRMED landed. Appended to the existing entry, so
   // the original opener and the whole knock history survive.
-  const [, , , handle, text = ''] = process.argv;
-  if (!handle) { console.error('usage: cli.js followup-sent <handle> <text>'); process.exit(1); }
-  ledger.recordFollowUp(handle, { at: new Date().toISOString(), text });
-  console.log(`follow-up recorded: ${handle}`);
+  const [, , , handle, text = '', valueId] = process.argv;
+  if (!handle) { console.error('usage: cli.js followup-sent <handle> <text> [valueId]'); process.exit(1); }
+  const res = await recordFollowUpSent({ ledger, handle, text, valueId: valueId || null });
+  console.log(`follow-up recorded: ${handle}${res.valueId ? ` (value: ${res.valueId})` : ''}`);
 
 } else if (cmd === 'replied') {
   // They wrote back. Ends the follow-up chain for good — from here the sales
@@ -122,7 +128,7 @@ if (cmd === 'next') {
     leadSource: createLeadSource({ baseUrl: s.leadsBaseUrl, token: s.leadsToken }),
     quo: createQuo({ apiKey: s.apiKey, from: s.from, phoneNumberId: s.phoneNumberId }),
     ledger: createLedger({ path: s.statePath }),
-    llm: anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId }),
+    llm: makeLlm(),
     now: new Date(),
     cap: s.cap,
     rate: s.rate,
@@ -141,6 +147,37 @@ if (cmd === 'next') {
     console.log(`  ${String(e.handle).padEnd(18)} ${e.at ?? ''}  ${state}`);
   }
 
+} else if (cmd === 'news-add') {
+  // The daily researcher pipes a JSON array of SOURCED items here. Anything
+  // without a source url, a date and a why-line is dropped; anything older than
+  // 14 days expires. Never invent news: unsourced items cannot get in.
+  const { mergeNews, loadNews, saveNews } = await import('./value.js');
+  const incoming = JSON.parse(readStdin());
+  const now = new Date();
+  const merged = mergeNews(loadNews(cfg.valuePath), Array.isArray(incoming) ? incoming : incoming.news, now);
+  saveNews(cfg.valuePath, merged.items, now);
+  console.log(JSON.stringify({ kept: merged.items.map((n) => n.id), dropped: merged.dropped }, null, 2));
+
+} else if (cmd === 'news-status') {
+  const { loadNews, loadFetchedOn, newsIsStale, buildLibrary } = await import('./value.js');
+  const now = new Date();
+  const lib = buildLibrary({ news: loadNews(cfg.valuePath), now });
+  const fetchedOn = loadFetchedOn(cfg.valuePath);
+  console.log(JSON.stringify({ stale: newsIsStale(fetchedOn, now), fetchedOn: fetchedOn ?? null, live: lib.items.filter((i) => i.type === 'news').map((i) => `${i.date} ${i.id}`) }, null, 2));
+
+} else if (cmd === 'followups-dry') {
+  // Print what the next follow-ups WOULD say. Writes nothing, sends nothing.
+  const { dueForFollowUp } = await import('./followups.js');
+  const { draftFollowUpFull } = await import('./opener.js');
+  const n = Number(process.argv[3] ?? 5);
+  const out = [];
+  for (const target of dueForFollowUp({ ledger, now: new Date(), cadenceDays: cfg.followUpDays })) {
+    if (out.length >= n) break;
+    const r = await draftFollowUpFull({ target, llm: makeLlm(), linksBlocked: cfg.linksBlocked });
+    out.push({ handle: target.handle, knock: target.followUpNumber, reopen: target.reopen, source: target.source, valueId: r.valueId ?? null, skipped: !!r.skipped, reason: r.reason, text: r.text });
+  }
+  console.log(JSON.stringify(out, null, 2));
+
 } else if (cmd === 'ledger') {
   console.log(`${ledger.size()} contacted`);
   for (const e of ledger.all()) {
@@ -150,6 +187,6 @@ if (cmd === 'next') {
   }
 
 } else {
-  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger|sms-tick|sms-ledger');
+  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger|news-add|news-status|followups-dry|sms-tick|sms-ledger');
   process.exit(1);
 }

@@ -41,6 +41,7 @@ function limitOrNull(raw, fallback) {
 
 export const config = () => ({
   statePath: process.env.CLAW_STATE || new URL('../state/contacted.json', import.meta.url).pathname,
+  valuePath: process.env.CLAW_VALUE || new URL('../state/value-library.json', import.meta.url).pathname,
   seenPath: process.env.CLAW_SEEN || new URL('../state/seen-notifications.json', import.meta.url).pathname,
   // Per RUN. Small on purpose: the claw polls every 5 min, so this is "how many
   // at once", not "how many per hour" — that is perHour/perDay below.
@@ -77,6 +78,11 @@ export const config = () => ({
   // weekdays only. An empty/blank value falls back to the default rather than
   // silently making every day inert.
   sendDays: (process.env.SEND_DAYS ?? '').split(',').map((d) => d.trim()).filter(Boolean),
+  llmBackend: process.env.LLM_BACKEND || 'claude-cli',
+  // Same subscription account as every other claw. Read at startup, never copied.
+  claudeOauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN || (() => {
+    try { return readFileSync(`${process.env.HOME}/.varritech/claude-oauth-token`, 'utf8').trim(); } catch { return undefined; }
+  })(),
   anthropicKey: process.env.ANTHROPIC_API_KEY,
   // Only set for identity-linked keys; workspace-scoped keys must omit it.
   anthropicWorkspaceId: process.env.ANTHROPIC_WORKSPACE_ID,

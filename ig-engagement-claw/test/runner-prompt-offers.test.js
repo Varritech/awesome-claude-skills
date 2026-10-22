@@ -29,8 +29,9 @@ describe('runner-prompt.md offer memory', () => {
     );
     // Retired figures are named in the section on purpose, as a do-not-use
     // list. They are the only ones allowed besides the live prices.
-    // '15' is what the regex sees in "$15k".
-    const retired = new Set(['47', '97', '197', '297', '149.99', '15']);
+    // '15' and '10' are what the regex sees in "$15k" and the "$10k in monthly
+    // recurring revenue" guarantee wording (a claim, not a price).
+    const retired = new Set(['47', '97', '197', '297', '149.99', '15', '10']);
     const live = new Set(KNOWN_PRICES.map((p) => p.replace(/[$,]/g, '')));
 
     for (const price of live) expect(section).toContain(`$${price}`);

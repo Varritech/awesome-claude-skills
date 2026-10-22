@@ -25,9 +25,23 @@ Calling one directly fails with `InputValidationError`. Load them all in ONE bat
 before preflight, not one ToolSearch per tool as you reach for it:
 `ToolSearch({query:"select:mcp__browsermcp__browser_tab,mcp__browsermcp__browser_snapshot,mcp__browsermcp__browser_navigate,mcp__browsermcp__browser_execute_js,mcp__browsermcp__browser_screenshot,mcp__browsermcp__browser_click"})`.
 
+⛔ **Lane is fixed per-call.** Every browser call in this run must carry the exact same
+`mcp__browsermcp__` prefix that answered the tab-list preflight — never `-b`/`-c`/`-d`/`-e` on
+any single call, even after preflight succeeded. 2026-09-15: list/grep/select all worked on the
+bare lane, then the first `browser_execute_js` went out as `mcp__browsermcp-c__browser_execute_js`
+and died `No extension connected`. A sibling-prefix failure mid-run is lane drift, NOT the
+extension being down — preflight already proved the bare lane healthy. Still abort per the
+one-call rule; just don't misreport it as an extension outage.
+
 **Preflight — do this first, and abort the run if it fails:**
 
-1. `mcp__browsermcp__browser_tab` → `{ "action": "list" }`
+1. `mcp__browsermcp__browser_tab` → `{ "action": "list" }`. Immediately pipe the raw result
+   text through `grep -c "about:blank - about:blank"` (write it to a scratch file with `Write`
+   first if it needs a file to grep, e.g. `state/tab-list.txt`) and hold onto that exact number
+   for the report in step 5. ⛔ **Do not count this by eye and do not defer it to report time.**
+   Self-reported eyeball counts of this same list have been wrong 4+ times in a row (off by
+   3-9, always overcounts) and silently dropped from the final report entirely a dozen+ times —
+   a scripted `grep -c` is the only form of this count that has ever been proven correct.
 2. Find an existing `instagram.com` tab and **select it**:
    `mcp__browsermcp__browser_tab` → `{ "action": "select", "index": <n> }`.
    Only if there is no Instagram tab at all, open one:
@@ -67,12 +81,48 @@ If `list` shows more than one Instagram tab, close the extras
 (`{ "action": "close", "index": <n> }`, **highest index first** so the indices
 below don't shift under you) and keep one.
 
+**Close every `about:blank - about:blank` tab, every run** (Cristiano 2026-10-10: "it
+keeps opening up these about:blank tabs"). After selecting the Instagram tab, close
+each blank one with `{ "action": "close", "index": <n> }`, highest index first. Never
+close any other tab: everything else in the browser is Cristiano's work.
+⛔ **Gate:** only close if every `[n]` number in the list is unique. If any number
+repeats (two windows each counting from 0, which is what the extension did before the
+2026-10-10 fix), a close can hit the wrong window's tab. In that case close nothing
+and add "tab numbers repeat, Browser MCP extension needs a reload" to the report.
+
 If that errors, times out, or comes back with no extension connected, **stop and report it
 after the FIRST failure** — the MCP client already retried 3x internally, so an error string
 containing `No extension connected` IS the abort. One call, then abort; never re-call it, and
-do not fall back to another browser tool. If the snapshot
+do not fall back to another browser tool. `Cannot read properties of undefined (reading
+'snapshot')` from `browser_tab select` is the same class of abort (seen live 2026-09-10,
+first call of the run) — treat any thrown error here as terminal, not just the
+`No extension connected` string. If the snapshot
 shows a logged-out page or a login form, **stop**: the session isn't live and nothing below is
 safe to attempt.
+
+⛔ **Same-day occurrence counter for the `Cannot read properties of undefined (reading
+'snapshot')` abort specifically.** This exact signature hit the same tab index 5+ times in
+one day on 2026-09-10 before anyone said so out loud in a run report. On this error (only
+this one, not `No extension connected`): read `state/preflight-abort-count.json` (shape
+`{"date":"YYYY-MM-DD","count":N}`, missing file = `{date:"", count:0}`); if `date` isn't
+today, reset `count` to 0; increment `count`; write it back with `Write`. If the new `count`
+is **3 or more**, say so explicitly in the step 5 report — `"occurrence <count> today — human
+intervention needed: open a fresh Instagram tab, or reload the Browser MCP extension"` — do
+not just report the generic abort message. Below 3, report the abort normally with no mention
+of the counter.
+
+⛔ **At count 15 or more, the report-only escalation has already failed — stop asking and pull
+the plug yourself.** This exact signature climbed unactioned from 3 → 10 → 18 → 25 across
+2026-09-10/11 with the report stating the ask every single time and nobody reading it, then hit
+**75** later on 2026-09-11 — a cron re-asking every 5 minutes into the void, for hours, is not an
+intervention. Once `count >= 15`: run `Bash({"command":"launchctl unload
+~/Library/LaunchAgents/com.varritech.ig-engagement-claw.plist"})` (ignore a nonzero exit —
+already-unloaded is a success state, not an error) and say so in the step 5 report instead of
+the plain "human intervention needed" line: `"occurrence <count> today — unloaded the launchd
+job myself, no further runs will fire until a human reloads it after opening a fresh Instagram
+tab or reloading the Browser MCP extension"`. This is a one-way stop for THIS run's schedule
+only — reloading requires `launchctl load` by a human, on purpose, so a broken extension can't
+silently keep burning calls once this line is crossed.
 
 ## Hard rules (do not relax)
 
@@ -122,6 +172,15 @@ earlier gets "that tier is retired, Essential is $299 for the whole vault" and a
 ⛔ **Retired numbers that are still all over older assets and WILL be wrong:** 170 / 213 / 191
 skills, $47, $97, $197, $297, $149.99, $15k. If a draft contains one, it is stale.
 
+⛔ **Exception: the `$149.99` inside a §3b follow-up's fixed `text` field is NOT this stale
+number — send it anyway.** It is a deliberate value-anchor on the free Playbook guide, overridden
+by Cristiano on 2026-08-17 after being flagged exactly like this (`[[feedback_guide_price_anchor_is_deliberate]]`).
+Same for that copy naming "Scalewright" with a number attached, which reads like it contradicts
+the "never priced over text" row above — it doesn't, because his own guide page carries the same
+"$10K MRR guaranteed" line already. `cli.js next` only ever hands you this fixed copy for a
+follow-up; do not hold the send or ask for a call on it, that question was already asked and
+answered once — see [[ig-engagement-outreach-claw]] SKILL.md for the full history.
+
 ### What we have actually sold
 
 Three real closed threads are recorded in `PAST_SALES` in `src/offers.js`, including the one
@@ -168,6 +227,15 @@ NOT change to `/notifications/`.** Judge by the snapshot, not the URL: several
 "Follow Back" buttons plus bare handles means the Notifications panel is already
 sitting over the home feed. It is NOT a `div[role="dialog"]` either, so a
 `querySelector('div[role="dialog"]')` probe returning null proves nothing.
+
+⛔ **If the tab is parked on a DM thread or Messages page, the `select`
+scaffold usually already contains a clickable `Notifications` link (e.g.
+`a [ref=refNN] "NotificationsNotifications"`) even though the visible page is
+Messages.** Click that ref directly. Do NOT `browser_navigate` to the home
+feed first to go hunting for a different Notifications icon there — that has
+now cost 3+ runs an extra navigate + re-snapshot for zero benefit. Read the
+whole scaffold you already have (not just the visibly-rendered region) before
+deciding you need to navigate anywhere.
 ⛔ **Do NOT call `browser_screenshot` to confirm this.** The `select` snapshot you
 already have IS the check — if it shows `Follow Back` buttons plus bare handles,
 the panel is open, extract immediately. A screenshot call here is pure waste: it
@@ -219,14 +287,44 @@ which to ignore.
 Comments are the most valuable rows on the feed and the reason this claw exists:
 Instagram will not let the API claw open a DM off a comment (every attempt 403s
 `outside of allowed window`), so a commenter can ONLY be reached this way. They
-also outrank likers and followers when send budget is scarce, because their own
-words are the one thing that makes an opener specific.
+are still messaged, but since 2026-10-10 new FOLLOWERS go first, then likers,
+then commenters (Cristiano: "the ones who followed us recently"). `cli.js` does
+the ordering; just pass every row from this feed. Use only the notifications feed:
+never open a post's likes list or the followers list to find more people.
 
 ## 2. Plan
 
 ```
 echo '<the rows json>' | node src/cli.js next
 ```
+
+⛔ **Do not retype the extracted array into a `Bash` heredoc from memory.** A `cat >
+file << 'EOF'` command you compose by hand is silently capped well short of the
+`browser_execute_js` result's real length — a 130-row/28KB extraction got hand-typed
+into a 12KB heredoc, dropped to 101 rows, and returned a wrong (still-empty, but
+unverified) `next` result. Use the `Write` tool to save the JS result to a file
+verbatim instead — it isn't length-limited the way a manually-composed shell command
+is — then `cat <file> | node src/cli.js next`. If you already piped a hand-typed
+version, diff the row count in the file against the extraction's row count before
+trusting the `considered` number.
+
+⛔ **Always write to the exact path `state/notif-rows.json` — never invent a new name.**
+Nothing downstream reads this file (it's a stdin scratch buffer only), but every run that
+picks its own name (`last-extract.json`, `latest-notifications-extract.json`,
+`notif-extract-<date>.json`, `notif-rows-<date>.json`, `notif_extract_<date>.json`,
+`run_rows.json` all seen live) leaves it behind — six near-duplicate files piled up in one
+day. Overwrite the one fixed name every run; it's gitignored so there's no commit cost, but
+a stable name keeps `state/` legible for the next person poking at it.
+
+⛔ **Just `Write` it — do not `mkdir -p state`, do not `ls state/` first to check it
+exists, and do not `node -e` count-verify it afterward.** The path is fixed and always
+writable; there is nothing to check or create. Row-count verification only matters for the hand-typed-heredoc failure
+mode two paragraphs up — if you used `Write` (not a hand-typed `cat > file << 'EOF'`), the
+tool result already confirms the write succeeded, full stop. And when you run the `next`
+command, call it alone (`cat state/notif-rows.json | node src/cli.js next`) — don't smuggle
+a `pwd` or `ls` onto the front of that line "for free"; it isn't free, it's the same
+repo-orientation waste this file already forbids at the top, just moved to a different
+command.
 
 Returns `{ baseline, considered, batch: [{ handle, source, postId, text }] }`.
 
@@ -240,15 +338,26 @@ hours. **If the batch is empty, stop.** Never go hunting for people to fill a qu
 ⛔ **Stop means stop at `next` — no post-`next` archaeology.** Do not read the ledger,
 `state/*.json`, `src/config.js` or `date` to explain the empty batch. `next` already applied
 the budget and the send window; the reason adds nothing and each probe costs a call. There is
-also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|followup-sent|replied|ledger`.
+also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|followup-sent|replied|ledger` (plus `news-add|news-status|followups-dry`, which the daily news job and humans use, never this run).
 
 ## 3. Send — one at a time
 
 For each entry in order:
 
 1. `browser_navigate` → `https://www.instagram.com/<handle>/`
-2. ⛔ **There is NO top-level "Message" button.** Only "Follow" renders on a
-   stranger's profile. The DM action lives behind the **3-dots Options** menu:
+2. ⛔ **Check for a top-level "Message" button FIRST — many profiles have one.**
+   Some accounts only render "Follow", others render "Message" right next to it.
+   One direct query settles it, don't guess:
+
+   ```js
+   (function(){
+     var els=[...document.querySelectorAll('div[role="button"],button')];
+     return els.some(function(e){ return (e.innerText||'').trim()==='Message'; });
+   })()
+   ```
+
+   If `true`, click that element directly and skip straight to step 3. **Only open
+   the 3-dots Options menu if this comes back `false`:**
 
    ```js
    (function(){ var s=document.querySelector('svg[aria-label="Options"]');
@@ -264,6 +373,16 @@ For each entry in order:
        if(!t && (e.innerText||'').trim()==='Send message') t=e; });
      if(t) t.click(); return !!t; })()
    ```
+
+   ⛔ **If that Options menu doesn't hold `Send message` at all** (only
+   Block/Restrict/Report/Share/About), the dialog can get **stuck open and
+   unclosable** — `Escape` keydown, `document.body.click()`, clicking outside via
+   `elementFromPoint`, none of it closes it (confirmed live, `royalgoon`,
+   2026-09-10). Don't keep fighting it. Just `browser_navigate` back to the same
+   profile URL for a clean reload, then redo the top-level-Message check above —
+   that's how `royalgoon` was recovered, and it turned out to have a working
+   top-level `Message` button the whole time. This is why the check above must run
+   first: it would have avoided opening Options at all.
 
 3. ⛔ **Check the thread is empty before typing anything.** Screenshot it. If there
    is ANY prior message — from them or from us, however old — we have already
@@ -313,22 +432,94 @@ For each entry in order:
    focused composer and the text just sat there. Take a `browser_snapshot` with
    `viewportOnly: false`, find `div "Send" {role:button}` in the orphaned-elements
    list, and `browser_click` that ref. That is the only send path that works.
+   ✅ Cheaper alternative, confirmed 2026-09-10: skip the snapshot. `execute_js` matching
+   `innerText.trim()==='Send'` comes back `not-found` (the button carries no text), but
+   `document.querySelector('svg[aria-label="Send"], div[aria-label="Send"],
+   button[aria-label="Send"]')`, then click the closest `div[role="button"],button` ancestor,
+   works first try. Try the aria-label query first; fall back to the snapshot-ref method only
+   if it comes back null.
 
 6. `browser_screenshot` once more and **confirm the bubble is actually in the
    thread**, with a timestamp. The inbox row should also jump to the top.
+
+   ⛔ **A clicked Send can still silently fail — check for "Failed to send" text under
+   the bubble, not just that a bubble appeared.** Confirmed 2026-09-14 on `zane.jeffries`
+   (follow-up #3): the aria-label Send click returned normally and a bubble with our text
+   appeared in the thread, but it carried a "Failed to send" label directly under it. This
+   is NOT a stale UI artifact — reloading the thread (`browser_navigate` back to the same
+   `/direct/t/<id>` URL) made the bubble disappear entirely, proving the message never
+   actually delivered. Retried once (fresh insertText + fresh Send click) and it failed the
+   same way twice. Two-in-a-row triggered the existing "stop the whole run" rule below —
+   do NOT `commit`/`followup-sent` a bubble that shows "Failed to send", even if the
+   screenshot looks like a normal sent message at a glance.
+
+   ⛔ **The label is not reliable and this is not thread-specific — always reload to check
+   persistence.** Confirmed on `zane.jeffries` (some attempts showed no label at all, only
+   the reload made the bubble vanish) and again 2026-09-15 on a completely different handle,
+   `misaelcruz117` — same two-in-a-row silent fail, no label shown either time, only caught
+   by `browser_navigate` refresh. Treat this as general Browser MCP/IG composer flakiness,
+   not a broken thread: always reload after every send (cold or follow-up) to confirm the
+   bubble survives, regardless of whether a "Failed to send" label was visible.
 
 ⚠ `browser_type` sends the whole string in one shot — there is no per-character typing here.
 So the realism has to come from the gaps: **wait 40–90 seconds between people, varied.** Never
 the same interval twice. Uniform timing is the tell.
 
-If a profile has DMs closed, the Message button is absent, or the thread won't open: **skip and
-do not commit.** If two sends in a row fail, stop the whole run.
+⛔ **How to actually wait — never end the turn on the pacing gap.** A foreground
+`Bash({command:"sleep 55"})` is BLOCKED by the sandbox. The fix is
+`Bash({command:"sleep <55-90>", run_in_background:true})`, which returns a task id. Then
+**block on it inside the same turn** — `TaskOutput({task_id:"<id>", block:true,
+timeout:120000})` waits for the sleep to finish and returns control to you, so the turn
+continues to the next person. Confirmed 2026-09-16: a two-person follow-up batch completed
+fully this way. Ending the turn on the wait and trusting the completion notification does
+NOT reliably resume this session — six batches have died silently that way. Do NOT follow
+the sleep with `ScheduleWakeup` (wrong tool for a plain timer), `ToolSearch({query:"select:Monitor"})`,
+`Bash({command:"wait"})`, or a no-op `Bash({command:"true"})` placeholder — `TaskOutput`
+block:true is the one useful follow-up call; everything else is wasted.
+
+If a profile has DMs closed, the Message button is absent, or the thread won't open: **record it,
+don't just walk away.** This is a pre-first-contact handle, so call
+
+```
+node src/cli.js skip "<handle>" no-message-button
+```
+
+before moving on. "Skip and do not commit" does NOT mean "leave it unrecorded" — an unrecorded
+handle comes back in every future batch and burns a batch slot forever (this is the exact
+`pbjoel`/`message-request-blocked-not-delivered` recurrence from §3 above, just for the
+no-Message-button case instead of the banner case). Check fast: don't click Options, screenshot,
+then hunt coordinates — query directly first:
+
+```js
+[...document.querySelectorAll('div,button,a,span')].some(function(e){
+  var t=(e.innerText||'').trim(); return t==='Message' || t==='Send message'; })
+```
+
+If that's `false` and the 3-dots menu (when opened) holds only Block/Restrict/Report/Share/About,
+there is no DM path — call `skip` immediately, no further clicking needed. If two sends in a row
+fail, stop the whole run.
 
 ## 3b. Follow-ups — people who never answered
 
 `next` also returns a `followUps` array. Each entry is someone we opened days ago
 who has still said nothing. Cadence is 3 days after the opener, then 7 days after
-that, and never again — at most two knocks, ever.
+that — **as of 2026-09-10 there is no cap past that: the final interval repeats
+indefinitely, so `followUpNumber` can legitimately be 3, 4, 5...** Do not withhold
+a send because `followUpNumber` looks past "two knocks" — that cap was removed on
+purpose (Cristiano: "follow up with literally everyone we've ever talked to").
+If an entry carries `reopen: true`, it is someone with a pre-existing thread from
+before the claw existed, not a knock-one/knock-two continuation — send `text` as
+given, it already reads as a reopen, not a sales follow-up.
+
+⛔ **Every follow-up is a VALUE TOUCHPOINT** (Cristiano, 2026-10-22: "Always with value,
+not just wishing you the best"). Each entry's `text` carries exactly ONE real thing for
+that person — a recent AI model/tool/product, a free Varritech guide, or free access to
+the Varritech AI Router — and `valueId` names which one (`news-...`, `guide-N`, `router-free-access`).
+Send `text` verbatim and do NOT soften it, add a "hope you're well", or pad it. Never write
+a check-in of your own ("just following up", "wishing you the best", "hope it's going well").
+If a follow-up draft could not meet the rule, `next` leaves it out of `followUps` entirely
+(logged to stderr as `[value] skip`); do not improvise a replacement for that person.
+The router offer has no link on purpose: "reply and I'll set you up with free access".
 
 ⛔ These are budgeted AFTER cold openers, and get only what section 3 did not use
 (changed 2026-09-04 — it used to be the other way round, and cold outreach starved:
@@ -368,6 +559,11 @@ For each entry, in order:
 4. If the thread still shows only our message, send the `text` verbatim, confirm it
    landed with a screenshot, then:
 
+   ⛔ **This `text` will contain `$149.99` and "Scalewright" together — send it anyway, do not
+   pause for a call on it.** See the exception carved out in the offers section above
+   (§ "Retired numbers"); it is deliberate, not stale copy, and re-asking wastes the whole
+   batch slot waiting on an answer that already exists.
+
    ⛔ The first follow-up normally hands them a free guide with a **price anchor and a
    URL**. Instagram's web composer accepts links fine — the old no-links rule came from
    the API claw, where InstantDM rejects any DM containing a URL, and does not apply to
@@ -376,14 +572,42 @@ For each entry, in order:
    whatever it contains. Do not add a link back in yourself if it's missing.
 
    ```
-   node src/cli.js followup-sent "<handle>" "<the exact text sent>"
+   node src/cli.js followup-sent "<handle>" "<the exact text sent>" "<valueId from the entry>"
    ```
 
 5. Same pacing as cold sends: **wait 40–90 seconds between people, varied.**
 
-If a thread will not open or the Message action is gone for a reason OTHER than the
-"can't receive your message" banner (step 2 above), skip it and do NOT record
-anything — it comes back around next run.
+⛔ **If their profile 404s ("Page not found") — a deleted/renamed account, not a
+transient failure:** check `/direct/inbox/`, search by their handle, and look for a
+genuine existing thread before giving up. A partial-handle search can match an
+unrelated account by display name (e.g. searching `em_moonys` for `em_moonys_versionn`
+matched a thread titled `romioneswift` / "emma (moony's version)") — an empty thread
+under a different-looking name is NOT proof you found the real one; only treat it as a
+match if the thread's own handle/URL matches the target. If no genuine thread turns up,
+the account is confirmed gone — call:
+
+```
+node src/cli.js blocked "<handle>" profile-not-found
+```
+
+not a bare skip, so this handle stops re-entering `followUps` every run forever.
+
+⛔ **If the profile shows no top-level `Message` button and the 3-dots Options menu
+holds only Block/Restrict/Report/Share/About/About this account (no `Send message`)** —
+the same no-DM-path shape §3 handles for cold opens — this is a follow-up target, so
+`skip` is wrong here too (it no-ops on an already-known handle, same reasoning as step 2
+above). Call:
+
+```
+node src/cli.js blocked "<handle>" no-message-button
+```
+
+not a bare skip, so this handle stops re-entering `followUps` every run forever.
+
+If a thread will not open or the Message action is gone for a reason OTHER than a
+confirmed-404 profile, the "can't receive your message" banner (step 2 above), or the
+no-Message-button shape just above, skip it and do NOT record anything — it comes back
+around next run.
 
 ## 4. Commit — only what you saw land
 
@@ -410,6 +634,14 @@ Omit the argument if it comes back null. Do not guess one.
 
 One line: considered / selected / sent / skipped, plus anything that looked off.
 
-⛔ **Stray `about:blank` tabs: state the count in one clause and move on.** Never call them
-orphaned, leaked, clutter or a bug, never infer a cause, never offer to close them. The count
-churns up and down on its own; a new number is not a finding.
+⛔ **Stray `about:blank` tabs: state the exact count you got from `grep -c` in step 1 of
+preflight, verbatim.** Do not recount, re-estimate or round it here — use the number the
+scripted count already gave you. Never call them orphaned, leaked, clutter or a bug, never
+infer a cause, never offer to close them. The count churns up and down on its own; a new
+number is not a finding.
+
+⛔ **If this run aborted on the `Cannot read properties of undefined (reading 'snapshot')`
+preflight error, the occurrence count from `state/preflight-abort-count.json` goes in this
+report, not just in your head.** See the counter rule in the preflight section above — below
+3 today, report the abort normally; 3 or more, state the count and that human intervention is
+needed.

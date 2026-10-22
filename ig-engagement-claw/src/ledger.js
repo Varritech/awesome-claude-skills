@@ -35,13 +35,13 @@ export function createLedger({ path }) {
      * Appended, never overwritten — the original opener has to survive so the
      * follow-up can reference it and so we can see the whole history later.
      */
-    recordFollowUp(handle, { at, text }) {
+    recordFollowUp(handle, { at, text, valueId = null }) {
       const key = normalize(handle);
       const entry = entries[key];
       // A follow-up to someone with no opener on record would be a cold DM
       // wearing a follow-up's clothes. Refuse loudly rather than invent history.
       if (!entry) throw new Error(`cannot follow up ${key}: no opener on record`);
-      entry.followUps = [...(entry.followUps ?? []), { at, text }];
+      entry.followUps = [...(entry.followUps ?? []), valueId ? { at, text, valueId } : { at, text }];
       persist();
     },
 

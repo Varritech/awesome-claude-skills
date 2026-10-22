@@ -193,68 +193,37 @@ export function followUpGuideText({ linksBlocked = false, source = null } = {}) 
 }
 
 /**
- * Knock two: the last message, and the only one the model writes.
+ * Every follow-up past the fixed knock one is a VALUE TOUCHPOINT (src/value.js):
+ * one short message carrying one real item (AI news, a guide, the router offer).
+ * Cristiano, 2026-10-22: "Always with value, not just wishing you the best with
+ * whatever they created." The old "close warmly, leave the door open, ask
+ * nothing" prompt was exactly the banned empty check-in and is gone.
  *
- * No link and nothing to claim — knock one already gave them the thing. This
- * one exists only to close warmly and stop. It is told not to chase, because
- * "just following up" makes the silence the subject and is the fastest route to
- * a report.
+ * Reopened old threads take the same route: nothing in the prompt claims a past
+ * message or guide, because the item is the whole reason for writing.
  */
-export function buildFollowUpPrompt(target) {
-  return [
-    'You are Cristiano, founder of Varritech, on Instagram.',
-    `You messaged @${target.handle} ${target.silentDays} days ago and sent them a free guide. They never replied.`,
-    `Your first message was: "${target.opener}"`,
-    'Write ONE short message under 30 words. This is your LAST message to them.',
-    'Close it warmly, leave the door open, and ask nothing that demands a reply.',
-    '⛔ Do not repeat or rephrase what you already sent — say something different.',
-    '⛔ Never guilt them, never chase. No "just following up", no "did you see my message", no "bumping this". Their silence is not the subject.',
-    'No links, no pitch, no price. Write the FINAL text, never a placeholder like [niche] or {name}.',
-  ].join(' ');
-}
+import { buildLibrary, draftValueFollowUp, loadNews, priorValueIds } from './value.js';
+
+const VALUE_PATH = process.env.CLAW_VALUE || new URL('../state/value-library.json', import.meta.url).pathname;
 
 /**
- * Reopening a thread with someone Cristiano has ALREADY spoken to on Instagram,
- * sometimes a long time ago. 34 of these sat permanently frozen until
- * 2026-09-10.
- *
- * ⛔ This is NOT knock one. There is no opener of ours to follow up on and no
- * guide we sent them, so the standard follow-up prompt would assert something
- * that never happened. And leading months of silence with a price is the wrong
- * first move on someone who already knows him — the pitch comes after they
- * answer, through the normal ladder.
+ * Draft a follow-up and say which value item it carries.
+ * Returns { text, valueId, skipped, reason? }; text '' means "send nothing this run".
  */
-export function buildReopenPrompt(target) {
-  return [
-    "You are Cristiano, founder of Varritech, on Instagram.",
-    `You and @${target.handle} have spoken in this thread before, but it has gone quiet.`,
-    "Write ONE short message under 30 words that reopens it warmly.",
-    "⛔ Do NOT reference any specific past message, guide or offer — you do not remember the details and inventing one is worse than saying nothing.",
-    "⛔ No links, no pitch, no price. Do not sell anything in this message.",
-    "Ask a genuine question about what they are building or working on now.",
-    "Sound like a person picking a conversation back up, not a brand running a campaign.",
-    "Write the FINAL text, never a placeholder like [niche] or {name}.",
-  ].join(" ");
-}
-
-export async function draftFollowUp({ target, llm, linksBlocked = false }) {
-  // An old thread being reopened gets a human re-open, never the fixed pitch.
-  if (target.reopen) {
-    const raw = await llm({ prompt: buildReopenPrompt(target), target });
-    return capWords(stripEmDashes(stripLinks(String(raw ?? "").trim())), 30);
+export async function draftFollowUpFull({ target, llm, linksBlocked = false, library, entry, log }) {
+  // Knock one is Cristiano's fixed guide / Skills copy, verbatim (see above).
+  if (target.followUpNumber === 1 && !target.reopen) {
+    return {
+      text: followUpGuideText({ linksBlocked, source: target.source }),
+      valueId: target.source === 'commenter' ? 'skills-library' : 'guide-1',
+      skipped: false,
+    };
   }
-
-  // Knock one is the fixed value drop. No model involved, no word cap applied —
-  // it is already the length it needs to be to carry the anchor and the link.
-  if (target.followUpNumber === 1) return followUpGuideText({ linksBlocked, source: target.source });
-
-  const raw = await llm({ prompt: buildFollowUpPrompt(target), target });
-  // stripLinksExcept rather than stripLinks: a browser-sent DM carries a URL
-  // fine, so an authorised Varritech link may survive if the model adds one.
-  const stripped = linksBlocked
-    ? stripLinks(String(raw ?? '').trim())
-    : stripLinksExcept(String(raw ?? '').trim());
-  const text = capWords(stripEmDashes(stripped));
-  return hasPlaceholder(text) ? '' : text;
+  const lib = library ?? buildLibrary({ news: loadNews(VALUE_PATH), now: new Date() });
+  const sentIds = priorValueIds(entry ?? { valueItems: target.valueItems, followUps: target.priorFollowUps }, lib);
+  return draftValueFollowUp({ target, library: lib, sentIds, llm, linksBlocked, ...(log ? { log } : {}) });
 }
 
+export async function draftFollowUp(args) {
+  return (await draftFollowUpFull(args)).text;
+}
