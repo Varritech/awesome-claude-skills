@@ -200,3 +200,43 @@ describe('daily news refresh', () => {
     expect(JSON.parse(readFileSync(p, 'utf8'))).toMatchObject({ fetchedOn: '2026-10-22', news: [{ id: news().id }] });
   });
 });
+
+describe('niche guides need a reason', () => {
+  it('with nothing known about the person, never leads with a niche guide (design system, QA, security...)', () => {
+    const l = buildLibrary({ news: [news()], now: NOW });
+    for (const n of [2, 3, 4, 5]) {
+      const pick = pickValueItem({ target: { handle: 'x', followUpNumber: n }, library: l, sentIds: [] });
+      expect(['guide-2', 'guide-4', 'guide-5', 'guide-8', 'guide-9']).not.toContain(pick.id);
+    }
+  });
+
+  it('but picks the niche guide when what we know matches it', () => {
+    const l = buildLibrary({ news: [], now: NOW });
+    const pick = pickValueItem({ target: { handle: 'x', followUpNumber: 3, opener: 'working on our brand and figma design system' }, library: l, sentIds: [] });
+    expect(pick.id).toBe('guide-2');
+  });
+});
+
+describe('no invented knowledge about the person', () => {
+  const item = news();
+  it('rejects "saw you / thanks for checking out the post" when we know nothing about them', () => {
+    expect(checkValueDraft('Hey, saw you vibing with AI lately. DeepSeek shipped a model.', item, { target: { handle: 'x' } })).toMatchObject({ ok: false, reason: 'invented-knowledge' });
+    expect(checkValueDraft('Thanks for checking out the posts. DeepSeek shipped a model.', item, { target: { handle: 'x' } })).toMatchObject({ ok: false, reason: 'invented-knowledge' });
+  });
+  it('allows it when we actually know they engaged with a post', () => {
+    expect(checkValueDraft('Saw you liked the post. DeepSeek shipped a model.', item, { target: { handle: 'x', caption: 'agents' } }).ok).toBe(true);
+  });
+  it('rejects a first name nobody gave us', () => {
+    expect(checkValueDraft('Hey Sarah, DeepSeek shipped a model.', item, { target: { handle: 'sarah_vasquez' } })).toMatchObject({ ok: false, reason: 'invented-knowledge' });
+  });
+  it('a reopened old thread prefers fresh news over a generic offer', () => {
+    const l = buildLibrary({ news: [news()], now: NOW });
+    const pick = pickValueItem({ target: { handle: 'x', followUpNumber: 1, reopen: true }, library: l, sentIds: [] });
+    expect(pick.type).toBe('news');
+  });
+  it('drops an unbalanced quote the model left behind', async () => {
+    const llm = async () => 'DeepSeek shipped a model. Reply "router';
+    const out = await draftValueFollowUp({ target: { handle: 'x', followUpNumber: 2 }, library: buildLibrary({ news: [news()], now: NOW }), sentIds: buildLibrary({ news: [], now: NOW }).items.map((i) => i.id), llm, log: () => {} });
+    expect(out.text).not.toMatch(/"/);
+  });
+});

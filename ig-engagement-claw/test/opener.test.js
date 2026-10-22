@@ -125,7 +125,7 @@ describe('follow-up drafting', () => {
 
   it('keeps a clean value follow-up, stripped of em dashes', async () => {
     const text = await draftFollowUp({
-      target: TARGET, library, linksBlocked: true,
+      target: TARGET, library: { now: new Date(), items: GUIDES.slice(0, 1) }, linksBlocked: true,
       llm: async () => 'We put together a free strategy guide \u2014 want it for what you are building?',
     });
     expect(text).not.toMatch(/[\u2014\u2013]/);
@@ -200,9 +200,9 @@ describe('the value drop', () => {
   it('never repeats the knock-one guide in a later knock', async () => {
     const out = await draftFollowUp({
       target: { ...T, followUpNumber: 2, valueItems: ['guide-1'] },
-      library: { now: new Date(), items: GUIDES.slice(0, 2) }, linksBlocked: true,
-      llm: async ({ prompt }) => (/guide-1/.test(prompt) ? 'the strategy guide' : 'The design system guide covers UI and UX basics for founders.'),
+      library: { now: new Date(), items: [GUIDES[0], GUIDES[2]] }, linksBlocked: true,
+      llm: async ({ prompt }) => (/guide-1/.test(prompt) ? 'the strategy guide' : 'The Full-Stack Engineering guide covers the stack decisions for founders.'),
     });
-    expect(out).toMatch(/design/i);
+    expect(out).toMatch(/engineering/i);
   });
 });

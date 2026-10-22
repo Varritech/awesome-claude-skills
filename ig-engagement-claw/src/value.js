@@ -39,7 +39,9 @@ export const ROUTER_OFFER = {
 };
 
 const GUIDE_BASE = process.env.GUIDE_BASE_URL || 'https://varritech-product-playbook.vercel.app';
+const NICHE = new Set([2, 4, 5, 8, 9]);
 const guide = (n, title, topic, tags, anchors) => ({
+  niche: NICHE.has(n),
   id: `guide-${n}`, type: 'guide', title, topic, url: `${GUIDE_BASE}/guide-${n}`,
   why: `a free step-by-step guide on ${topic}`, tags, anchors,
 });
@@ -111,13 +113,18 @@ export function pickValueItem({ target, library, sentIds = [] }) {
   const sent = new Set(sentIds);
   const known = new Set(words([target.opener, target.caption, target.bio, target.hint].filter(Boolean).join(' ')));
   const rotation = ['news', 'guide', 'router'];
-  const preferred = rotation[(Math.max(1, target.followUpNumber ?? 2) - 2 + rotation.length * 4) % rotation.length];
+  const preferred = target.reopen ? 'news' : rotation[(Math.max(1, target.followUpNumber ?? 2) - 2 + rotation.length * 4) % rotation.length];
   let best = null;
   for (const item of library.items) {
     if (sent.has(item.id)) continue;
     const overlap = (item.tags ?? []).filter((t) => known.has(t)).length;
+    // A niche guide (design system, QA, security...) with nothing known to justify it
+    // reads as random. Generic items (news, router, strategy, AI scaling, marketing, engineering) are fine blind.
+    if (item.niche && overlap === 0) continue;
     let score = overlap * 3 + (item.type === preferred ? 1 : 0);
     if (item.type === 'news') score += Math.max(0, 14 - Math.max(0, ageDays(item.date, library.now))) / 100;
+    // Deterministic per-person jitter so a batch of strangers does not all get the identical item.
+    score += (Array.from(`${target.handle}${item.id}`).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 100) / 1000;
     if (!best || score > best.score) best = { item, score };
   }
   return best?.item ?? null;
@@ -130,7 +137,7 @@ const sentenceCount = (text) => text.replace(URL_RE, 'link').split(/(?<=[.!?])\s
  * Post-check. A draft is only sendable if it is short, human, carries the item
  * it was handed, and contains no empty check-in language.
  */
-export function checkValueDraft(text, item, { linksBlocked = false } = {}) {
+export function checkValueDraft(text, item, { linksBlocked = false, target = null } = {}) {
   const t = String(text ?? '').trim();
   if (!t) return { ok: false, reason: 'empty' };
   if (BANNED_PHRASES.some((re) => re.test(t))) return { ok: false, reason: 'banned-phrase' };
@@ -143,6 +150,13 @@ export function checkValueDraft(text, item, { linksBlocked = false } = {}) {
     if (!urls.every(allowed)) return { ok: false, reason: 'link-not-allowed' };
   }
   if (/\$\s?\d/.test(t)) return { ok: false, reason: 'price' };
+  // We only know what is in the ledger: never claim to have seen them do something, or use a name we were never given.
+  if (target) {
+    const knowsEngagement = Boolean(target.caption || target.bio || target.opener);
+    if (!knowsEngagement && /\b(saw you|noticed you|thanks for (checking|engaging|liking|following|stopping))/i.test(t)) return { ok: false, reason: 'invented-knowledge' };
+    const first = (t.match(/^(?:[Hh]ey|[Hh]i|[Hh]ello)[,!]?\s+([A-Z][a-z]{2,})\b/) ?? [])[1];
+    if (first && !target.name) return { ok: false, reason: 'invented-knowledge' };
+  }
   if (countQuestions(t) > 1) return { ok: false, reason: 'too-many-questions' };
   if (sentenceCount(t) > 3 || t.split(/\s+/).length > 60) return { ok: false, reason: 'too-long' };
 
@@ -166,7 +180,7 @@ export function buildValuePrompt({ target, item, linksBlocked, feedback = null }
     'You are Cristiano, founder of Varritech, sending a short follow-up DM on Instagram.',
     `Person: @${target.handle}. What we know: ${[target.opener && `we opened with "${target.opener}"`, target.caption && `they engaged with a post about "${target.caption}"`, target.bio && `bio: ${target.bio}`].filter(Boolean).join('; ') || 'little, they engaged with our posts'}.`,
     `The ONE thing of value to give them: ${describeItem(item, linksBlocked)}`,
-    'Write 1 to 3 short sentences, casual, like a person texting. Lead with the value, tie it to what they might be building if you can do that without guessing.',
+    'Write 1 to 3 short sentences, casual, like a person texting. Lead with the value, then say it plainly (do not open with "Got a"). Only say things about the person that appear under "What we know": never claim you saw them do something, never use a first name, never invent their interests. If you know nothing, just share the item.',
     'At most one question, and only if it is natural. No emoji spam, no em dashes.',
     'Never say: hope it is going well, wishing you the best, just following up, checking in, no worries, door is always open. No pitch, no price.',
     'Write the FINAL text, never a placeholder like [niche] or {name}. Output only the message.',
@@ -175,7 +189,11 @@ export function buildValuePrompt({ target, item, linksBlocked, feedback = null }
   return lines.join(' ');
 }
 
-const clean = (raw) => stripEmDashes(String(raw ?? '').trim()).replace(/^["']|["']$/g, '').trim();
+const clean = (raw) => {
+  let t = stripEmDashes(String(raw ?? '').trim()).replace(/^["']|["']$/g, '').trim();
+  if ((t.match(/"/g) ?? []).length % 2 === 1) t = t.replace(/"/g, ''); // a dangling quote is a model slip
+  return t;
+};
 
 /**
  * Draft one value follow-up. Regenerates once on a failed post-check; if the
@@ -198,7 +216,7 @@ export async function draftValueFollowUp({ target, library, sentIds = [], llm, l
       last = `llm-error: ${String(err?.message ?? err).slice(0, 120)}`;
       break;
     }
-    const verdict = checkValueDraft(text, item, { linksBlocked });
+    const verdict = checkValueDraft(text, item, { linksBlocked, target });
     if (verdict.ok) return { text, valueId: item.id, skipped: false };
     last = verdict.reason;
     feedback = verdict.reason;
