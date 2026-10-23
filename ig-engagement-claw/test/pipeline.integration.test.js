@@ -101,16 +101,12 @@ describe('plan -> send -> commit -> replan', () => {
     expect(plan.followUps.map((f) => f.handle)).not.toContain('ana');
   });
 
-  it('drops anyone whose opener came back unusable rather than sending an empty DM', async () => {
-    const placeholderLlm = async ({ target }) =>
-      target.handle === 'bob' ? 'Hey, into [their niche]?' : 'Hey, what are you building?';
-
+  it('plans every selected person with the fixed welcome opener', async () => {
     const plan = await planAfterBaseline({
-      notifications: NOTIFS, ledger: createLedger({ path }), llm: placeholderLlm, cap: 10, now: WORKDAY,
+      notifications: NOTIFS, ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY,
     });
-
-    expect(plan.batch.map((t) => t.handle)).not.toContain('bob');
-    for (const t of plan.batch) expect(t.text.length).toBeGreaterThan(0);
+    expect(plan.batch.length).toBeGreaterThan(0);
+    for (const t of plan.batch) expect(t.text).toMatch(/drop your best email/i);
   });
 
   it('says nothing on the first look, then plans only who appeared afterwards', async () => {
