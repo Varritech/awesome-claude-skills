@@ -83,54 +83,36 @@ export function hasPlaceholder(text) {
 }
 
 /**
- * The cold opener: value first, then ONE ask, their email.
+ * The cold opener, in Cristiano's words (2026-10-22):
+ *   "it should just offer the guide and say: Hey, here at Varritech, we have a
+ *   system called the Scale-Wright, which guarantees 10k MRR ..."
+ * One offer (the free Scalewright guide), one question, then the free help on
+ * the table: AI automation, AI marketing, design, a website review.
  *
- * Cristiano, 2026-10-22: the LLM opener ended every DM on "what are you working
- * on right now?", which gives a stranger nothing. "It has to provide immediate
- * value to people and basically get their contact information." So message one
- * now carries a real result (the $3.08 lead figure, a results-only proof point,
- * [[feedback_proof_no_dates_no_screenshots_roas_only]]) and offers the full
- * Lead Machine guide by email. When they reply with an address, the sales claw
- * (~/instagram-claw) submits it to /api/lead-machine/lead, which emails the
- * guide and starts the nurture that sells the paid tiers.
+ * ⛔ Every offer here is delivered for real by the reply claw (~/instagram-claw,
+ * rev 00054): the guide goes out via /api/playbook-lead once it has email and
+ * number, and a website they send is read through Firecrawl and reviewed.
+ * Change an offer here and that claw has to change with it.
  *
- * FIXED COPY, like the knock-one guide text, so the number survives verbatim.
- * Still no link: the in-DM email ask converts better than a landing page and
- * keeps the account clear of another link restriction.
- *
- * Three wordings rotate by handle, so a burst of new followers does not get
- * byte-identical DMs, but one person always sees the same text.
+ * The "$10k MRR" guarantee wording is his deliberate DM wording
+ * ([[feedback_guide_price_anchor_is_deliberate]]); do not soften it here.
+ * FIXED COPY, no link, no em dash. Same text for every source.
  */
-const THANKS = {
-  follower: 'Hey, thanks for the follow!',
-  liker: 'Hey, thanks for the like!',
-  commenter: 'Hey, thanks for the comment!',
-};
+export const WELCOME_OPENER =
+  "Hey, here at Varritech we have a system called Scalewright, which guarantees $10k MRR. " +
+  "It's expensive and not for everyone, so we have a free guide we're giving out that shows you how to do it. " +
+  'Would you be interested? ' +
+  "We can also give you some advice if you're struggling with anything like automating your business with AI, AI marketing, or general design tips. " +
+  'We can look at your website for you and give you strategy, all for free.';
 
-const VALUE_LINES = [
-  'One thing working for us right now: Claude writes the ad, the landing page and the follow-up emails in one pass, and it got leads down to $3.08 each.',
-  'Quick one that is working for us: we stopped writing ads by hand. One Claude setup builds the ad, the landing page and the emails, and leads came in at $3.08 each.',
-  'Something useful while you are here: our cheapest leads came from letting Claude build the whole funnel, ad to landing page to emails. $3.08 a lead.',
-];
-
-const ASK = 'I wrote up the exact setup as a free guide. Want it? Drop your best email and I will send it over.';
-
-function pickIndex(handle, n) {
-  let h = 0;
-  for (const ch of String(handle ?? '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return h % n;
+export function welcomeOpener() {
+  return stripEmDashes(WELCOME_OPENER);
 }
 
-export function welcomeOpener(target) {
-  const thanks = THANKS[target.source] ?? THANKS.follower;
-  const value = VALUE_LINES[pickIndex(target.handle, VALUE_LINES.length)];
-  return stripEmDashes(`${thanks} ${value} ${ASK}`);
-}
-
-// `llm` is kept in the signature so the pipeline call site is unchanged; the
-// opener no longer asks the model for anything.
-export async function draftOpener({ target }) {
-  return welcomeOpener(target);
+// `llm` and `target` stay in the signature so the pipeline call site is
+// unchanged; the opener no longer asks the model for anything.
+export async function draftOpener() {
+  return welcomeOpener();
 }
 
 /**
