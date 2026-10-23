@@ -106,7 +106,7 @@ describe('plan -> send -> commit -> replan', () => {
       notifications: NOTIFS, ledger: createLedger({ path }), llm, cap: 10, now: WORKDAY,
     });
     expect(plan.batch.length).toBeGreaterThan(0);
-    for (const t of plan.batch) expect(t.text).toMatch(/drop your best email/i);
+    for (const t of plan.batch) expect(t.text).toMatch(/Scalewright/);
   });
 
   it('says nothing on the first look, then plans only who appeared afterwards', async () => {

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { draftOpener } from '../src/opener.js';
 
-// Cristiano, 2026-10-22: the old opener ("Thanks for following. What are you
-// working on right now?") gave nothing. The first DM now hands over something
-// useful straight away and asks for their email so the full guide can follow.
+// Cristiano, 2026-10-22: the opener offers the free Scalewright guide plus free
+// help (AI automation, AI marketing, design, a website review), in his words.
+// The reply claw (~/instagram-claw) delivers each of those for real.
 const neverCalled = async () => {
   throw new Error('the welcome opener is fixed copy, the model must not be asked');
 };
@@ -11,40 +11,34 @@ const neverCalled = async () => {
 describe('welcome opener', () => {
   const FOLLOWER = { handle: 'ana', source: 'follower' };
 
-  it('gives a concrete result up front and asks for their email', async () => {
+  it('offers the free Scalewright guide on the back of the $10k MRR guarantee', async () => {
     const text = await draftOpener({ target: FOLLOWER, llm: neverCalled });
-    expect(text).toContain('$3.08');
-    expect(text).toMatch(/email/i);
+    expect(text).toMatch(/Scalewright/);
+    expect(text).toContain('$10k MRR');
+    expect(text).toMatch(/free guide/i);
+    expect(text).toMatch(/would you be interested\?/i);
+  });
+
+  it('offers the free help too: AI automation, AI marketing, design, a website review', async () => {
+    const text = await draftOpener({ target: FOLLOWER, llm: neverCalled });
+    expect(text).toMatch(/automating your business with AI/i);
+    expect(text).toMatch(/AI marketing/i);
+    expect(text).toMatch(/design/i);
+    expect(text).toMatch(/look at your website/i);
+    expect(text).toMatch(/all for free/i);
+  });
+
+  it('asks exactly one question and never "what are you working on"', async () => {
+    const text = await draftOpener({ target: FOLLOWER, llm: neverCalled });
+    expect(text.split('?').length - 1).toBe(1);
     expect(text).not.toMatch(/what are you (working on|building)/i);
   });
 
-  it('asks for exactly one thing', async () => {
-    const text = await draftOpener({ target: FOLLOWER, llm: neverCalled });
-    expect(text.split('?').length - 1).toBeLessThanOrEqual(1);
-  });
-
-  it('thanks them for what they actually did', async () => {
-    expect(await draftOpener({ target: FOLLOWER, llm: neverCalled })).toMatch(/thanks for the follow/i);
-    expect(await draftOpener({ target: { handle: 'b', source: 'liker' }, llm: neverCalled })).toMatch(/thanks for the like/i);
-    expect(await draftOpener({ target: { handle: 'c', source: 'commenter', commentText: 'Build' }, llm: neverCalled })).toMatch(/thanks for the comment/i);
-  });
-
-  it('carries no link and no em dash', async () => {
-    for (const handle of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
-      const text = await draftOpener({ target: { handle, source: 'follower' }, llm: neverCalled });
+  it('carries no link and no em dash, for every source', async () => {
+    for (const source of ['follower', 'liker', 'commenter']) {
+      const text = await draftOpener({ target: { handle: 'x', source }, llm: neverCalled });
       expect(text).not.toMatch(/https?:\/\/|www\.|\.com\b/);
       expect(text).not.toMatch(/[—–]/);
     }
-  });
-
-  it('rotates the wording across people but is stable for one person', async () => {
-    const texts = new Set();
-    for (const handle of ['a1', 'b2', 'c3', 'd4', 'e5', 'f6', 'g7', 'h8', 'i9', 'j10']) {
-      texts.add(await draftOpener({ target: { handle, source: 'follower' }, llm: neverCalled }));
-    }
-    expect(texts.size).toBeGreaterThan(1);
-    const once = await draftOpener({ target: FOLLOWER, llm: neverCalled });
-    const twice = await draftOpener({ target: FOLLOWER, llm: neverCalled });
-    expect(once).toBe(twice);
   });
 });
