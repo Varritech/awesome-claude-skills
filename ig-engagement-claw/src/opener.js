@@ -82,47 +82,55 @@ export function hasPlaceholder(text) {
   return PLACEHOLDER_RE.test(text);
 }
 
-// What we know about this person, in the model's own working language. A
-// commenter is the only source that hands us their actual words — which is also
-// the only case where the feed can lie to us, because Instagram elides a long
-// comment to a prefix and quoting that prefix back reads as a non-sequitur.
-function contextFor(target) {
-  if (target.source === 'commenter') {
-    const quoted = `They commented "${target.commentText}" on our post.`;
-    return target.truncated
-      ? `${quoted} That comment is CUT OFF — it is only the first part of what they wrote, so do not quote it back to them; react to the gist instead.`
-      : quoted;
-  }
-  if (target.source === 'liker') {
-    // ⛔ Without a caption we genuinely do not know which post it was. Left to
-    // itself the model fills the gap — it wrote "the post about scaling with
-    // automation" on a live draft 2026-08-17, inventing a topic for OUR OWN
-    // post. A first DM that misdescribes our content is worse than a plain one.
-    return target.caption
-      ? `They liked our post about "${target.caption}".`
-      : 'They liked one of our posts. You do NOT know which one or what it was about, so do not describe what the post said, and do not guess at its topic.';
-  }
-  return 'They just followed us.';
+/**
+ * The cold opener: value first, then ONE ask, their email.
+ *
+ * Cristiano, 2026-10-22: the LLM opener ended every DM on "what are you working
+ * on right now?", which gives a stranger nothing. "It has to provide immediate
+ * value to people and basically get their contact information." So message one
+ * now carries a real result (the $3.08 lead figure, a results-only proof point,
+ * [[feedback_proof_no_dates_no_screenshots_roas_only]]) and offers the full
+ * Lead Machine guide by email. When they reply with an address, the sales claw
+ * (~/instagram-claw) submits it to /api/lead-machine/lead, which emails the
+ * guide and starts the nurture that sells the paid tiers.
+ *
+ * FIXED COPY, like the knock-one guide text, so the number survives verbatim.
+ * Still no link: the in-DM email ask converts better than a landing page and
+ * keeps the account clear of another link restriction.
+ *
+ * Three wordings rotate by handle, so a burst of new followers does not get
+ * byte-identical DMs, but one person always sees the same text.
+ */
+const THANKS = {
+  follower: 'Hey, thanks for the follow!',
+  liker: 'Hey, thanks for the like!',
+  commenter: 'Hey, thanks for the comment!',
+};
+
+const VALUE_LINES = [
+  'One thing working for us right now: Claude writes the ad, the landing page and the follow-up emails in one pass, and it got leads down to $3.08 each.',
+  'Quick one that is working for us: we stopped writing ads by hand. One Claude setup builds the ad, the landing page and the emails, and leads came in at $3.08 each.',
+  'Something useful while you are here: our cheapest leads came from letting Claude build the whole funnel, ad to landing page to emails. $3.08 a lead.',
+];
+
+const ASK = 'I wrote up the exact setup as a free guide. Want it? Drop your best email and I will send it over.';
+
+function pickIndex(handle, n) {
+  let h = 0;
+  for (const ch of String(handle ?? '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % n;
 }
 
-export function buildPrompt(target) {
-  const who = contextFor(target);
-  return [
-    'You are Cristiano, founder of Varritech, opening a DM on Instagram.',
-    who,
-    `Write ONE opener under ${OPENER_MAX_WORDS} words.`,
-    'Rules: no links, no pitch, no price, no emoji spam. Reference what they engaged with if there is something to reference.',
-    'Write the FINAL text. Never leave a placeholder like [niche] or {name} — if you do not know something, do not refer to it.',
-    'End on a genuine question about what they are building. Sound like a person, not a brand.',
-  ].join(' ');
+export function welcomeOpener(target) {
+  const thanks = THANKS[target.source] ?? THANKS.follower;
+  const value = VALUE_LINES[pickIndex(target.handle, VALUE_LINES.length)];
+  return stripEmDashes(`${thanks} ${value} ${ASK}`);
 }
 
-export async function draftOpener({ target, llm }) {
-  const raw = await llm({ prompt: buildPrompt(target), target });
-  const text = capWords(stripEmDashes(stripLinks(String(raw ?? '').trim())));
-  // Drop, don't patch. An empty opener means this person is simply skipped this
-  // run and picked up next time — they are not marked contacted.
-  return hasPlaceholder(text) ? '' : text;
+// `llm` is kept in the signature so the pipeline call site is unchanged; the
+// opener no longer asks the model for anything.
+export async function draftOpener({ target }) {
+  return welcomeOpener(target);
 }
 
 /**
