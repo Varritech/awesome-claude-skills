@@ -24,6 +24,7 @@ const makeLlm = () => cfg.llmBackend === 'anthropic-api'
   ? anthropicLlm({ apiKey: cfg.anthropicKey, model: cfg.model, workspaceId: cfg.anthropicWorkspaceId })
   : claudeCliLlm({ model: cfg.model, oauthToken: cfg.claudeOauthToken });
 import { firestoreStore, nullStore } from './firestore-store.js';
+import { applyFriendCheck } from './friends.js';
 import { config } from './config.js';
 
 const cfg = config();
@@ -82,6 +83,14 @@ if (cmd === 'next') {
   if (!handle) { console.error('usage: cli.js blocked <handle> [reason]'); process.exit(1); }
   const res = await blockTarget({ ledger, handle, reason });
   console.log(res.recorded ? `blocked: ${handle} (${reason})` : `no opener on record: ${handle}`);
+
+} else if (cmd === 'friend-check') {
+  // stdin: the followers-lookup JSON the agent fetched. Prints friend|clear|unknown.
+  const [, , , handle] = process.argv;
+  if (!handle) { console.error('usage: cli.js friend-check <handle>'); process.exit(1); }
+  let response = null;
+  try { response = JSON.parse(readStdin()); } catch { /* unreadable lookup = unknown */ }
+  console.log(applyFriendCheck({ ledger, handle, response }));
 
 } else if (cmd === 'followup-sent') {
   // A follow-up the agent CONFIRMED landed. Appended to the existing entry, so
@@ -187,6 +196,6 @@ if (cmd === 'next') {
   }
 
 } else {
-  console.error('usage: cli.js next|commit|skip|blocked|followup-sent|replied|ledger|news-add|news-status|followups-dry|sms-tick|sms-ledger');
+  console.error('usage: cli.js next|commit|skip|blocked|friend-check|followup-sent|replied|ledger|news-add|news-status|followups-dry|sms-tick|sms-ledger');
   process.exit(1);
 }
