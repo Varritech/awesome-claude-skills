@@ -86,11 +86,11 @@ if (cmd === 'next') {
 
 } else if (cmd === 'friend-check') {
   // stdin: the followers-lookup JSON the agent fetched. Prints friend|clear|unknown.
-  const [, , , handle] = process.argv;
-  if (!handle) { console.error('usage: cli.js friend-check <handle>'); process.exit(1); }
+  const [, , , handle, source] = process.argv;
+  if (!handle) { console.error('usage: cli.js friend-check <handle> [source]'); process.exit(1); }
   let response = null;
   try { response = JSON.parse(readStdin()); } catch { /* unreadable lookup = unknown */ }
-  console.log(applyFriendCheck({ ledger, handle, response }));
+  console.log(applyFriendCheck({ ledger, handle, response, source }));
 
 } else if (cmd === 'followup-sent') {
   // A follow-up the agent CONFIRMED landed. Appended to the existing entry, so

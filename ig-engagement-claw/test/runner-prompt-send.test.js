@@ -17,6 +17,11 @@ describe('runner-prompt.md send rules', () => {
     expect(section('## 3b.', '## 4. Commit')).toMatch(/friend-check/);
   });
 
+  it('passes the source on openers so commenters get messaged, but not on follow-ups', () => {
+    expect(section('## 3. Send', '## 3b.')).toContain('friend-check "<handle>" "<source>"');
+    expect(section('## 3b.', '## 4. Commit')).not.toContain('<source>');
+  });
+
   it('looks up the followers of the configured personal account', () => {
     expect(prompt).toContain(`/api/v1/friendships/${config().friendProfileId}/followers/`);
   });

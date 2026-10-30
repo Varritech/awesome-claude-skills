@@ -25,7 +25,11 @@ export function friendVerdict(response, handle) {
  * ⛔ `blocked` is what stops the follow-ups. dueForFollowUp reopens plain
  * `skipped` rows on purpose, so a skip alone would knock on the friend later.
  */
-export function applyFriendCheck({ ledger, handle, response, now = new Date() }) {
+export function applyFriendCheck({ ledger, handle, response, source, now = new Date() }) {
+  // A commenter gets messaged even if they follow him (Cristiano, 2026-10-30).
+  // This claw is the only route to them. Follow-ups pass no source, so the
+  // exemption covers the one opener and a friend is not knocked on after it.
+  if (source === 'commenter') return 'clear';
   const verdict = friendVerdict(response, handle);
   if (verdict !== 'friend') return verdict;
   if (ledger.has(handle)) ledger.markBlocked(handle, REASON);

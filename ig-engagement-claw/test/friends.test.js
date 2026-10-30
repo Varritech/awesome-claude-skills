@@ -76,3 +76,21 @@ describe('applyFriendCheck', () => {
     expect(ledger.has('b')).toBe(false);
   });
 });
+
+describe('commenters (Cristiano, 2026-10-30: "if they comment then they should be messaged")', () => {
+  it('clears a friend who commented, and leaves no ledger row', () => {
+    const ledger = tmpLedger();
+    expect(applyFriendCheck({ ledger, handle: 'pal', response: ok('pal'), source: 'commenter' })).toBe('clear');
+    expect(ledger.has('pal')).toBe(false);
+  });
+
+  it('clears a commenter even when the lookup failed', () => {
+    expect(applyFriendCheck({ ledger: tmpLedger(), handle: 'pal', response: null, source: 'commenter' })).toBe('clear');
+  });
+
+  it.each(['follower', 'liker', undefined])('still shuts out a friend whose source is %s', (source) => {
+    const ledger = tmpLedger();
+    expect(applyFriendCheck({ ledger, handle: 'pal', response: ok('pal'), source })).toBe('friend');
+    expect(ledger.has('pal')).toBe(true);
+  });
+});
