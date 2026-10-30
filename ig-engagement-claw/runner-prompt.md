@@ -338,11 +338,37 @@ hours. **If the batch is empty, stop.** Never go hunting for people to fill a qu
 ⛔ **Stop means stop at `next` — no post-`next` archaeology.** Do not read the ledger,
 `state/*.json`, `src/config.js` or `date` to explain the empty batch. `next` already applied
 the budget and the send window; the reason adds nothing and each probe costs a call. There is
-also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|followup-sent|replied|ledger` (plus `news-add|news-status|followups-dry`, which the daily news job and humans use, never this run).
+also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|friend-check|followup-sent|replied|ledger` (plus `news-add|news-status|followups-dry`, which the daily news job and humans use, never this run).
 
 ## 3. Send — one at a time
 
 For each entry in order:
+
+0. ⛔ **Friend check, before anything else** (Cristiano, 2026-10-30). Anyone following his
+   personal @varriale.cristiano is a friend and must never be messaged. From any
+   instagram.com tab, start the lookup (`<handle>` is the entry's handle):
+
+   ```js
+   (function(){ window.__friend='pending';
+     fetch('/api/v1/friendships/4689465015/followers/?count=12&query='+encodeURIComponent('<handle>'),
+       {credentials:'include',headers:{'X-IG-App-ID':'936619743392459','X-Requested-With':'XMLHttpRequest','X-ASBD-ID':'129477'}})
+       .then(function(r){return r.json()}).then(function(d){window.__friend=JSON.stringify({status:d.status,users:(d.users||[]).map(function(u){return {username:u.username}})})})
+       .catch(function(e){window.__friend=JSON.stringify({error:String(e)})});
+     return 'started'; })()
+   ```
+
+   `browser_execute_js` does not wait for the fetch, so read the result in a second call:
+   `(function(){return window.__friend})()`. If it still says `pending`, wait 2s and read
+   again. Then hand Node the exact text:
+
+   ```
+   echo '<the result>' | node src/cli.js friend-check "<handle>"
+   ```
+
+   - `friend` → already recorded. Do not open the profile. Next entry.
+   - `clear` → continue to step 1.
+   - `unknown` → do NOT send and record nothing; they come back next run. Two `unknown`s in
+     one run means Instagram is rate-limiting the account: end the run and report it.
 
 1. `browser_navigate` → `https://www.instagram.com/<handle>/`
 2. ⛔ **Check for a top-level "Message" button FIRST — many profiles have one.**
@@ -383,6 +409,13 @@ For each entry in order:
    that's how `royalgoon` was recovered, and it turned out to have a working
    top-level `Message` button the whole time. This is why the check above must run
    first: it would have avoided opening Options at all.
+
+   ⛔ **If a dialog offers "Send prioritized message / Send message request":** always click
+   the button whose text is **exactly** `Send prioritized message` (Cristiano, 2026-10-30).
+   Fall back to `Send message request` only if the prioritized option is missing or greyed out,
+   or it asks for payment, and say so in the report. **Never pay**, buy credits or enter card
+   details. After sending, reload the thread and confirm the bubble is still there:
+   the prioritized dialog's sends have vanished on reload before, and only `commit` what survived.
 
 3. ⛔ **Check the thread is empty before typing anything.** Screenshot it. If there
    is ANY prior message — from them or from us, however old — we have already
@@ -530,7 +563,9 @@ to knock on because this array came back short.
 
 For each entry, in order:
 
-1. Open their thread the same way as section 3 (profile → 3-dots → **Send message**).
+1. Run the §3 step 0 `friend-check` first. `friend` = recorded, no follow-up, next entry;
+   `unknown` = no send this run. Only on `clear`, open their thread the same way as section 3
+   (profile → 3-dots → **Send message**), taking `Send prioritized message` if that dialog appears.
 2. ⛔ **Check for the "can't receive your message... don't allow new message
    requests from everyone" banner before typing anything.** If it's there, run:
 

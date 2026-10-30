@@ -50,6 +50,9 @@ export const config = () => ({
   // company posts. Comma-separated in CLAW_EXCLUDE.
   exclude: (process.env.CLAW_EXCLUDE ?? 'varriale.cristiano,jess_varriale,varritech')
     .split(',').map((h) => h.trim()).filter(Boolean),
+  // @varriale.cristiano's numeric id. Whoever follows that account is a personal
+  // friend and never gets a DM (see src/friends.js).
+  friendProfileId: process.env.FRIEND_PROFILE_ID ?? '4689465015',
   /*
    * ⛔ NO DAILY CAP by default (Cristiano, 2026-09-10: "there should not be any
    * daily window"). It hit 15/day and went silent for the rest of the day with
