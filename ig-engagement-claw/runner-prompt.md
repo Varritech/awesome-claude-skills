@@ -345,7 +345,8 @@ also no `cli.js status` subcommand — usage is `next|commit|skip|blocked|friend
 For each entry in order:
 
 0. ⛔ **Friend check, before anything else** (Cristiano, 2026-10-30). Anyone following his
-   personal @varriale.cristiano is a friend and must never be messaged. From any
+   personal @varriale.cristiano is a friend and gets no opener, unless they commented: a
+   commenter is always messaged, and Node handles that from the `source` you pass. From any
    instagram.com tab, start the lookup (`<handle>` is the entry's handle):
 
    ```js
@@ -362,7 +363,7 @@ For each entry in order:
    again. Then hand Node the exact text:
 
    ```
-   echo '<the result>' | node src/cli.js friend-check "<handle>"
+   echo '<the result>' | node src/cli.js friend-check "<handle>" "<source>"
    ```
 
    - `friend` → already recorded. Do not open the profile. Next entry.
@@ -563,7 +564,8 @@ to knock on because this array came back short.
 
 For each entry, in order:
 
-1. Run the §3 step 0 `friend-check` first. `friend` = recorded, no follow-up, next entry;
+1. Run the §3 step 0 `friend-check` first, with the handle only: the commenter exemption
+   covers the opener, not follow-ups. `friend` = recorded, no follow-up, next entry;
    `unknown` = no send this run. Only on `clear`, open their thread the same way as section 3
    (profile → 3-dots → **Send message**), taking `Send prioritized message` if that dialog appears.
 2. ⛔ **Check for the "can't receive your message... don't allow new message
